@@ -1,25 +1,21 @@
-
+// components/VideoPlayer.tsx
 'use client';
 
 import MuxPlayer from '@mux/mux-player-react';
 
-type Props = {
-  playbackId: string;
-  title?: string;
-};
-
-export default function VideoPlayer({ playbackId, title }: Props) {
-  if (!playbackId) return null;
+export default function VideoPlayer({ playbackId }: { playbackId: string }) {
+  if (!playbackId) return <div>Нет playback_id</div>;
 
   return (
     <MuxPlayer
-      streamType="on-demand"
+      style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}
       playbackId={playbackId}
-      title={title}
+      streamType="on-demand"
       controls
       autoPlay={false}
-      // красиво и безопасно (адаптивное видео):
-      style={{ width: '100%', maxWidth: 900, aspectRatio: '16 / 9', borderRadius: 12 }}
+      muted={false}
     />
   );
 }
+
+

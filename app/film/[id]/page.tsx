@@ -1,3 +1,4 @@
+// app/film/[id]/page.tsx
 import { createClient } from '@supabase/supabase-js';
 import VideoPlayer from '@/components/VideoPlayer';
 
@@ -7,23 +8,21 @@ const supabase = createClient(
 );
 
 export default async function FilmPage({ params }: { params: { id: string } }) {
-  const { data: film } = await supabase
+  const { data: film, error } = await supabase
     .from('films')
-    .select('*')
+    .select('title, playback_id')
     .eq('id', params.id)
     .single();
 
-  return (
-    <main className="container mx-auto p-4">
-      <h1 className="text-2xl font-semibold mb-4">{film?.title ?? 'Видео'}</h1>
+  if (error || !film) {
+    return <div className="p-6">Фильм не найден</div>;
+  }
 
-      {film?.playback_id ? (
-        <VideoPlayer playbackId={film.playback_id} title={film.title ?? ''} />
-      ) : (
-        <p className="text-gray-500">
-          Видео ещё обрабатывается... Обновите страницу позже.
-        </p>
-      )}
+  return (
+    <main className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold mb-4">{film.title || 'Без названия'}</h1>
+      <VideoPlayer playbackId={film.playback_id} />
     </main>
   );
 }
+

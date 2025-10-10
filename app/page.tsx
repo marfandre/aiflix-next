@@ -1,39 +1,35 @@
-import { getBaseUrl } from '@/lib/getBaseUrl'; // добавь этот импорт, если создал helper
+// app/page.tsx
+import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
+import { getBaseUrl } from '@/lib/getBaseUrl';
 
-// Если не хочешь создавать отдельный файл getBaseUrl.ts,
-// можно просто оставить функцию прямо здесь (см. ниже):
-function getBaseUrl() {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-async function getFilms() {
+export default async function Home() {
+  const { data: films } = await supabase
+    .from('films')
+    .select('id,title,playback_id')
+    .order('created_at', { ascending: false });
+
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/films`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch films');
-  const data = await res.json();
-  return data.films as any[];
-}
-
-export default async function HomePage() {
-  const films = await getFilms();
 
   return (
-    <div className="max-w-6xl mx-auto p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {films?.map((f) => (
-        <a
-          key={f.id}
-          href={`/film/${f.id}`}
-          className="block border rounded-2xl p-3 hover:shadow"
-        >
-          <div className="aspect-video bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
-            <span className="text-xs text-gray-500">AI-Created</span>
-          </div>
-          <h3 className="font-semibold truncate">{f.title}</h3>
-          <p className="text-sm text-gray-500 line-clamp-2">{f.description}</p>
-        </a>
-      ))}
-    </div>
+    <main className="max-w-6xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold mb-4">AIFLIX</h1>
+
+      <ul className="space-y-3">
+        {films?.map((f) => (
+          <li key={f.id} className="border rounded p-3 hover:bg-gray-50">
+            <Link href={`/film/${f.id}`}>{f.title || 'Без названия'}</Link>
+          </li>
+        )) ?? <li>Пока нет фильмов</li>}
+      </ul>
+
+      <p className="text-xs text-gray-500 mt-6">Base URL: {base}</p>
+    </main>
   );
 }
+
