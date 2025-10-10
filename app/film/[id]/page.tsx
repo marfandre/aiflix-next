@@ -1,30 +1,29 @@
-import { notFound } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js';
+import VideoPlayer from '@/components/VideoPlayer';
 
-async function getFilm(id: string) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? ''
-  const res = await fetch(`${base}/api/films?id=${id}`, { cache: 'no-store' })
-  const json = await res.json()
-  return (json.films ?? []).find((x: any) => x.id === id)
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default async function FilmPage({ params }: { params: { id: string } }) {
-  const film = await getFilm(params.id)
-  if (!film) return notFound()
+  const { data: film } = await supabase
+    .from('films')
+    .select('*')
+    .eq('id', params.id)
+    .single();
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">{film.title}</h1>
-      {film.playback_id ? (
-        <video
-          controls
-          className="w-full rounded-lg"
-          src={`https://stream.mux.com/${film.playback_id}.m3u8`}
-          playsInline
-        />
+    <main className="container mx-auto p-4">
+      <h1 className="text-2xl font-semibold mb-4">{film?.title ?? 'Видео'}</h1>
+
+      {film?.playback_id ? (
+        <VideoPlayer playbackId={film.playback_id} title={film.title ?? ''} />
       ) : (
-        <div className="p-6 bg-yellow-50 border rounded">Видео ещё обрабатывается… Обновите страницу позже.</div>
+        <p className="text-gray-500">
+          Видео ещё обрабатывается... Обновите страницу позже.
+        </p>
       )}
-      <p className="text-gray-600 whitespace-pre-line">{film.description}</p>
-    </div>
-  )
+    </main>
+  );
 }
