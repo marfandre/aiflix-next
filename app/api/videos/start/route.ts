@@ -1,4 +1,4 @@
-
+// app/api/videos/start/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -12,39 +12,54 @@ const muxAuth =
   Buffer.from(`${process.env.MUX_TOKEN_ID}:${process.env.MUX_TOKEN_SECRET}`).toString('base64');
 
 export async function POST(req: Request) {
-  const { title = 'Untitled', description = '' } = await req.json();
+  try {
+    const { title = 'Untitled', description = '' } = await req.json();
 
-  // 1) создаём Direct Upload в Mux
-  const upRes = await fetch('https://api.mux.com/video/v1/uploads', {
-    method: 'POST',
-    headers: { Authorization: muxAuth, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      new_asset_settings: {
-        playback_policy: ['public'],
-      },
-      cors_origin: '*',
-    }),
-  });
+    // 1) сначала создаём фильм — чтобы получить film.id
+    const { data: film, error: insErr } = await supabase
+      .from('films')
+      .insert({ title, description, status: 'uploading' })
+      .select('id')
+      .single();
 
-  const { data } = await upRes.json(); // data.id = upload_id, data.url = upload_url
+    if (insErr || !film) throw new Error(insErr?.message || 'cannot insert film');
 
-  // 2) создаём РОВНО ОДНУ запись фильма и запоминаем upload_id
-  const { data: film, error } = await supabase
-    .from('films')
-    .insert({
-      title,
-      description,
+    // 2) создаём Direct Upload в Mux и привязываем external_id к film.id
+    const upRes = await fetch('https://api.mux.com/video/v1/uploads', {
+      method: 'POST',
+      headers: { Authorization: muxAuth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        new_asset_settings: {
+          playback_policy: ['public'],
+          external_id: film.id, // 🔗 жёсткая связь с нашей строкой
+        },
+        cors_origin: '*',
+      }),
+    });
+
+    if (!upRes.ok) {
+      const t = await upRes.text();
+      throw new Error(`Mux upload create failed: ${upRes.status} ${t}`);
+    }
+
+    const { data } = await upRes.json(); // { id: upload_id, url: upload_url }
+
+    // 3) дописываем upload_id в тот же фильм
+    const { error: updErr } = await supabase
+      .from('films')
+      .update({ upload_id: data.id })
+      .eq('id', film.id);
+
+    if (updErr) throw updErr;
+
+    // 4) возвращаем URL для загрузки (туда фронт делает PUT файла)
+    return NextResponse.json({
+      film_id: film.id,
       upload_id: data.id,
-      status: 'uploading',
-    })
-    .select('id, upload_id')
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  return NextResponse.json({
-    film_id: film.id,
-    upload_id: data.id,
-    upload_url: data.url, // сюда фронт зальёт файл PUT'ом
-  });
+      upload_url: data.url,
+    });
+  } catch (e: any) {
+    console.error('[videos/start] error:', e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 }
