@@ -11,7 +11,6 @@ export default function VideoPlayer({ playbackId }: { playbackId: string }) {
       style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}
       playbackId={playbackId}
       streamType="on-demand"
-      controls
       autoPlay={false}
       muted={false}
     />
