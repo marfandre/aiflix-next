@@ -1,46 +1,39 @@
-// app/api/mux/webhook/route.ts
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// (проверку подписи Mux можно добавить позже)
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json()
+  const evt = await req.json();
+  const type = evt.type;
 
-    // Нам нужно только событие "видео готово"
-    if (body.type !== 'video.asset.ready') {
-      return new Response('ignored', { status: 200 })
-    }
+  if (type === 'video.asset.ready') {
+    const assetId = evt.data.id;
+    const uploadId = evt.data.upload_id;
+    const playbackId = evt.data.playback_ids?.[0]?.id ?? null;
 
-    const asset = body.data
-    const playbackId = asset?.playback_ids?.[0]?.id ?? null
+    const { error } = await supabase
+      .from('films')
+      .update({
+        asset_id: assetId,
+        playback_id: playbackId,
+        status: 'ready',
+      })
+      .eq('upload_id', uploadId); // <-- КЛЮЧЕВАЯ СТРОКА: обновляем старую запись
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // именно Service Role Key
-    )
-
-    const { error } = await supabase.from('films').insert({
-      title: asset.passthrough?.title ?? 'Untitled',
-      description: asset.passthrough?.description ?? '',
-      asset_id: asset.id,
-      playback_id: playbackId,
-      thumb_url: asset.static_renditions?.thumbnail?.url ?? null,
-      created_at: new Date().toISOString(),
-    })
-
-    if (error) {
-      console.error('Supabase insert error:', error)
-      return new Response('Database error', { status: 500 })
-    }
-
-    console.log('✅ Saved asset to Supabase:', asset.id)
-    return new Response('ok', { status: 200 })
-  } catch (err) {
-    console.error('Webhook error:', err)
-    return new Response('Internal error', { status: 500 })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
 
-// Чтобы прямой заход GET'ом не рушил логи, вернём 405
-export async function GET() {
-  return new Response('Method Not Allowed', { status: 405 })
+  if (type === 'video.asset.errored') {
+    const uploadId = evt.data.upload_id;
+    const msg = evt.data.errors?.[0]?.message ?? 'unknown';
+    await supabase.from('films').update({ status: 'failed' }).eq('upload_id', uploadId);
+  }
+
+  return NextResponse.json({ ok: true });
 }
