@@ -1,40 +1,53 @@
-'use client'
-import { useState } from 'react'
+'use client';
+import { useState } from 'react';
 
 export default function UploadPage() {
-  const [file, setFile] = useState<File | null>(null)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [title, setTitle] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [msg, setMsg] = useState('');
 
   async function handleUpload() {
-    if (!file) return
-    setLoading(true)
+    try {
+      if (!file) { setMsg('Выбери файл'); return; }
 
-    const r = await fetch('/api/mux/upload', { method: 'POST' })
-    const { uploadUrl, uploadId } = await r.json()
+      // 1) создаём фильм + Direct Upload в Mux
+      const r1 = await fetch('/api/videos/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title || 'Untitled', description: '' })
+      });
+      const j1 = await r1.json();
+      if (!r1.ok) throw new Error(j1.error || 'start failed');
 
-    await fetch(uploadUrl, { method: 'PUT', body: file })
+      const { upload_url } = j1;
+      setMsg('Загружаю файл в Mux...');
 
-    await fetch('/api/films', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, ai_models: [], genres: [], asset_id: uploadId })
-    })
+      // 2) грузим файл на upload_url
+      const r2 = await fetch(upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file
+      });
+      if (!r2.ok) throw new Error('PUT upload failed');
 
-    setLoading(false)
-    alert('Фильм загружен! Обработка займёт несколько минут.')
+      setMsg('Файл загружен. Ждём обработку Mux… (10–60 сек)');
+    } catch (e:any) {
+      setMsg('Ошибка: ' + (e.message || e));
+    }
   }
 
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Загрузить AI‑фильм</h1>
-      <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      <input className="w-full border p-2 rounded" placeholder="Название" value={title} onChange={e=>setTitle(e.target.value)} />
-      <textarea className="w-full border p-2 rounded" placeholder="Описание" value={description} onChange={e=>setDescription(e.target.value)} />
-      <button disabled={loading} onClick={handleUpload} className="px-4 py-2 rounded bg-black text-white disabled:opacity-50">
-        {loading ? 'Загрузка…' : 'Опубликовать'}
+    <main className="max-w-xl mx-auto p-6 space-y-3">
+      <h1 className="text-2xl font-semibold">Загрузка</h1>
+      <input className="border p-2 w-full" placeholder="Название"
+             value={title} onChange={e => setTitle(e.target.value)} />
+      <input type="file" accept="video/*"
+             onChange={e => setFile(e.target.files?.[0] || null)} />
+      <button className="px-4 py-2 bg-black text-white rounded" onClick={handleUpload}>
+        Загрузить
       </button>
-    </div>
-  )
+      <p className="text-sm text-gray-500">{msg}</p>
+    </main>
+  );
 }
+
