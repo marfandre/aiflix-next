@@ -1,114 +1,110 @@
 // app/api/mux/webhook/route.ts
-export const runtime = 'nodejs';
-
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Создаем серверный клиент с правами записи (Service Role)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // важно: именно service role!
-);
+// Если используешь проверку подписи Mux — оставь/добавь её здесь.
+// Ниже — упрощённый вариант без валидации подписи, чтобы не мешал типам.
 
-export async function POST(req: Request) {
+type MuxEvent = {
+  type: string;
+  data: any;
+};
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  // Чтобы не было «молчаливых» падений при билде
+  throw new Error(
+    'Missing env: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+  );
+}
+
+export async function POST(req: NextRequest) {
   try {
-    // Важно: для простоты диагностики берём JSON сразу
-    const body = await req.json().catch(() => null);
-    if (!body) {
-      console.warn('MUX WEBHOOK: пустое тело');
-      return NextResponse.json({ ok: false, error: 'empty body' }, { status: 200 });
+    const supa = createClient(SUPABASE_URL, SERVICE_KEY);
+    const event = (await req.json()) as MuxEvent;
+
+    // --- разбор полезной нагрузки Mux ---
+    const { type, data } = event ?? {};
+    // Mux обычно присылает:
+    // - video.asset.created  -> data.id (asset_id), data.upload_id
+    // - video.asset.ready    -> data.id (asset_id), data.playback_ids: [{id, policy}]
+    // - video.upload.created -> data.id (upload_id)
+    // см. https://docs.mux.com/docs/webhooks#event-types
+
+    if (!type || !data) {
+      return NextResponse.json({ ok: true, skipped: 'no-event' }, { status: 200 });
     }
 
-    const type = body?.type as string | undefined;
-    console.log('MUX WEBHOOK type:', type);
+    // Что будем писать в films
+    const patch: Record<string, any> = {};
 
-    // Интересующие нас поля (будут у разных типов событий по-разному)
-    const data = body?.data ?? {};
-    const upload_id: string | undefined = data?.upload_id;
-    const asset_id: string | undefined = data?.id; // id ассета Mux
-    const playback_id: string | undefined = data?.playback_ids?.[0]?.id;
+    if (type === 'video.asset.created') {
+      // Прилетает связь upload_id <-> asset_id
+      const asset_id: string | undefined = data?.id;
+      const upload_id: string | undefined = data?.upload_id;
 
-    // --- Основной happy-path: ассет готов, есть playback_id ---
-    if (type === 'video.asset.ready') {
-      console.log('asset.ready payload:', { upload_id, asset_id, playback_id });
-
-      if (!upload_id && !asset_id) {
-        console.warn('asset.ready без upload_id/asset_id — нечем матчить запись в films');
-        return NextResponse.json({ ok: true, note: 'no identifiers' });
+      if (!asset_id && !upload_id) {
+        return NextResponse.json({ ok: true, skipped: 'no-ids' }, { status: 200 });
       }
 
-      // Пытаемся обновить по upload_id, если он есть. Иначе — по asset_id.
-      let query = supabase
-        .from('films')
-        .update({
-          asset_id: asset_id ?? null,
-          playback_id: playback_id ?? null,
-          status: 'ready',
-        })
-        .select()
-        .limit(1);
+      if (asset_id) patch.asset_id = asset_id;
+      if (upload_id) patch.upload_id = upload_id;
+      patch.status = 'processing';
 
-      if (upload_id) query = query.eq('upload_id', upload_id);
-      else if (asset_id) query = query.eq('asset_id', asset_id);
-
-      const { data: updated, error } = await query;
-
-      if (error) {
-        console.error('SUPABASE UPDATE ERROR:', error);
-        return NextResponse.json({ ok: false, error: error.message }, { status: 200 });
-      }
-
-      if (!updated || updated.length === 0) {
-        console.warn('WEBHOOK: не нашли строку в films для обновления', { upload_id, asset_id });
-      } else {
-        console.log('WEBHOOK: обновили запись films:', updated[0]);
-      }
-
-      return NextResponse.json({ ok: true });
-    }
-
-    // --- Полезные дополнительные события (не обязательны, просто логируем/ставим статус) ---
-    if (type === 'video.asset.errored') {
-      console.error('MUX asset errored:', { upload_id, asset_id });
-      if (upload_id || asset_id) {
-        const { error } = await supabase
-          .from('films')
-          .update({ status: 'error' })
-          .or(
-            [
-              upload_id ? `upload_id.eq.${upload_id}` : undefined,
-              asset_id ? `asset_id.eq.${asset_id}` : undefined,
-            ]
-              .filter(Boolean)
-              .join(',')
-          );
-        if (error) console.error('SUPABASE UPDATE (error status) FAILED:', error);
-      }
-      return NextResponse.json({ ok: true });
-    }
-
-    if (type === 'video.upload.created') {
-      console.log('upload.created:', { upload_id });
-      return NextResponse.json({ ok: true });
-    }
-
-    if (type === 'video.upload.cancelled') {
-      console.warn('upload.cancelled:', { upload_id });
       if (upload_id) {
-        const { error } = await supabase
+        const { error } = await supa
           .from('films')
-          .update({ status: 'cancelled' })
+          .update(patch)
           .eq('upload_id', upload_id);
-        if (error) console.error('SUPABASE UPDATE (cancelled) FAILED:', error);
+
+        if (error) throw error;
+      } else if (asset_id) {
+        const { error } = await supa
+          .from('films')
+          .update(patch)
+          .eq('asset_id', asset_id);
+
+        if (error) throw error;
       }
-      return NextResponse.json({ ok: true });
+
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    // Неподдержанные типы просто логируем
-    console.log('Unhandled Mux event:', type);
-    return NextResponse.json({ ok: true, note: 'unhandled' });
+    if (type === 'video.asset.ready') {
+      // Когда asset готов — появляется playback_id
+      const asset_id: string | undefined = data?.id;
+      const playback_ids: Array<{ id: string; policy: string }> | undefined =
+        data?.playback_ids;
+
+      const playback_id = playback_ids?.[0]?.id;
+      if (!asset_id && !playback_id) {
+        return NextResponse.json({ ok: true, skipped: 'no-playback' }, { status: 200 });
+      }
+
+      if (playback_id) patch.playback_id = playback_id;
+      patch.status = 'ready';
+
+      const { error } = await supa
+        .from('films')
+        .update(patch)
+        .eq('asset_id', asset_id as string);
+
+      if (error) throw error;
+
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    // Другие события просто подтверждаем
+    return NextResponse.json({ ok: true, ignored: type }, { status: 200 });
   } catch (e: any) {
-    console.error('WEBHOOK HANDLER ERROR:', e?.message || e);
-    return NextResponse.json({ ok: false, error: e?.message || 'unknown' }, { status: 200 });
+    // Чтобы видеть, что именно упало, и не ловить «500 без сообщения»
+    console.error('MUX webhook error:', e);
+    return NextResponse.json(
+      { ok: false, error: e?.message ?? 'unknown' },
+      { status: 200 } // отвечаем 200, чтобы Mux не ретраил бесконечно
+    );
   }
 }
