@@ -1,7 +1,7 @@
 // app/film/[id]/page.tsx
 import { notFound } from 'next/navigation';
 import VideoPlayer from '@/components/VideoPlayer';
-import { supabaseServer } from '../../lib/supabase-server';
+import { supabaseServer } from '../../../lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
