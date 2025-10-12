@@ -63,7 +63,7 @@ export default async function Page() {
               className="block rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition"
             >
               <div className="relative bg-black aspect-video">
-                {/* @ts-expect-error img onError */}
+                
                 <img
                   src={poster}
                   alt={f.title ?? "Poster"}
