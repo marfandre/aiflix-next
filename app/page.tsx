@@ -1,6 +1,6 @@
 // app/page.tsx
 import Link from "next/link";
-import { supabaseServer } from "@lib/supabase-server"; // как у тебя уже используется в проекте
+import { supabaseServer } from "../lib/supabase-server"; // как у тебя уже используется в проекте
 
 type Film = {
   id: string;
