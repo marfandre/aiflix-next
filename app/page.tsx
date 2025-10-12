@@ -30,7 +30,7 @@ export default async function Home() {
     console.error(error);
     return (
       <main className="max-w-6xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold mb-4">AIFLIX</h1>
+        <h1 className="text-2xl font-semibold mb-4">IOWA</h1>
         <p className="text-red-600">Ошибка загрузки фильмов: {error.message}</p>
       </main>
     );
