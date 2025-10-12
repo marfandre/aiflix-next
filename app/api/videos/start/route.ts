@@ -1,18 +1,16 @@
 // app/api/videos/start/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server'; // если у тебя путь другой, поправь
+import { supabaseServer } from '@/lib/supabase-server'; // поправь импорт под свой путь, если нужно
 import Mux from '@mux/mux-node';
 
-// Инициализация Mux (серверные ключи)
 const mux = new Mux({
   tokenId: process.env.MUX_TOKEN_ID!,
   tokenSecret: process.env.MUX_TOKEN_SECRET!,
 });
 
-// POST /api/videos/start
 export async function POST(req: NextRequest) {
   try {
-    // 1) Парсим входящие данные
+    // 1) входные данные
     const body = (await req.json().catch(() => ({}))) as {
       title?: string;
       description?: string;
@@ -21,18 +19,23 @@ export async function POST(req: NextRequest) {
     const title = (body?.title ?? '').trim() || 'Untitled';
     const description = (body?.description ?? '').trim();
 
-    // 2) Создаём upload в Mux
-    // Чтобы не падал TypeScript на undefined, передаём cors_origin только если он есть
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-    const upload = await mux.video.uploads.create({
-      new_asset_settings: { playback_policy: ['public'] },
-      ...(BASE_URL ? { cors_origin: BASE_URL } : {}),
-    });
+    // 2) подготавливаем параметры для Mux Upload
+    const params: any = {
+      new_asset_settings: { playback_policy: ['public'] as const },
+    };
 
+    const cors = process.env.NEXT_PUBLIC_BASE_URL;
+    if (cors) {
+      // добавляем ТОЛЬКО если есть
+      params.cors_origin = cors; // здесь уже точно string, без union
+    }
+
+    // 3) создаём upload в Mux
+    const upload = await mux.video.uploads.create(params);
     const upload_id = upload.id;
     const upload_url = upload.url;
 
-    // 3) Создаём запись в films (status = 'uploading')
+    // 4) создаём запись в films (status = 'uploading')
     const supa = supabaseServer();
     const { data, error } = await supa
       .from('films')
@@ -46,13 +49,10 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // 4) Возвращаем клиенту служебные данные (id фильма, upload_id, upload_url)
+    // 5) отдаём клиенту служебные данные
     return NextResponse.json(
       {
         film_id: data?.id,
