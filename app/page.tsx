@@ -1,4 +1,6 @@
 // app/page.tsx
+export const dynamic = 'force-dynamic';
+
 import Link from "next/link";
 import { supabaseServer } from "../lib/supabase-server"; // как у тебя уже используется в проекте
 
