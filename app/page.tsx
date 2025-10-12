@@ -1,11 +1,8 @@
-// app/page.tsx
-// Гарантируем отсутствие кэша
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import Link from "next/link";
-// ВАЖНО: путь под себя. Если файл лежит в /app/lib/supabase-server.ts, то так:
-import { supabaseServer } from "./lib/supabase-server";
+import { createClient } from "@supabase/supabase-js";
 
 type Film = {
   id: string;
@@ -15,7 +12,6 @@ type Film = {
   created_at: string | null;
 };
 
-// Хелпер для формата длительности
 function formatDuration(totalSeconds?: number | null) {
   if (!totalSeconds && totalSeconds !== 0) return "";
   const h = Math.floor(totalSeconds / 3600);
@@ -26,9 +22,12 @@ function formatDuration(totalSeconds?: number | null) {
 }
 
 export default async function Page() {
-  const supa = supabaseServer();
+  const supa = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
 
-  // Берём только ролики с playback_id, чтобы «черные»/незавершённые вообще не попадали
   const { data: films, error } = await supa
     .from("films")
     .select("id, title, playback_id, duration_seconds, created_at")
@@ -54,42 +53,39 @@ export default async function Page() {
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((f) => {
           const poster = f.playback_id
-            ? // превью от Mux (если временно недоступно — будет фолбэк ниже)
-              `https://image.mux.com/${f.playback_id}/thumbnail.jpg?time=1&width=640&height=360&fit_mode=preserve`
+            ? `https://image.mux.com/${f.playback_id}/thumbnail.jpg?time=1&width=640&height=360&fit_mode=preserve`
             : "/placeholder.jpg";
 
-        return (
-          <Link
-            key={f.id}
-            href={`/film/${f.id}`}
-            className="block rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition"
-          >
-            <div className="relative bg-black aspect-video">
-              {/* картинка-превью, покрывает контейнер */}
-              {/* @ts-expect-error img onError */}
-              <img
-                src={poster}
-                alt={f.title ?? "Poster"}
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={(e: any) => {
-                  e.currentTarget.src = "/placeholder.jpg";
-                }}
-              />
-              <span className="absolute left-3 top-3 text-xs font-bold bg-emerald-600 text-white rounded px-2 py-1">
-                NEW
-              </span>
-            </div>
+          return (
+            <Link
+              key={f.id}
+              href={`/film/${f.id}`}
+              className="block rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition"
+            >
+              <div className="relative bg-black aspect-video">
+                {/* @ts-expect-error img onError */}
+                <img
+                  src={poster}
+                  alt={f.title ?? "Poster"}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e: any) => (e.currentTarget.src = "/placeholder.jpg")}
+                />
+                <span className="absolute left-3 top-3 text-xs font-bold bg-emerald-600 text-white rounded px-2 py-1">
+                  NEW
+                </span>
+              </div>
 
-            <div className="p-4">
-              <div className="text-sm text-gray-500">
-                {formatDuration(f.duration_seconds)}
+              <div className="p-4">
+                <div className="text-sm text-gray-500">
+                  {formatDuration(f.duration_seconds)}
+                </div>
+                <div className="text-lg font-semibold">
+                  {f.title ?? "Без названия"}
+                </div>
               </div>
-              <div className="text-lg font-semibold">
-                {f.title ?? "Без названия"}
-              </div>
-            </div>
-          </Link>
-        )})}
+            </Link>
+          );
+        })}
       </div>
     </main>
   );
