@@ -1,50 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
-
+// app/api/mux/webhook/route.ts
 export const runtime = 'nodejs';
 
-export async function POST(req: NextRequest) {
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // ВАЖНО: именно service role!
+);
+
+export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const type = body?.type;
+    console.log('MUX WEBHOOK type:', body?.type);
 
-    console.log('[mux webhook] type:', type);
+    if (body?.type === 'video.asset.ready') {
+      const data = body?.data;
+      const upload_id = data?.upload_id as string | undefined;
+      const asset_id = data?.id as string | undefined;
+      const playback_id = data?.playback_ids?.[0]?.id as string | undefined;
 
-    if (type === 'video.asset.ready') {
-      const assetId: string | undefined = body?.data?.id;
-      const playbackId: string | undefined = body?.data?.playback_ids?.[0]?.id;
-      const uploadId: string | undefined = body?.data?.upload_id;
+      console.log('asset_ready payload:', { upload_id, asset_id, playback_id });
 
-      console.log('[mux webhook] payload:', { uploadId, assetId, playbackId });
-
-      if (!uploadId || !playbackId) {
-        console.log('[mux webhook] skip: missing ids');
-        return NextResponse.json({ ok: true });
+      if (!upload_id) {
+        console.warn('No upload_id in webhook — нечего матчить в films');
+        return NextResponse.json({ ok: true, note: 'no upload_id' });
       }
 
-      const supa = supabaseServer();
-      const { data, error } = await supa
+      const { data: updated, error } = await supabase
         .from('films')
         .update({
-          asset_id: assetId ?? null,
-          playback_id: playbackId,
+          asset_id: asset_id ?? null,
+          playback_id: playback_id ?? null,
           status: 'ready',
         })
-        .eq('upload_id', uploadId)
-        .select('id');
+        .eq('upload_id', upload_id)
+        .select()
+        .maybeSingle();
 
       if (error) {
-        console.error('[mux webhook] update error:', error.message);
-        return NextResponse.json({ ok: false }, { status: 500 });
+        console.error('SUPABASE UPDATE ERROR:', error);
+        return NextResponse.json({ ok: false, error }, { status: 200 });
       }
 
-      console.log('[mux webhook] updated rows:', data?.length ?? 0);
-      return NextResponse.json({ ok: true });
+      if (!updated) {
+        console.warn('No film row found for upload_id:', upload_id);
+      } else {
+        console.log('Updated film:', updated);
+      }
     }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error('[mux webhook] exception:', e?.message || e);
-    return NextResponse.json({ ok: false }, { status: 500 });
+    console.error('WEBHOOK HANDLER ERROR:', e?.message || e);
+    return NextResponse.json({ ok: false, error: e?.message || 'unknown' }, { status: 200 });
   }
 }
