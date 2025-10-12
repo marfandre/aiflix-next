@@ -1,8 +1,11 @@
 // app/page.tsx
+// Гарантируем отсутствие кэша
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import Link from "next/link";
-import { supabaseServer } from "../lib/supabase-server";
+// ВАЖНО: путь под себя. Если файл лежит в /app/lib/supabase-server.ts, то так:
+import { supabaseServer } from "./lib/supabase-server";
 
 type Film = {
   id: string;
@@ -12,7 +15,8 @@ type Film = {
   created_at: string | null;
 };
 
-function formatDuration(totalSeconds: number | null) {
+// Хелпер для формата длительности
+function formatDuration(totalSeconds?: number | null) {
   if (!totalSeconds && totalSeconds !== 0) return "";
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
@@ -24,81 +28,68 @@ function formatDuration(totalSeconds: number | null) {
 export default async function Page() {
   const supa = supabaseServer();
 
+  // Берём только ролики с playback_id, чтобы «черные»/незавершённые вообще не попадали
   const { data: films, error } = await supa
     .from("films")
     .select("id, title, playback_id, duration_seconds, created_at")
-    .not("playback_id", "is", null)                 // показываем только готовые к воспроизведению
-    .order("created_at", { ascending: false })      // новые сверху
+    .not("playback_id", "is", null)
+    .order("created_at", { ascending: false })
     .limit(100);
 
   if (error) {
-    console.error(error);
+    console.error("Supabase error:", error);
     return <div className="p-6 text-red-600">Ошибка загрузки фильмов</div>;
   }
 
-  if (!films || films.length === 0) {
-    return <div className="p-6 text-gray-500">Пока нет фильмов</div>;
-  }
+  const items = films ?? [];
 
   return (
     <main className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-6">IOWA</h1>
+      <h1 className="text-3xl font-bold mb-6">IOWA</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {films.map((f: Film) => {
-          // бейдж NEW: ролик моложе 3 суток
-          const isNew =
-            f.created_at
-              ? (Date.now() - new Date(f.created_at).getTime()) < 3 * 24 * 60 * 60 * 1000
-              : false;
+      {items.length === 0 && (
+        <p className="text-gray-500">Видео пока нет. Загрузите первый ролик.</p>
+      )}
 
-          const poster =
-            f.playback_id
-              ? `https://image.mux.com/${f.playback_id}/thumbnail.jpg?fit_mode=preserve&time=1&width=640&height=360`
-              : undefined;
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((f) => {
+          const poster = f.playback_id
+            ? // превью от Mux (если временно недоступно — будет фолбэк ниже)
+              `https://image.mux.com/${f.playback_id}/thumbnail.jpg?time=1&width=640&height=360&fit_mode=preserve`
+            : "/placeholder.jpg";
 
-          return (
-            <Link
-              key={f.id}
-              href={`/film/${f.id}`}
-              className="block rounded-md border border-gray-200 hover:border-gray-300 overflow-hidden shadow-sm hover:shadow-md transition"
-            >
-              <div className="relative bg-black aspect-[16/9]">
-                {isNew && (
-                  <span className="absolute left-2 top-2 z-10 text-xs font-semibold bg-emerald-600 text-white rounded px-2 py-1">
-                    NEW
-                  </span>
-                )}
-                {poster ? (
-                  // постер Mux
-                  <img
-                    src={poster}
-                    alt={f.title ?? "video"}
-                    className="absolute inset-0 w-full h-full object-contain bg-black"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="absolute inset-0 grid place-items-center text-gray-400 text-sm">
-                    Нет постера
-                  </div>
-                )}
+        return (
+          <Link
+            key={f.id}
+            href={`/film/${f.id}`}
+            className="block rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition"
+          >
+            <div className="relative bg-black aspect-video">
+              {/* картинка-превью, покрывает контейнер */}
+              {/* @ts-expect-error img onError */}
+              <img
+                src={poster}
+                alt={f.title ?? "Poster"}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e: any) => {
+                  e.currentTarget.src = "/placeholder.jpg";
+                }}
+              />
+              <span className="absolute left-3 top-3 text-xs font-bold bg-emerald-600 text-white rounded px-2 py-1">
+                NEW
+              </span>
+            </div>
+
+            <div className="p-4">
+              <div className="text-sm text-gray-500">
+                {formatDuration(f.duration_seconds)}
               </div>
-
-              <div className="p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-medium truncate">
-                    {f.title || "Без названия"}
-                  </h3>
-                  {f.duration_seconds != null && (
-                    <span className="shrink-0 text-xs text-gray-500">
-                      {formatDuration(f.duration_seconds)}
-                    </span>
-                  )}
-                </div>
+              <div className="text-lg font-semibold">
+                {f.title ?? "Без названия"}
               </div>
-            </Link>
-          );
-        })}
+            </div>
+          </Link>
+        )})}
       </div>
     </main>
   );
