@@ -1,64 +1,70 @@
-import { NextResponse } from 'next/server'
-import Mux from '@mux/mux-node'
-import { supabaseServer } from '@/lib/supabase-server'
+// app/api/videos/start/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseServer } from '@/lib/supabase-server'; // если у тебя путь другой, поправь
+import Mux from '@mux/mux-node';
 
-// Аккуратно читаем переменные окружения, чтобы не падать на типах при билде
-const MUX_TOKEN_ID = process.env.MUX_TOKEN_ID ?? ''
-const MUX_TOKEN_SECRET = process.env.MUX_TOKEN_SECRET ?? ''
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? undefined // для CORS у Mux
-
+// Инициализация Mux (серверные ключи)
 const mux = new Mux({
-  tokenId: MUX_TOKEN_ID,
-  tokenSecret: MUX_TOKEN_SECRET,
-})
+  tokenId: process.env.MUX_TOKEN_ID!,
+  tokenSecret: process.env.MUX_TOKEN_SECRET!,
+});
 
-export async function POST(req: Request) {
+// POST /api/videos/start
+export async function POST(req: NextRequest) {
   try {
-    // 1) Получаем title/description из тела, никаких Untitled по умолчанию
-    let payload: any = {}
-    try {
-      payload = await req.json()
-    } catch {
-      payload = {}
-    }
-    const rawTitle = typeof payload.title === 'string' ? payload.title : ''
-    const rawDescription =
-      typeof payload.description === 'string' ? payload.description : ''
+    // 1) Парсим входящие данные
+    const body = (await req.json().catch(() => ({}))) as {
+      title?: string;
+      description?: string;
+    };
 
-    const title = rawTitle.trim()         // пустая строка, если не ввели
-    const description = rawDescription.trim()
+    const title = (body?.title ?? '').trim() || 'Untitled';
+    const description = (body?.description ?? '').trim();
 
     // 2) Создаём upload в Mux
+    // Чтобы не падал TypeScript на undefined, передаём cors_origin только если он есть
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
     const upload = await mux.video.uploads.create({
       new_asset_settings: { playback_policy: ['public'] },
-      cors_origin: BASE_URL, // можно undefined, если переменной нет
-    })
+      ...(BASE_URL ? { cors_origin: BASE_URL } : {}),
+    });
+
+    const upload_id = upload.id;
+    const upload_url = upload.url;
 
     // 3) Создаём запись в films (status = 'uploading')
-    const supa = supabaseServer()
+    const supa = supabaseServer();
     const { data, error } = await supa
       .from('films')
       .insert({
-        title,                // <- никаких 'Untitled'
+        title,
         description,
-        upload_id: upload.id,
+        upload_id,
         status: 'uploading',
       })
       .select('id')
-      .single()
+      .single();
 
-    if (error) throw error
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
 
-    // 4) Возвращаем всё, что нужно фронту
-    return NextResponse.json({
-      film_id: data.id,
-      upload_id: upload.id,
-      upload_url: upload.url,
-    })
+    // 4) Возвращаем клиенту служебные данные (id фильма, upload_id, upload_url)
+    return NextResponse.json(
+      {
+        film_id: data?.id,
+        upload_id,
+        upload_url,
+      },
+      { status: 200 }
+    );
   } catch (e: any) {
     return NextResponse.json(
-      { error: e?.message ?? 'start failed' },
-      { status: 500 },
-    )
+      { error: e?.message || 'start failed' },
+      { status: 500 }
+    );
   }
 }
