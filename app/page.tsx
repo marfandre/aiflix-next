@@ -1,14 +1,14 @@
 // app/page.tsx
 export const dynamic = 'force-dynamic';
 
-import Image from 'next/image';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabaseServer } from '../lib/supabase-server';
 
 type FilmRow = {
   id: string;
   title: string | null;
-  playback_id: string;   // по БД у тебя он есть
+  playback_id: string;
   created_at: string;
 };
 
@@ -33,7 +33,9 @@ export default async function Page() {
 
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {films.map((f) => {
-          const poster = `https://image.mux.com/${f.playback_id}/thumbnail.jpg?time=1&fit_mode=smartcrop&aspect_ratio=16:9&width=800`;
+          // Жёсткая обрезка под 16:9, чтобы не было чёрных боков
+          const poster = `https://image.mux.com/${f.playback_id}/thumbnail.jpg?time=2&fit_mode=crop&aspect_ratio=16:9&width=800&height=450`;
+
           return (
             <Link
               key={f.id}
@@ -47,12 +49,15 @@ export default async function Page() {
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  // если вдруг какой-то PID битый — временно можно раскрыть это:
-                  unoptimized
+                  // если вдруг где-то не грузится — временно можно раскомментировать:
+                  // unoptimized
                 />
               </div>
+
               <div className="p-3">
-                <div className="font-medium truncate">{f.title ?? 'Без названия'}</div>
+                <div className="font-medium truncate">
+                  {f.title ?? 'Без названия'}
+                </div>
               </div>
             </Link>
           );
