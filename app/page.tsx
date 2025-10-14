@@ -1,13 +1,14 @@
 // app/page.tsx
 export const dynamic = 'force-dynamic';
 
-import FilmCard from '@/components/FilmCard';
+import Image from 'next/image';
+import Link from 'next/link';
 import { supabaseServer } from '../lib/supabase-server';
 
 type FilmRow = {
   id: string;
   title: string | null;
-  playback_id: string | null;
+  playback_id: string;   // по БД у тебя он есть
   created_at: string;
 };
 
@@ -31,14 +32,31 @@ export default async function Page() {
       <h1 className="text-2xl font-semibold mb-6">IOWA</h1>
 
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {films.map((f) => (
-          <FilmCard
-            key={f.id}
-            id={f.id}
-            title={f.title ?? 'Без названия'}
-            playback_id={f.playback_id}
-          />
-        ))}
+        {films.map((f) => {
+          const poster = `https://image.mux.com/${f.playback_id}/thumbnail.jpg?time=1&fit_mode=smartcrop&aspect_ratio=16:9&width=800`;
+          return (
+            <Link
+              key={f.id}
+              href={`/film/${f.id}`}
+              className="block rounded-xl overflow-hidden border hover:shadow transition"
+            >
+              <div className="relative w-full aspect-video bg-black">
+                <Image
+                  src={poster}
+                  alt={f.title ?? 'Poster'}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  // если вдруг какой-то PID битый — временно можно раскрыть это:
+                  // unoptimized
+                />
+              </div>
+              <div className="p-3">
+                <div className="font-medium truncate">{f.title ?? 'Без названия'}</div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </main>
   );
