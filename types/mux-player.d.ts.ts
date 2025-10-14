@@ -1,5 +1,5 @@
 import type { DetailedHTMLProps, HTMLAttributes } from 'react';
-export {}; // make this a module
+export {}; // делаем файл модулем
 
 declare global {
   namespace JSX {
@@ -14,6 +14,8 @@ declare global {
         muted?: boolean;
         controls?: boolean;
         poster?: string;
+        /** ДОБАВИЛИ: поддержка preload */
+        preload?: 'auto' | 'metadata' | 'none';
         style?: any;
       };
     }
