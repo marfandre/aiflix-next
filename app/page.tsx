@@ -48,7 +48,7 @@ export default async function Page() {
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   // если вдруг какой-то PID битый — временно можно раскрыть это:
-                  // unoptimized
+                  unoptimized
                 />
               </div>
               <div className="p-3">
