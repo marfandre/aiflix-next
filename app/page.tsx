@@ -27,9 +27,9 @@ export default async function Page() {
   const supa = supabaseServer();
 
   const { data, error } = await supa
-    .from('films') // <— без дженериков
+    .from('films')
     .select('id, title, playback_id, duration_seconds, created_at')
-    .not('playback_id', 'is', null) // показываем только готовые к воспроизведению
+    .not('playback_id', 'is', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -48,24 +48,37 @@ export default async function Page() {
       )}
 
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {films.map((f) => (
-          <Link
-            key={f.id}
-            href={`/film/${f.id}`}
-            className="block rounded-lg overflow-hidden border hover:shadow"
-          >
-            <div className="relative bg-black aspect-video">
-              {/* можно отрисовать постер, если он есть */}
-              {/* <Image src={poster} fill alt={f.title ?? 'Poster'} /> */}
-            </div>
-            <div className="p-3">
-              <div className="font-medium truncate">{f.title ?? 'Без названия'}</div>
-              <div className="text-sm text-gray-500">
-                {formatDuration(f.duration_seconds)}
+        {films.map((f) => {
+          const pid = f.playback_id ?? '';
+          const posterUrl = pid
+            ? `https://image.mux.com/${pid}/thumbnail.jpg?time=1&fit_mode=smartcrop&aspect_ratio=16:9&width=800`
+            : '/no-poster.png';
+
+          return (
+            <Link
+              key={f.id}
+              href={`/film/${f.id}`}
+              className="block rounded-lg overflow-hidden border hover:shadow"
+            >
+              <div className="relative bg-black aspect-video">
+                <Image
+                  src={posterUrl}
+                  alt={f.title ?? 'Poster'}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  priority={false}
+                />
               </div>
-            </div>
-          </Link>
-        ))}
+              <div className="p-3">
+                <div className="font-medium truncate">{f.title ?? 'Без названия'}</div>
+                <div className="text-sm text-gray-500">
+                  {formatDuration(f.duration_seconds)}
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </main>
   );
