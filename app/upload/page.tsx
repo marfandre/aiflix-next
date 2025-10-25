@@ -1,161 +1,136 @@
-// app/upload/page.tsx
 'use client';
 
 import { useState } from 'react';
 
-type Kind = 'video' | 'image';
-
 export default function UploadPage() {
-  const [kind, setKind] = useState<Kind>('video');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [type, setType] = useState<'video' | 'image'>('video');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const accept =
-    kind === 'video'
-      ? 'video/mp4,video/webm'
-      : 'image/jpeg,image/png,image/webp';
-
-  async function onSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) return;
-    setSubmitting(true);
     setError(null);
+    setSuccess(null);
+
+    if (!file) {
+      setError('Выберите файл');
+      return;
+    }
 
     try {
-      const form = new FormData();
-      form.append('media_type', kind);      // 'video' | 'image'
-      form.append('file', file);            // сам файл
-      form.append('title', title);          // можно пусто
-      form.append('description', description); // можно пусто
+      setIsLoading(true);
 
-      // Если у вас другой маршрут — поменяйте ниже путь:
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      // 1️⃣ Выбираем правильный эндпоинт
+      const startEndpoint =
+        type === 'video' ? '/api/videos/start' : '/api/images/start';
 
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Upload failed');
+      // 2️⃣ Отправляем метаданные на сервер
+      const startRes = await fetch(startEndpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: title?.trim() || null,
+          description: description?.trim() || null,
+          kind: type,
+        }),
+      });
+
+      if (!startRes.ok) {
+        const data = await startRes.json().catch(() => ({}));
+        throw new Error(data?.error || `Start failed: ${startRes.status}`);
       }
 
-      // после успешной загрузки — сбрасываем форму
+      const { upload_url } = await startRes.json();
+      if (!upload_url) throw new Error('Не получен upload_url');
+
+      // 3️⃣ Отправляем сам файл напрямую (в Mux или Storage)
+      const putRes = await fetch(upload_url, {
+        method: 'PUT',
+        headers: { 'content-type': file.type },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error(`Direct upload failed: ${putRes.status}`);
+
+      setSuccess('Файл загружен! Обработка началась.');
       setTitle('');
       setDescription('');
       setFile(null);
-      // при необходимости можно перейти на главную:
-      // window.location.href = '/';
     } catch (err: any) {
-      setError(err.message ?? 'Ошибка загрузки');
+      setError(err?.message || 'Upload failed');
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10">
-      {/* Заголовок */}
-      <h1 className="text-center text-3xl font-semibold tracking-tight">Загрузка</h1>
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold mb-6">Загрузка</h1>
 
-      {/* Табы */}
-      <div className="mt-6 flex justify-center gap-2">
+      {/* Переключатель видео / картинка */}
+      <div className="mb-4 flex gap-2">
         <button
           type="button"
-          onClick={() => setKind('video')}
-          className={
-            'rounded-full px-4 py-2 text-sm transition ' +
-            (kind === 'video'
-              ? 'bg-neutral-900 text-white'
-              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200')
-          }
+          onClick={() => setType('video')}
+          className={`px-4 py-2 rounded ${type === 'video' ? 'bg-black text-white' : 'bg-gray-100'}`}
         >
           Видео
         </button>
         <button
           type="button"
-          onClick={() => setKind('image')}
-          className={
-            'rounded-full px-4 py-2 text-sm transition ' +
-            (kind === 'image'
-              ? 'bg-neutral-900 text-white'
-              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200')
-          }
+          onClick={() => setType('image')}
+          className={`px-4 py-2 rounded ${type === 'image' ? 'bg-black text-white' : 'bg-gray-100'}`}
         >
           Картинка
         </button>
       </div>
 
-      {/* Форма */}
-      <form onSubmit={onSubmit} className="mt-8 space-y-6">
-        {/* Название */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-800">
-            Название
-          </label>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm mb-1">Название</label>
           <input
-            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="можно оставить пустым"
             value={title}
-            onChange={(e) => setTitle(e.currentTarget.value)}
-            placeholder="Введите название (можно оставить пустым)"
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none ring-0 transition focus:border-neutral-400"
+            onChange={(e) => setTitle(e.target.value)}
           />
         </div>
 
-        {/* Описание */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-800">
-            Описание
-          </label>
+        <div>
+          <label className="block text-sm mb-1">Описание</label>
           <textarea
+            className="w-full border rounded px-3 py-2 h-28"
+            placeholder="короткое описание (можно пустым)"
             value={description}
-            onChange={(e) => setDescription(e.currentTarget.value)}
-            placeholder="Короткое описание (можно оставить пустым)"
-            rows={5}
-            className="w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none ring-0 transition focus:border-neutral-400"
+            onChange={(e) => setDescription(e.target.value)}
           />
         </div>
 
-        {/* Файл */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-800">
-            Файл {kind === 'video' ? '(MP4/WEBM)' : '(JPG/PNG/WebP)'}
+        <div>
+          <label className="block text-sm mb-1">
+            Файл ({type === 'video' ? 'MP4/WEBM' : 'PNG/JPG'})
           </label>
           <input
             type="file"
-            accept={accept}
-            onChange={(e) => setFile(e.currentTarget.files?.[0] ?? null)}
-            className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-neutral-900 file:px-4 file:py-2 file:text-white hover:file:bg-neutral-800"
+            accept={type === 'video' ? 'video/mp4,video/webm' : 'image/png,image/jpeg,image/jpg'}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </div>
 
-        {/* Ошибка */}
-        {error && (
-          <p className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {success && <p className="text-green-600 text-sm">{success}</p>}
 
-        {/* Кнопка */}
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={!file || submitting}
-            className={
-              'rounded-lg px-5 py-2 text-sm font-medium transition ' +
-              (!file || submitting
-                ? 'cursor-not-allowed bg-neutral-200 text-neutral-500'
-                : 'bg-neutral-900 text-white hover:bg-neutral-800')
-            }
-          >
-            {submitting ? 'Загрузка…' : 'Загрузить'}
-          </button>
-        </div>
+        <button
+          type="submit"
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Загрузка…' : 'Загрузить'}
+        </button>
       </form>
-
-      {/* Подвал */}
-      <footer className="mt-14 text-center text-xs text-neutral-500">
-        © 2025 IOWA
-      </footer>
     </div>
   );
 }
