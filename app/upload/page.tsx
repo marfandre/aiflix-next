@@ -1,92 +1,218 @@
-'use client'
-import { useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { MediaType } from '../_types/media'
+'use client';
 
+import { useState } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
+/**
+ * Вкладка загрузки видео/картинок.
+ * - Кнопка активна, когда выбран файл и не идёт загрузка
+ * - Название необязательно: отправляем title || "Без названия"
+ * - Видео: запрашиваем signed URL на /api/videos/start и PUT'им файл
+ * - Картинка: кладём в Supabase Storage "images/" и создаём запись в films
+ */
 export default function UploadPage() {
-  const supabase = createClientComponentClient()
-  const [mediaType, setMediaType] = useState<MediaType>('video')
-  const [file, setFile] = useState<File | null>(null)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [loading, setLoading] = useState(false)
-  const disabled = !file || !title || loading
+  const supabase = createClientComponentClient();
+  const [tab, setTab] = useState<'video' | 'image'>('video');
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const canSubmit = !!file && !uploading; // название не требуется
 
   async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!file) return
-    setLoading(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Требуется войти в аккаунт')
+    e.preventDefault();
+    if (!file) return;
 
-      if (mediaType === 'image') {
-        const ext = file.name.split('.').pop() || 'jpg'
-        const path = `${user.id}/${Date.now()}.${ext}`
-        const { error: upErr } = await supabase.storage.from('images').upload(path, file, { upsert: false })
-        if (upErr) throw upErr
-        const { data: pub } = supabase.storage.from('images').getPublicUrl(path)
-        const { error: insErr } = await supabase.from('films').insert({
-          title, description,
-          author_id: user.id,
-          media_type: 'image',
-          image_url: pub.publicUrl,
-        })
-        if (insErr) throw insErr
-        alert('Картинка загружена!')
-      } else {
-        const res = await fetch('/api/videos/start', {
+    setUploading(true);
+    setMessage(null);
+
+    const titleToSend = title.trim() || 'Без названия';
+
+    try {
+      if (tab === 'video') {
+        // 1) Берём pre-signed URL (или directUpload URL) на бэке
+        const start = await fetch('/api/videos/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, description }),
-        })
-        if (!res.ok) throw new Error('Не удалось создать загрузку видео')
-        const { uploadUrl } = await res.json()
-        await fetch(uploadUrl, { method: 'PUT', body: file })
-        alert('Видео загружено! Обработка может занять пару минут')
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+            title: titleToSend,
+            description: description || null,
+          }),
+        });
+
+        if (!start.ok) {
+          const t = await start.text();
+          throw new Error(`Не удалось начать загрузку видео: ${t}`);
+        }
+
+        const { url } = (await start.json()) as { url: string };
+
+        // 2) Отправляем файл на выданный URL
+        const put = await fetch(url, { method: 'PUT', body: file });
+        if (!put.ok) {
+          const t = await put.text();
+          throw new Error(`Ошибка PUT на URL загрузки: ${t}`);
+        }
+
+        setMessage('Видео отправлено. Индексация может занять немного времени.');
+        // опционально: router.push('/')
+
+      } else {
+        // -------- КАРТИНКА --------
+        // 1) грузим в Supabase Storage
+        const userId =
+          (await supabase.auth.getUser()).data.user?.id ?? 'anon';
+        const ext = file.name.split('.').pop() ?? 'jpg';
+        const path = `${userId}/${Date.now()}.${ext}`;
+
+        const up = await supabase.storage
+          .from('images')
+          .upload(path, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type,
+          });
+
+        if (up.error) throw up.error;
+
+        // публичный URL (если бакет public). Если не public — можно получить signed URL.
+        const { data: publicUrlData } = supabase.storage
+          .from('images')
+          .getPublicUrl(path);
+
+        const imageUrl = publicUrlData.publicUrl;
+
+        // 2) считаем размеры изображения (для удобства отображения)
+        const dims = await getImageSize(file);
+
+        // 3) создаём запись в films
+        const { error: insErr } = await supabase.from('films').insert({
+          title: titleToSend,
+          description: description || null,
+          media_type: 'image',
+          image_url: imageUrl,
+          image_width: dims?.width ?? null,
+          image_height: dims?.height ?? null,
+          visibility: 'public',
+        });
+
+        if (insErr) throw insErr;
+
+        setMessage('Картинка загружена.');
+        // опционально: router.push('/')
       }
-      setFile(null); setTitle(''); setDescription('')
+
+      // очистим форму
+      setTitle('');
+      setDescription('');
+      setFile(null);
     } catch (err: any) {
-      alert(err.message || 'Ошибка загрузки')
+      console.error(err);
+      setMessage(err?.message ?? 'Ошибка загрузки');
     } finally {
-      setLoading(false)
+      setUploading(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-4">
-      <h1 className="text-2xl font-bold">Загрузка</h1>
+    <div className="mx-auto max-w-3xl">
+      <h1 className="mb-6 text-3xl font-bold">Загрузка</h1>
 
-      <div className="mt-4 flex justify-center">
-        <div className="inline-flex rounded-2xl bg-gray-100 dark:bg-gray-800 p-1">
-          {(['video','image'] as MediaType[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setMediaType(t)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium ${mediaType===t? 'bg-white dark:bg-gray-900 shadow':'opacity-70 hover:opacity-100'}`}
-              type="button"
-            >{t==='video'?'Видео':'Картинка'}</button>
-          ))}
-        </div>
+      <div className="mb-6 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setTab('video')}
+          className={`rounded-full px-4 py-1 text-sm ${
+            tab === 'video'
+              ? 'bg-black text-white'
+              : 'bg-gray-100 text-gray-700'
+          }`}
+        >
+          Видео
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('image')}
+          className={`rounded-full px-4 py-1 text-sm ${
+            tab === 'image'
+              ? 'bg-black text-white'
+              : 'bg-gray-100 text-gray-700'
+          }`}
+        >
+          Картинка
+        </button>
       </div>
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+      <form onSubmit={onSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium">Название</label>
-          <input value={title} onChange={(e)=>setTitle(e.target.value)} className="mt-1 w-full rounded-xl border p-3 bg-transparent" />
+          <label className="mb-2 block text-sm font-medium">Название</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Необязательно — подставим «Без названия»"
+            className="w-full rounded border px-3 py-2"
+          />
         </div>
+
         <div>
-          <label className="block text-sm font-medium">Описание</label>
-          <textarea value={description} onChange={(e)=>setDescription(e.target.value)} className="mt-1 w-full rounded-xl border p-3 bg-transparent" rows={3} />
+          <label className="mb-2 block text-sm font-medium">Описание</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={5}
+            className="w-full resize-y rounded border px-3 py-2"
+          />
         </div>
+
         <div>
-          <label className="block text-sm font-medium">Файл ({mediaType==='video'?'MP4/WEBM':'JPG/PNG/WebP'})</label>
-          <input type="file" accept={mediaType==='video' ? 'video/*' : 'image/*'} onChange={(e)=>setFile(e.target.files?.[0] ?? null)} />
+          <label className="mb-2 block text-sm font-medium">
+            Файл {tab === 'video' ? '(MP4/WebM)' : '(PNG/JPG/WebP)'}
+          </label>
+          <input
+            type="file"
+            accept={tab === 'video' ? 'video/mp4,video/webm' : 'image/*'}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
         </div>
-        <button disabled={disabled} className="rounded-xl bg-black text-white px-5 py-3 disabled:opacity-50">
-          {loading ? 'Загрузка...' : 'Загрузить'}
+
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className={`rounded px-4 py-2 text-white ${
+            canSubmit ? 'bg-black hover:bg-zinc-800' : 'bg-gray-400'
+          }`}
+        >
+          {uploading ? 'Загружаю…' : 'Загрузить'}
         </button>
+
+        {message && (
+          <p className="text-sm text-gray-700">
+            {message}
+          </p>
+        )}
       </form>
-    </main>
-  )
+    </div>
+  );
+}
+
+/** Получить размеры картинки из File */
+async function getImageSize(file: File): Promise<{ width: number; height: number } | null> {
+  try {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    const size = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = reject;
+      img.src = url;
+    });
+    URL.revokeObjectURL(url);
+    return size;
+  } catch {
+    return null;
+  }
 }
