@@ -1,49 +1,31 @@
-// app/page.tsx
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+import MediaTabs from '@/components/MediaTabs'
+import MediaCard from '@/components/MediaCard'
+import { createClient } from '@/lib/supabase-server'
+import type { Film } from './_types/media' 
 
-import { unstable_noStore as noStore } from 'next/cache';
-import Link from 'next/link';
-import Image from 'next/image';
-import { supabaseServer } from '../lib/supabase-server';
+export const revalidate = 60
 
-type FilmRow = { id: string; title: string | null; playback_id: string | null; created_at: string };
-
-export default async function Page() {
-  noStore(); // жёстко отключаем кеширование этой страницы
-
-  const supa = supabaseServer();
-  const { data, error } = await supa
+export default async function Home({ searchParams }: { searchParams?: { type?: 'video' | 'image' } }) {
+  const type = searchParams?.type === 'image' ? 'image' : 'video'
+  const supabase = createClient()
+  const { data, error } = await supabase
     .from('films')
-    .select('id, title, playback_id, created_at')
-    .order('created_at', { ascending: false });
+    .select('*')
+    .eq('media_type', type)
+    .order('created_at', { ascending: false })
+    .limit(48)
 
-  if (error) {
-    console.error('films load error:', error);
-    return <div className="p-6 text-red-600">Ошибка загрузки списка фильмов</div>;
-  }
-
-  const films = (data ?? []) as FilmRow[];
+  if (error) throw new Error(error.message)
+  const items = (data ?? []) as Film[]
 
   return (
-    <main className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-6">IOWA</h1>
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {films.map((f) => {
-          const poster = f.playback_id
-            ? `https://image.mux.com/${f.playback_id}/thumbnail.jpg?time=2&fit_mode=crop&aspect_ratio=16:9&width=800&height=450`
-            : '/no-poster.png';
-          return (
-            <Link key={f.id} href={`/film/${f.id}`} className="block rounded-xl overflow-hidden border hover:shadow transition">
-              <div className="relative w-full aspect-video bg-black">
-                <Image src={poster} alt={f.title ?? 'Poster'} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
-              </div>
-              <div className="p-3"><div className="font-medium truncate">{f.title ?? 'Без названия'}</div></div>
-            </Link>
-          );
-        })}
+    <main className="mx-auto max-w-6xl px-4">
+      <MediaTabs />
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {items.map((item) => (
+          <MediaCard key={item.id} item={item} />
+        ))}
       </div>
     </main>
-  );
+  )
 }

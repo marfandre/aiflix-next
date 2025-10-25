@@ -1,59 +1,56 @@
-// app/film/[id]/page.tsx
-import { notFound } from 'next/navigation';
-import VideoPlayer from '@/components/VideoPlayer';
-import { supabaseServer } from '../../../lib/supabase-server';
+import Image from 'next/image'
+import { createClient } from '@/lib/supabase-server'
+import type { Film } from '../../_types/media'
 
-export const dynamic = 'force-dynamic';
+export default async function FilmPage({ params }: { params: { id: string } }) {
+  const { id } = params
 
-type PageProps = {
-  params: { id: string };
-};
-
-export default async function FilmPage({ params }: PageProps) {
-  const supa = supabaseServer();
-
-  const { data: film, error } = await supa
+  const supabase = createClient()
+  const { data, error } = await supabase
     .from('films')
-    .select('id, title, playback_id, description, duration_seconds, created_at')
-    .eq('id', params.id)
-    .single();
+    .select('*')
+    .eq('id', id)
+    .single()
 
-  if (error || !film) {
-    // Нет записи в БД → 404
-    return notFound();
+  if (error || !data) {
+    throw new Error('Фильм не найден')
   }
 
-  // Видео ещё обрабатывается в Mux (webhook ещё не установил playback_id)
-  if (!film.playback_id) {
-    return (
-      <main className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold mb-4">
-          {film.title || 'Без названия'}
-        </h1>
-        <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
-          <p className="text-yellow-800">
-            Видео загружено и обрабатывается в Mux. Пожалуйста, обновите страницу
-            через пару минут.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  const film = data as Film
+  const isVideo = film.media_type === 'video'
+
+  const poster =
+    isVideo
+      ? (film.playback_id ? `https://image.mux.com/${film.playback_id}/thumbnail.jpg?time=1` : null)
+      : (film.image_url ?? null)
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">
-        {film.title || 'Без названия'}
-      </h1>
-
-      {/* Плеер Mux */}
-      <div className="relative bg-black aspect-video mb-6">
-        <VideoPlayer playbackId={film.playback_id} />
-      </div>
-
+    <main className="mx-auto max-w-4xl p-4">
+      <h1 className="text-2xl font-bold">{film.title ?? 'Без названия'}</h1>
       {film.description && (
-        <p className="text-gray-600 leading-relaxed">{film.description}</p>
+        <p className="mt-2 text-gray-500">{film.description}</p>
       )}
+
+      <div className="mt-4">
+        {isVideo ? (
+          <mux-player
+            playback-id={film.playback_id ?? undefined}
+            stream-type="on-demand"
+            metadata-video-title={film.title ?? undefined}
+            className="w-full rounded-2xl overflow-hidden"
+          />
+        ) : poster ? (
+          <Image
+            src={poster}
+            alt={film.title ?? 'Изображение'}
+            width={film.image_width ?? 1600}
+            height={film.image_height ?? 900}
+            className="w-full h-auto rounded-2xl"
+          />
+        ) : (
+          <div className="aspect-video w-full rounded-2xl bg-gray-200" />
+        )}
+      </div>
     </main>
-  );
+  )
 }

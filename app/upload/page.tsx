@@ -1,90 +1,92 @@
-// app/upload/page.tsx  (клиентский компонент)
 'use client'
-
 import { useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { MediaType } from '../_types/media'
 
 export default function UploadPage() {
-  const [title, setTitle] = useState('')            // было: 'Untitled'
-  const [description, setDescription] = useState('')
+  const supabase = createClientComponentClient()
+  const [mediaType, setMediaType] = useState<MediaType>('video')
   const [file, setFile] = useState<File | null>(null)
-  const [msg, setMsg] = useState<string>('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [loading, setLoading] = useState(false)
+  const disabled = !file || !title || loading
 
-  async function handleUpload() {
-    if (!file) { setMsg('Выберите файл'); return }
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!file) return
+    setLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Требуется войти в аккаунт')
 
-    setMsg('Создаём upload в Mux…')
-
-    // 1) стартуем на сервере: создадим upload в Mux и строку в films
-    const start = await fetch('/api/videos/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: title || undefined, description })
-    }).then(r => r.json())
-
-    if (start.error) { setMsg('Ошибка: ' + start.error); return }
-
-    const { film_id, upload_url } = start
-
-    // 2) заливаем сам файл в Mux (PUT)
-    setMsg('Загружаем файл в Mux…')
-    const put = await fetch(upload_url, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      body: file
-    })
-    if (!put.ok) { setMsg('Ошибка загрузки в Mux: ' + put.status); return }
-
-    // 3) ждём playback_id по film_id — ПУЛЛИНГ
-    setMsg('Обработка на Mux… ждём playback_id')
-
-    const ok = await waitForPlaybackIdByFilmId(film_id)
-    setMsg(ok ? 'Готово! 🎬' : 'Не дождались playback_id за отведённое время')
+      if (mediaType === 'image') {
+        const ext = file.name.split('.').pop() || 'jpg'
+        const path = `${user.id}/${Date.now()}.${ext}`
+        const { error: upErr } = await supabase.storage.from('images').upload(path, file, { upsert: false })
+        if (upErr) throw upErr
+        const { data: pub } = supabase.storage.from('images').getPublicUrl(path)
+        const { error: insErr } = await supabase.from('films').insert({
+          title, description,
+          author_id: user.id,
+          media_type: 'image',
+          image_url: pub.publicUrl,
+        })
+        if (insErr) throw insErr
+        alert('Картинка загружена!')
+      } else {
+        const res = await fetch('/api/videos/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description }),
+        })
+        if (!res.ok) throw new Error('Не удалось создать загрузку видео')
+        const { uploadUrl } = await res.json()
+        await fetch(uploadUrl, { method: 'PUT', body: file })
+        alert('Видео загружено! Обработка может занять пару минут')
+      }
+      setFile(null); setTitle(''); setDescription('')
+    } catch (err: any) {
+      alert(err.message || 'Ошибка загрузки')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
-      <h1 className="text-2xl font-semibold">Загрузить видео</h1>
+    <main className="mx-auto max-w-2xl p-4">
+      <h1 className="text-2xl font-bold">Загрузка</h1>
 
-      <input
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        placeholder="Название"
-        className="border p-2 w-full"
-      />
+      <div className="mt-4 flex justify-center">
+        <div className="inline-flex rounded-2xl bg-gray-100 dark:bg-gray-800 p-1">
+          {(['video','image'] as MediaType[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setMediaType(t)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium ${mediaType===t? 'bg-white dark:bg-gray-900 shadow':'opacity-70 hover:opacity-100'}`}
+              type="button"
+            >{t==='video'?'Видео':'Картинка'}</button>
+          ))}
+        </div>
+      </div>
 
-      <textarea
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-        placeholder="Необязательное описание"
-        className="border p-2 w-full h-32"
-      />
-
-      <input
-        type="file"
-        accept="video/*"
-        onChange={e => setFile(e.target.files?.[0] ?? null)}
-      />
-
-      <button
-        onClick={handleUpload}
-        disabled={!file}
-        className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
-      >
-        Обработать
-      </button>
-
-      <div className="text-sm text-gray-600">{msg}</div>
-    </div>
+      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium">Название</label>
+          <input value={title} onChange={(e)=>setTitle(e.target.value)} className="mt-1 w-full rounded-xl border p-3 bg-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Описание</label>
+          <textarea value={description} onChange={(e)=>setDescription(e.target.value)} className="mt-1 w-full rounded-xl border p-3 bg-transparent" rows={3} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Файл ({mediaType==='video'?'MP4/WEBM':'JPG/PNG/WebP'})</label>
+          <input type="file" accept={mediaType==='video' ? 'video/*' : 'image/*'} onChange={(e)=>setFile(e.target.files?.[0] ?? null)} />
+        </div>
+        <button disabled={disabled} className="rounded-xl bg-black text-white px-5 py-3 disabled:opacity-50">
+          {loading ? 'Загрузка...' : 'Загрузить'}
+        </button>
+      </form>
+    </main>
   )
-}
-
-async function waitForPlaybackIdByFilmId(filmId: string) {
-  // опрашиваем API по id строки в films (а не по upload_id)
-  for (let i = 0; i < 90; i++) {            // ~3 мин, шаг 2 сек
-    await new Promise(r => setTimeout(r, 2000))
-    const res = await fetch(`/api/films?id=${filmId}`).then(r => r.json())
-    const f = res.films?.[0]
-    if (f?.playback_id) return true
-  }
-  return false
 }

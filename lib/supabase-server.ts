@@ -1,11 +1,33 @@
-import { createClient } from '@supabase/supabase-js';
+// lib/supabase-server.ts
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 
-export function supabaseServer() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  if (!url || !anonKey) {
-    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  }
+export function createClient() {
+  const cookieStore = cookies()
 
-  return createClient(url, anonKey, { auth: { persistSession: false } });
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
 }
+
+// Для обратной совместимости со старыми импортами:
+export function supabaseServer() {
+  return createClient()
+}
+
+// можно импортировать как default
+export default createClient
