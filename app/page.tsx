@@ -1,59 +1,48 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import MediaTabs from './components/MediaTabs';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// По желанию можно включить ISR, чтобы список обновлялся раз в минуту
+export const revalidate = 60;
 
 type Film = {
   id: string;
   title: string | null;
   description: string | null;
   playback_id: string | null;
-  created_at?: string | null;
+  created_at: string | null;
 };
 
-export default function HomePage() {
-  const [videos, setVideos] = useState<Film[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function HomePage() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from('films')
-        .select('id,title,description,playback_id,created_at')
-        .not('playback_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(24);
-      setVideos((data as Film[]) || []);
-      setLoading(false);
-    })();
-  }, []);
+  const { data } = await supabase
+    .from('films')
+    .select('id,title,description,playback_id,created_at')
+    .not('playback_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(24);
+
+  const videos = (data ?? []) as Film[];
 
   return (
     <div className="max-w-6xl mx-auto p-6">
       <MediaTabs />
 
-      {loading && <p className="text-center mt-10">Загрузка…</p>}
-
-      {!loading && videos.length === 0 && (
+      {videos.length === 0 ? (
         <p className="text-center mt-10 text-gray-500">
           Видео пока нет или ещё обрабатываются.
         </p>
-      )}
-
-      {!loading && videos.length > 0 && (
+      ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-4">
           {videos.map((v) => {
             const thumb = v.playback_id
               ? `https://image.mux.com/${v.playback_id}/thumbnail.jpg`
               : '/placeholder.jpg';
+
             return (
               <Link
                 key={v.id}
@@ -69,7 +58,9 @@ export default function HomePage() {
                   />
                 </div>
                 <div className="p-3">
-                  <div className="font-medium truncate">{v.title || 'Без названия'}</div>
+                  <div className="font-medium truncate">
+                    {v.title || 'Без названия'}
+                  </div>
                   {v.description && (
                     <div className="text-sm text-gray-500 line-clamp-2">
                       {v.description}
