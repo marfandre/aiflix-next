@@ -1,83 +1,161 @@
+// app/upload/page.tsx
 'use client';
-import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-type Tab = 'video' | 'image';
+import { useState } from 'react';
+
+type Kind = 'video' | 'image';
 
 export default function UploadPage() {
-  const supabase = createClientComponentClient();
-  const [tab, setTab] = useState<Tab>('video');
-  const [title, setTitle] = useState('');        // можно не заполнять
+  const [kind, setKind] = useState<Kind>('video');
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = !!file && !loading;
+  const accept =
+    kind === 'video'
+      ? 'video/mp4,video/webm'
+      : 'image/jpeg,image/png,image/webp';
 
-  const onSubmit = async () => {
-    if (!file) return alert('Выберите файл');
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file) return;
+    setSubmitting(true);
+    setError(null);
 
-    setLoading(true);
     try {
-      if (tab === 'image') {
-        // 1) загрузим картинку в Storage (images)
-        const filePath = `${Date.now()}_${file.name}`;
-        const { error: upErr } = await supabase.storage
-          .from('images')
-          .upload(filePath, file, { upsert: false });
-        if (upErr) throw upErr;
+      const form = new FormData();
+      form.append('media_type', kind);      // 'video' | 'image'
+      form.append('file', file);            // сам файл
+      form.append('title', title);          // можно пусто
+      form.append('description', description); // можно пусто
 
-        const { data: pub } = await supabase.storage.from('images').getPublicUrl(filePath);
+      // Если у вас другой маршрут — поменяйте ниже путь:
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
 
-        // 2) внесём запись в films (название может быть пустым)
-        const { error: insErr } = await supabase.from('films').insert({
-          title: title || null,
-          description: description || null,
-          media_type: 'image',
-          image_url: pub?.publicUrl ?? null,
-          // другие поля по твоей схеме …
-        });
-        if (insErr) throw insErr;
-        alert('Картинка загружена');
-      } else {
-        // tab === 'video'
-        // Тут твоя текущая логика создания Mux Upload + запись в films.
-        // Главное — не требовать сессии и не проверять пользователя.
-        // Примерно так (сохраняя простоту):
-        const { error: insErr } = await supabase.from('films').insert({
-          title: title || null,
-          description: description || null,
-          media_type: 'video',
-          // либо upload_id/asset_id, если создаёшь их в другом месте/вебхуком
-        });
-        if (insErr) throw insErr;
-        alert('Видео добавлено');
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Upload failed');
       }
-    } catch (e: any) {
-      alert(e.message ?? 'Ошибка загрузки');
+
+      // после успешной загрузки — сбрасываем форму
+      setTitle('');
+      setDescription('');
+      setFile(null);
+      // при необходимости можно перейти на главную:
+      // window.location.href = '/';
+    } catch (err: any) {
+      setError(err.message ?? 'Ошибка загрузки');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
-  };
+  }
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      {/* табы */}
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setTab('video')}  className={tab==='video' ? 'font-semibold' : ''}>Видео</button>
-        <button onClick={() => setTab('image')}  className={tab==='image'? 'font-semibold' : ''}>Картинка</button>
+    <div className="mx-auto w-full max-w-3xl px-4 py-10">
+      {/* Заголовок */}
+      <h1 className="text-center text-3xl font-semibold tracking-tight">Загрузка</h1>
+
+      {/* Табы */}
+      <div className="mt-6 flex justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => setKind('video')}
+          className={
+            'rounded-full px-4 py-2 text-sm transition ' +
+            (kind === 'video'
+              ? 'bg-neutral-900 text-white'
+              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200')
+          }
+        >
+          Видео
+        </button>
+        <button
+          type="button"
+          onClick={() => setKind('image')}
+          className={
+            'rounded-full px-4 py-2 text-sm transition ' +
+            (kind === 'image'
+              ? 'bg-neutral-900 text-white'
+              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200')
+          }
+        >
+          Картинка
+        </button>
       </div>
 
-      {/* поля (не обязательные) */}
-      <input placeholder="Название (необязательно)" value={title} onChange={e=>setTitle(e.target.value)} />
-      <textarea placeholder="Описание (необязательно)" value={description} onChange={e=>setDescription(e.target.value)} />
+      {/* Форма */}
+      <form onSubmit={onSubmit} className="mt-8 space-y-6">
+        {/* Название */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-neutral-800">
+            Название
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.currentTarget.value)}
+            placeholder="Введите название (можно оставить пустым)"
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none ring-0 transition focus:border-neutral-400"
+          />
+        </div>
 
-      {/* файл обязателен */}
-      <input type="file" accept={tab==='image' ? 'image/*' : 'video/mp4,video/webm'} onChange={e=>setFile(e.target.files?.[0] ?? null)} />
+        {/* Описание */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-neutral-800">
+            Описание
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.currentTarget.value)}
+            placeholder="Короткое описание (можно оставить пустым)"
+            rows={5}
+            className="w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none ring-0 transition focus:border-neutral-400"
+          />
+        </div>
 
-      <button disabled={!canSubmit} onClick={onSubmit}>
-        {loading ? 'Загрузка…' : 'Загрузить'}
-      </button>
-    </main>
+        {/* Файл */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-neutral-800">
+            Файл {kind === 'video' ? '(MP4/WEBM)' : '(JPG/PNG/WebP)'}
+          </label>
+          <input
+            type="file"
+            accept={accept}
+            onChange={(e) => setFile(e.currentTarget.files?.[0] ?? null)}
+            className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-neutral-900 file:px-4 file:py-2 file:text-white hover:file:bg-neutral-800"
+          />
+        </div>
+
+        {/* Ошибка */}
+        {error && (
+          <p className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
+        {/* Кнопка */}
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={!file || submitting}
+            className={
+              'rounded-lg px-5 py-2 text-sm font-medium transition ' +
+              (!file || submitting
+                ? 'cursor-not-allowed bg-neutral-200 text-neutral-500'
+                : 'bg-neutral-900 text-white hover:bg-neutral-800')
+            }
+          >
+            {submitting ? 'Загрузка…' : 'Загрузить'}
+          </button>
+        </div>
+      </form>
+
+      {/* Подвал */}
+      <footer className="mt-14 text-center text-xs text-neutral-500">
+        © 2025 IOWA
+      </footer>
+    </div>
   );
 }
