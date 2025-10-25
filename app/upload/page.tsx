@@ -1,12 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function UploadPage() {
+  const [type, setType] = useState<'video' | 'image'>('video');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [type, setType] = useState<'video' | 'image'>('video');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -24,38 +30,63 @@ export default function UploadPage() {
     try {
       setIsLoading(true);
 
-      // 1️⃣ Выбираем правильный эндпоинт
-      const startEndpoint =
-        type === 'video' ? '/api/videos/start' : '/api/images/start';
+      if (type === 'video') {
+        // ---- ВИДЕО (MUX) ----
+        const startRes = await fetch('/api/videos/start', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            title: title?.trim() || null,
+            description: description?.trim() || null,
+            kind: 'video',
+          }),
+        });
+        if (!startRes.ok) {
+          const data = await startRes.json().catch(() => ({}));
+          throw new Error(data?.error || `Start failed: ${startRes.status}`);
+        }
+        const { upload_url } = await startRes.json();
+        const putRes = await fetch(upload_url, {
+          method: 'PUT',
+          headers: { 'content-type': file.type || 'video/mp4' },
+          body: file,
+        });
+        if (!putRes.ok) throw new Error(`Mux direct upload failed: ${putRes.status}`);
 
-      // 2️⃣ Отправляем метаданные на сервер
-      const startRes = await fetch(startEndpoint, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          title: title?.trim() || null,
-          description: description?.trim() || null,
-          kind: type,
-        }),
-      });
+        setSuccess('Видео принято. Обработка началась.');
+      } else {
+        // ---- КАРТИНКА (SUPABASE STORAGE) ----
+        // 1) Запрашиваем токен и путь для подписанной загрузки
+        const startRes = await fetch('/api/images/start', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            title: title?.trim() || null,
+            description: description?.trim() || null,
+            filename: file.name, // ВАЖНО: передаём имя файла
+          }),
+        });
+        if (!startRes.ok) {
+          const data = await startRes.json().catch(() => ({}));
+          throw new Error(data?.error || `Start failed: ${startRes.status}`);
+        }
+        const { bucket, path, token } = await startRes.json();
 
-      if (!startRes.ok) {
-        const data = await startRes.json().catch(() => ({}));
-        throw new Error(data?.error || `Start failed: ${startRes.status}`);
+        // 2) Загружаем файл по подписанному токену
+        const { error: upErr } = await supabase
+          .storage
+          .from(bucket)
+          .uploadToSignedUrl(path, token, file, {
+            contentType: file.type || 'image/jpeg',
+            upsert: true,
+          });
+
+        if (upErr) throw new Error(`Upload to storage failed: ${upErr.message}`);
+
+        setSuccess('Картинка загружена!');
       }
 
-      const { upload_url } = await startRes.json();
-      if (!upload_url) throw new Error('Не получен upload_url');
-
-      // 3️⃣ Отправляем сам файл напрямую (в Mux или Storage)
-      const putRes = await fetch(upload_url, {
-        method: 'PUT',
-        headers: { 'content-type': file.type },
-        body: file,
-      });
-      if (!putRes.ok) throw new Error(`Direct upload failed: ${putRes.status}`);
-
-      setSuccess('Файл загружен! Обработка началась.');
+      // сбрасываем форму
       setTitle('');
       setDescription('');
       setFile(null);
@@ -70,7 +101,6 @@ export default function UploadPage() {
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-2xl font-semibold mb-6">Загрузка</h1>
 
-      {/* Переключатель видео / картинка */}
       <div className="mb-4 flex gap-2">
         <button
           type="button"
