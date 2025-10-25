@@ -12,7 +12,9 @@ export default function MediaCard({ item }: { item: Film }) {
       : (item.image_url ?? null)
 
   // Фолбэки, чтобы <Image> всегда получал строки
-  const imgSrc = poster ?? '/no-poster.png'
+  const imgSrc =
+  poster ??
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
   const alt = item.title ?? 'Без названия'
 
   return (
