@@ -1,76 +1,127 @@
-import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
-import MediaTabs from './components/MediaTabs';
+// aiflix/app/page.tsx
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-// По желанию можно включить ISR, чтобы список обновлялся раз в минуту
-export const revalidate = 60;
+import { cookies } from "next/headers";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import Link from "next/link";
 
-type Film = {
-  id: string;
-  title: string | null;
-  description: string | null;
-  playback_id: string | null;
-  created_at: string | null;
-};
+import MediaTabs from "./components/MediaTabs";
+import ImageFeedClient from "./components/ImageFeedClient";
+import LikeButton from "./components/LikeButton";
 
-export default async function HomePage() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+type Tab = "video" | "images";
 
-  const { data } = await supabase
-    .from('films')
-    .select('id,title,description,playback_id,created_at')
-    .not('playback_id', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(24);
+function muxPoster(playback_id: string | null) {
+  return playback_id
+    ? `https://image.mux.com/${playback_id}/thumbnail.jpg?time=1`
+    : "/placeholder.png";
+}
 
-  const videos = (data ?? []) as Film[];
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: {
+    t?: string;
+    colors?: string;
+    models?: string;
+    moods?: string;
+    imageTypes?: string;
+  };
+}) {
+  const supabase = createServerComponentClient({ cookies });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id ?? null;
+
+  const tab: Tab = searchParams?.t === "images" ? "images" : "video";
+
+  const videos =
+    tab === "video"
+      ? await supabase
+          .from("films")
+          .select(
+            "id, user_id, title, description, playback_id, created_at, profiles!inner(username, avatar_url)"
+          )
+          .order("created_at", { ascending: false })
+          .limit(60)
+          .then((r) => r.data ?? [])
+      : [];
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <MediaTabs />
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mb-6 flex justify-center">
+        <MediaTabs />
+      </div>
 
-      {videos.length === 0 ? (
-        <p className="text-center mt-10 text-gray-500">
-          Видео пока нет или ещё обрабатываются.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-4">
-          {videos.map((v) => {
-            const thumb = v.playback_id
-              ? `https://image.mux.com/${v.playback_id}/thumbnail.jpg`
-              : '/placeholder.jpg';
+      {tab === "video" && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {(videos as any[]).map((v) => {
+            const p = Array.isArray(v.profiles) ? v.profiles[0] : v.profiles;
+            const nick: string = p?.username ?? "user";
+            const avatar: string | null = p?.avatar_url ?? null;
+
+            const title = (v.title ?? "").trim() || "Без названия";
+            const href = `/film/${v.id}`;
 
             return (
-              <Link
+              <div
                 key={v.id}
-                href={`/film/${v.id}`}
-                className="block rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition"
+                className="overflow-hidden rounded-xl border bg-white shadow-sm ring-1 ring-gray-100"
               >
-                <div className="aspect-video bg-gray-100">
+                <Link
+                  href={href}
+                  className="block relative aspect-video bg-black"
+                >
                   <img
-                    src={thumb}
-                    alt={v.title ?? 'Видео'}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
+                    src={muxPoster(v.playback_id ?? null)}
+                    alt={title}
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
-                </div>
-                <div className="p-3">
-                  <div className="font-medium truncate">
-                    {v.title || 'Без названия'}
+                </Link>
+
+                <div className="px-4 py-3">
+                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                    <Link
+                      href={`/u/${encodeURIComponent(nick)}`}
+                      className="flex items-center gap-2 min-w-0 hover:underline"
+                    >
+                      {avatar && (
+                        <img
+                          src={avatar}
+                          alt={nick}
+                          className="h-5 w-5 shrink-0 rounded-full ring-1 ring-gray-300 object-cover"
+                        />
+                      )}
+                      <span className="truncate">@{nick}</span>
+                    </Link>
+
+                    <LikeButton
+                      target="film"
+                      id={v.id}
+                      userId={userId}
+                      className="ml-auto shrink-0"
+                    />
                   </div>
-                  {v.description && (
-                    <div className="text-sm text-gray-500 line-clamp-2">
-                      {v.description}
-                    </div>
-                  )}
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
+      )}
+
+      {tab === "images" && (
+        <ImageFeedClient
+          userId={userId}
+          searchParams={{
+            colors: searchParams?.colors,
+            models: searchParams?.models,
+            moods: searchParams?.moods,
+            imageTypes: searchParams?.imageTypes,
+          }}
+        />
       )}
     </div>
   );

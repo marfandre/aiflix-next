@@ -1,69 +1,99 @@
 // app/api/videos/start/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server'; // поправь импорт под свой путь, если нужно
+import { NextResponse } from 'next/server';
 import Mux from '@mux/mux-node';
+import { cookies } from 'next/headers';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createClient as createService } from '@supabase/supabase-js';
 
 const mux = new Mux({
   tokenId: process.env.MUX_TOKEN_ID!,
   tokenSecret: process.env.MUX_TOKEN_SECRET!,
 });
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    // 1) входные данные
-    const body = (await req.json().catch(() => ({}))) as {
-      title?: string;
-      description?: string;
-    };
+    const { title, description, model, genres, mood } = await req.json();
 
-    const title = (body?.title ?? '').trim() || 'Untitled';
-    const description = (body?.description ?? '').trim();
+    // 1) Пользователь
+    const supa = createRouteHandlerClient({ cookies });
+    const {
+      data: { user },
+      error: userErr,
+    } = await supa.auth.getUser();
 
-    // 2) подготавливаем параметры для Mux Upload
-    const params: any = {
-      new_asset_settings: { playback_policy: ['public'] as const },
-    };
-
-    const cors = process.env.NEXT_PUBLIC_BASE_URL;
-    if (cors) {
-      // добавляем ТОЛЬКО если есть
-      params.cors_origin = cors; // здесь уже точно string, без union
+    if (userErr) {
+      console.error('videos/start auth.getUser error:', userErr);
     }
 
-    // 3) создаём upload в Mux
-    const upload = await mux.video.uploads.create(params);
-    const upload_id = upload.id;
-    const upload_url = upload.url;
-
-    // 4) создаём запись в films (status = 'uploading')
-    const supa = supabaseServer();
-    const { data, error } = await supa
-      .from('films')
-      .insert({
-        title,
-        description,
-        upload_id,
-        status: 'uploading',
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Не авторизован' },
+        { status: 401 }
+      );
     }
 
-    // 5) отдаём клиенту служебные данные
-    return NextResponse.json(
-      {
-        film_id: data?.id,
-        upload_id,
-        upload_url,
+    // 2) Direct Upload в Mux
+    const upload = await mux.video.uploads.create({
+      cors_origin: process.env.NEXT_PUBLIC_SITE_URL ?? '*',
+      new_asset_settings: {
+        playback_policy: ['public'],
       },
+      passthrough: JSON.stringify({
+        user_id: user.id,
+        title: title ?? null,
+        model: model ?? null,
+      }),
+    });
+
+    // 3) Сервисный Supabase
+    const service = createService(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const modelNorm =
+      typeof model === 'string' && model.trim()
+        ? model.trim().toLowerCase()
+        : null;
+
+    let genresToSave: string[] | null = null;
+    if (Array.isArray(genres) && genres.length) {
+      genresToSave = genres
+        .map((g) => String(g).trim())
+        .filter(Boolean)
+        .slice(0, 10);
+    }
+
+    let moodToSave: string | null = null;
+    if (typeof mood === 'string' && mood.trim().length > 0) {
+      moodToSave = mood.trim().toLowerCase();
+    }
+
+    // 4) Создаём запись в films
+    const { error: insError } = await service.from('films').insert({
+      user_id: user.id,
+      title: title ?? null,
+      description: description ?? null,
+      upload_id: upload.id,
+      playback_id: null, // заполнит webhook
+      model: modelNorm,
+      genres: genresToSave,
+      mood: moodToSave,
+    });
+
+    if (insError) {
+      console.error('videos/start films insert error:', insError);
+      // всё равно вернём URL — пусть видео загрузится в Mux
+    }
+
+    return NextResponse.json(
+      { url: upload.url, uploadId: upload.id },
       { status: 200 }
     );
-  } catch (e: any) {
+  } catch (err: any) {
+    console.error('videos/start fatal:', err);
     return NextResponse.json(
-      { error: e?.message || 'start failed' },
+      { error: err?.message ?? 'Mux start error' },
       { status: 500 }
     );
   }

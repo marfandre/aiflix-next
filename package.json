@@ -15,10 +15,13 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.1",
     "clsx": "^2.1.1",
+    "colorthief": "^2.6.0",
     "hls.js": "^1.5.8",
     "next": "^14.2.5",
+    "node-vibrant": "^4.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.10"
   },
   "devDependencies": {

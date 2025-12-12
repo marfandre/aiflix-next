@@ -1,33 +1,34 @@
-'use client'
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import clsx from 'clsx'
+// aiflix/app/components/MediaTabs.tsx
+'use client';
 
-const tabs = [
-  { key: 'video', label: 'Видео' },
-  { key: 'image', label: 'Картинки' },
-] as const
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function MediaTabs() {
-  const sp = useSearchParams()
-  const type = sp.get('type') ?? 'video'
+  const pathname = usePathname();
+  const isFilm = pathname?.startsWith('/film');
+  const isImages = pathname?.startsWith('/images');
+
   return (
-    <div className="w-full flex justify-center mt-4">
-      <div className="inline-flex rounded-2xl bg-gray-100 dark:bg-gray-800 p-1">
-        {tabs.map(t => (
-          <Link
-            key={t.key}
-            href={`/?type=${t.key}`}
-            className={clsx(
-              'px-4 py-2 rounded-xl text-sm font-medium transition',
-              type === t.key ? 'bg-white dark:bg-gray-900 shadow' : 'opacity-70 hover:opacity-100'
-            )}
-            prefetch
-          >
-            {t.label}
-          </Link>
-        ))}
-      </div>
+    <div className="inline-flex rounded-full border overflow-hidden">
+      <Link
+        href="/film"
+        className={
+          'px-4 py-2 text-sm ' +
+          (isFilm ? 'bg-black text-white' : 'bg-white hover:bg-gray-50')
+        }
+      >
+        Видео
+      </Link>
+      <Link
+        href="/images"
+        className={
+          'px-4 py-2 text-sm ' +
+          (isImages ? 'bg-black text-white' : 'bg-white hover:bg-gray-50')
+        }
+      >
+        Картинки
+      </Link>
     </div>
-  )
+  );
 }

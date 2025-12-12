@@ -1,44 +1,49 @@
-// app/api/images/start/route.ts
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!; // серверный ключ
-const BUCKET = process.env.SUPABASE_IMAGES_BUCKET || 'images'; // создай такой bucket в Storage
+import { cookies } from 'next/headers';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createClient as createService } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const filename: string | undefined = body?.filename; // пришлёт клиент
-    const title: string | null = body?.title ?? null;
-    const description: string | null = body?.description ?? null;
+    const { filename } = await req.json();
 
-    if (!filename) {
-      return NextResponse.json({ error: 'filename is required' }, { status: 400 });
+    // 1) Юзер из куки (обязателен)
+    const supa = createRouteHandlerClient({ cookies });
+    const { data: { user }, error: userErr } = await supa.auth.getUser();
+    if (userErr) console.error('auth.getUser error:', userErr);
+    if (!user) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
 
-    // уникальный путь (оставляем расширение файла)
-    const ext = filename.includes('.') ? filename.split('.').pop() : 'bin';
-    const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    // 2) service-role только для выдачи signed upload URL
+    const service = createService(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    // сервисный клиент
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    const filePath = `uploads/${Date.now()}_${filename}`;
 
-    // подписываем upload url (время жизни по умолчанию ~ 2 мин)
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
+    // 3) Выдаём клиенту одноразовый URL для загрузки файла
+    const { data, error } = await service
+      .storage
+      .from('images')
+      .createSignedUploadUrl(filePath);
+
     if (error || !data) {
-      return NextResponse.json({ error: error?.message || 'Cannot create signed upload url' }, { status: 500 });
+      console.error('createSignedUploadUrl error:', error);
+      return NextResponse.json(
+        { error: `Signed URL error: ${error?.message ?? 'unknown'}` },
+        { status: 500 }
+      );
     }
 
-    // (по желанию) можешь здесь создать запись в БД об изображении и вернуть её id
-
-    // клиенту достаточно bucket + path + token
-    return NextResponse.json({
-      bucket: BUCKET,
-      path,             // путь, в который надо грузить
-      token: data.token // токен для uploadToSignedUrl
-    });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Internal error' }, { status: 500 });
+    // ⚠️ Никаких вставок в images_meta здесь больше не делаем!
+    return NextResponse.json({ uploadUrl: data.signedUrl, path: filePath });
+  } catch (err: any) {
+    console.error('images/start fatal:', err);
+    return NextResponse.json(
+      { error: err?.message ?? 'Server error' },
+      { status: 500 }
+    );
   }
 }
