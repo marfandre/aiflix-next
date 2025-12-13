@@ -17,24 +17,22 @@ const supabase = createClient(
 );
 
 /**
- * БАЗОВЫЕ ЦВЕТА ПАЛИТРЫ (должны соответствовать кружкам в UI)
- * id — то, что будет храниться в БД в слоте (dominant_color и т.д.)
+ * БАЗОВЫЕ ЦВЕТА ПАЛИТРЫ (bucket'ы)
  */
-const BUCKET_BASE_COLORS: { id: string; hex: string; r: number; g: number; b: number }[] =
-  [
-    { id: "yellow", hex: "#ffd60a", r: 0, g: 0, b: 0 }, // значения r/g/b перепишем ниже
-    { id: "orange", hex: "#ff9500", r: 0, g: 0, b: 0 },
-    { id: "red", hex: "#ff3b30", r: 0, g: 0, b: 0 },
-    { id: "green", hex: "#34c759", r: 0, g: 0, b: 0 },
-    { id: "teal", hex: "#00c7be", r: 0, g: 0, b: 0 },
-    { id: "cyan", hex: "#32ade6", r: 0, g: 0, b: 0 },
-    { id: "blue", hex: "#007aff", r: 0, g: 0, b: 0 },
-    { id: "indigo", hex: "#5856d6", r: 0, g: 0, b: 0 },
-    { id: "purple", hex: "#af52de", r: 0, g: 0, b: 0 },
-    { id: "pink", hex: "#ff2d55", r: 0, g: 0, b: 0 },
-    { id: "brown", hex: "#a2845e", r: 0, g: 0, b: 0 },
-    { id: "gray", hex: "#8e8e93", r: 0, g: 0, b: 0 },
-  ];
+const BUCKET_BASE_COLORS: { id: string; hex: string; r: number; g: number; b: number }[] = [
+  { id: "yellow", hex: "#ffd60a", r: 0, g: 0, b: 0 },
+  { id: "orange", hex: "#ff9500", r: 0, g: 0, b: 0 },
+  { id: "red", hex: "#ff3b30", r: 0, g: 0, b: 0 },
+  { id: "green", hex: "#34c759", r: 0, g: 0, b: 0 },
+  { id: "teal", hex: "#00c7be", r: 0, g: 0, b: 0 },
+  { id: "cyan", hex: "#32ade6", r: 0, g: 0, b: 0 },
+  { id: "blue", hex: "#007aff", r: 0, g: 0, b: 0 },
+  { id: "indigo", hex: "#5856d6", r: 0, g: 0, b: 0 },
+  { id: "purple", hex: "#af52de", r: 0, g: 0, b: 0 },
+  { id: "pink", hex: "#ff2d55", r: 0, g: 0, b: 0 },
+  { id: "brown", hex: "#a2845e", r: 0, g: 0, b: 0 },
+  { id: "gray", hex: "#8e8e93", r: 0, g: 0, b: 0 },
+];
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   let h = hex.trim().toLowerCase();
@@ -60,9 +58,7 @@ for (const c of BUCKET_BASE_COLORS) {
 }
 
 /**
- * mapHexToBucket:
- *  - принимает hex или что-то похожее;
- *  - возвращает id корзины (orange, blue, ...) или null, если не удалось распарсить.
+ * mapHexToBucket: принимает hex, возвращает id корзины
  */
 function mapHexToBucket(input: string | null | undefined): string | null {
   if (!input) return null;
@@ -86,6 +82,20 @@ function mapHexToBucket(input: string | null | undefined): string | null {
   return bestId;
 }
 
+/**
+ * Название колонки по индексу слота
+ */
+function getSlotColumn(index: number): string | null {
+  switch (index) {
+    case 0: return "dominant_color";
+    case 1: return "secondary_color";
+    case 2: return "third_color";
+    case 3: return "fourth_color";
+    case 4: return "fifth_color";
+    default: return null;
+  }
+}
+
 // ======================= GET =======================
 
 export async function GET(req: NextRequest) {
@@ -105,8 +115,19 @@ export async function GET(req: NextRequest) {
   const moodsParam = sp.get("moods");
   const imageTypesParam = sp.get("imageTypes");
 
-  const colorsParam = sp.get("colors"); // палитра
-  const slotColorParam = sp.get("slotColor"); // круг
+  // === НОВЫЕ ПАРАМЕТРЫ ЦВЕТОВОГО ПОИСКА ===
+  const colorMode = sp.get("colorMode"); // 'simple' | 'dominant' | null
+  const colorsParam = sp.get("colors");  // для простого режима: "red,blue,green"
+  
+  // Для режима доминантности: slot0, slot1, slot2, slot3, slot4
+  const slot0 = sp.get("slot0");
+  const slot1 = sp.get("slot1");
+  const slot2 = sp.get("slot2");
+  const slot3 = sp.get("slot3");
+  const slot4 = sp.get("slot4");
+
+  // Старые параметры (для обратной совместимости)
+  const slotColorParam = sp.get("slotColor");
   const slotIndexParam = sp.get("slotIndex");
 
   type FilmRow = {
@@ -143,20 +164,14 @@ export async function GET(req: NextRequest) {
       .limit(50);
 
     if (genresParam) {
-      const genres = genresParam
-        .split(",")
-        .map((g) => g.trim().toLowerCase())
-        .filter(Boolean);
+      const genres = genresParam.split(",").map((g) => g.trim().toLowerCase()).filter(Boolean);
       if (genres.length) {
         q = q.overlaps("genres", genres);
       }
     }
 
     if (modelsParam) {
-      const models = modelsParam
-        .split(",")
-        .map((m) => m.trim().toLowerCase())
-        .filter(Boolean);
+      const models = modelsParam.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
       if (models.length) {
         const orClause = models.map((m) => `model.ilike.%${m}%`).join(",");
         q = q.or(orClause);
@@ -181,40 +196,67 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(120);
 
-    // 1. Точный поиск по слоту (вкладка "Круг")
-    if (slotColorParam && slotIndexParam) {
+    // === ЦВЕТОВОЙ ПОИСК ===
+    
+    if (colorMode === "simple" && colorsParam) {
+      // ПРОСТОЙ РЕЖИМ: ищем картинки где любой из выбранных цветов есть в любом слоте
+      const buckets = colorsParam
+        .split(",")
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (buckets.length) {
+        // Строим OR-условие: любой слот содержит любой из выбранных цветов
+        const orParts: string[] = [];
+        for (const bucket of buckets) {
+          orParts.push(`dominant_color.eq.${bucket}`);
+          orParts.push(`secondary_color.eq.${bucket}`);
+          orParts.push(`third_color.eq.${bucket}`);
+          orParts.push(`fourth_color.eq.${bucket}`);
+          orParts.push(`fifth_color.eq.${bucket}`);
+        }
+        q = q.or(orParts.join(","));
+      }
+    } else if (colorMode === "dominant") {
+      // РЕЖИМ ПО ДОМИНАНТНОСТИ: каждый заполненный слот должен совпадать
+      const slotFilters: { column: string; value: string }[] = [];
+      
+      if (slot0) {
+        const col = getSlotColumn(0);
+        if (col) slotFilters.push({ column: col, value: slot0.toLowerCase() });
+      }
+      if (slot1) {
+        const col = getSlotColumn(1);
+        if (col) slotFilters.push({ column: col, value: slot1.toLowerCase() });
+      }
+      if (slot2) {
+        const col = getSlotColumn(2);
+        if (col) slotFilters.push({ column: col, value: slot2.toLowerCase() });
+      }
+      if (slot3) {
+        const col = getSlotColumn(3);
+        if (col) slotFilters.push({ column: col, value: slot3.toLowerCase() });
+      }
+      if (slot4) {
+        const col = getSlotColumn(4);
+        if (col) slotFilters.push({ column: col, value: slot4.toLowerCase() });
+      }
+
+      // Применяем ВСЕ фильтры (AND логика)
+      for (const filter of slotFilters) {
+        q = q.eq(filter.column as any, filter.value);
+      }
+    } else if (slotColorParam && slotIndexParam) {
+      // Старый формат (обратная совместимость)
       const bucket = mapHexToBucket(slotColorParam);
       const idx = parseInt(slotIndexParam, 10);
-
-      let slotColumn: string | null = null;
-      switch (idx) {
-        case 0:
-          slotColumn = "dominant_color";
-          break;
-        case 1:
-          slotColumn = "secondary_color";
-          break;
-        case 2:
-          slotColumn = "third_color";
-          break;
-        case 3:
-          slotColumn = "fourth_color";
-          break;
-        case 4:
-          slotColumn = "fifth_color";
-          break;
-        default:
-          slotColumn = null;
-      }
+      const slotColumn = getSlotColumn(idx);
 
       if (slotColumn && bucket) {
-        q = q.eq(slotColumn, bucket);
+        q = q.eq(slotColumn as any, bucket);
       }
-    }
-
-    // 2. Поиск по палитре (вкладка "Палитра"/HEX)
-    //    Ищем любые картинки, у которых хотя бы один слот попал в один из выбранных bucket'ов
-    if (colorsParam) {
+    } else if (colorsParam && !colorMode) {
+      // Старый формат без colorMode (обратная совместимость)
       const buckets = colorsParam
         .split(",")
         .map((c) => mapHexToBucket(c.trim()))
@@ -230,52 +272,38 @@ export async function GET(req: NextRequest) {
           orParts.push(`fourth_color.eq.${b}`);
           orParts.push(`fifth_color.eq.${b}`);
         }
-        if (orParts.length) {
-          q = q.or(orParts.join(","));
-        }
+        q = q.or(orParts.join(","));
       }
     }
 
-    // 3. Жанры
+    // Жанры
     if (genresParam) {
-      const genres = genresParam
-        .split(",")
-        .map((g) => g.trim().toLowerCase())
-        .filter(Boolean);
+      const genres = genresParam.split(",").map((g) => g.trim().toLowerCase()).filter(Boolean);
       if (genres.length) {
         q = q.overlaps("genres", genres);
       }
     }
 
-    // 4. Модели
+    // Модели
     if (modelsParam) {
-      const models = modelsParam
-        .split(",")
-        .map((m) => m.trim().toLowerCase())
-        .filter(Boolean);
+      const models = modelsParam.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
       if (models.length) {
         const orClause = models.map((m) => `model.ilike.%${m}%`).join(",");
         q = q.or(orClause);
       }
     }
 
-    // 5. Настроение
+    // Настроение
     if (moodsParam) {
-      const moods = moodsParam
-        .split(",")
-        .map((m) => m.trim().toLowerCase())
-        .filter(Boolean);
+      const moods = moodsParam.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
       if (moods.length) {
         q = q.in("mood", moods);
       }
     }
 
-    // 6. Тип изображения
+    // Тип изображения
     if (imageTypesParam) {
-      const imageTypes = imageTypesParam
-        .split(",")
-        .map((t) => t.trim().toLowerCase())
-        .filter(Boolean);
+      const imageTypes = imageTypesParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
       if (imageTypes.length) {
         q = q.in("image_type", imageTypes);
       }
@@ -319,9 +347,7 @@ export async function POST(req: NextRequest) {
     if (!value) return;
 
     if (Array.isArray(value)) {
-      const normalized = value
-        .map((v) => String(v).trim().toLowerCase())
-        .filter(Boolean);
+      const normalized = value.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
       if (!normalized.length) return;
       params.set(name, normalized.join(","));
       return;
@@ -330,11 +356,7 @@ export async function POST(req: NextRequest) {
     if (typeof value === "string" && value.trim()) {
       params.set(
         name,
-        value
-          .split(",")
-          .map((v: string) => v.trim().toLowerCase())
-          .filter(Boolean)
-          .join(",")
+        value.split(",").map((v: string) => v.trim().toLowerCase()).filter(Boolean).join(",")
       );
     }
   }
@@ -345,6 +367,20 @@ export async function POST(req: NextRequest) {
   pushArrayParam("imageTypes");
   pushArrayParam("genres");
 
+  // Цветовой режим
+  if (body.colorMode) {
+    params.set("colorMode", body.colorMode);
+  }
+
+  // Слоты для режима доминантности
+  for (let i = 0; i < 5; i++) {
+    const slotKey = `slot${i}`;
+    if (body[slotKey] && typeof body[slotKey] === "string") {
+      params.set(slotKey, body[slotKey].trim().toLowerCase());
+    }
+  }
+
+  // Старый формат (обратная совместимость)
   if (typeof body.slotColor === "string" && body.slotColor.trim()) {
     params.set("slotColor", body.slotColor.trim().toLowerCase());
     if (typeof body.slotIndex === "number") {
