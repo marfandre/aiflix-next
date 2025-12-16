@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
   // === НОВЫЕ ПАРАМЕТРЫ ЦВЕТОВОГО ПОИСКА ===
   const colorMode = sp.get("colorMode"); // 'simple' | 'dominant' | null
   const colorsParam = sp.get("colors");  // для простого режима: "red,blue,green"
-  
+
   // Для режима доминантности: slot0, slot1, slot2, slot3, slot4
   const slot0 = sp.get("slot0");
   const slot1 = sp.get("slot1");
@@ -197,30 +197,32 @@ export async function GET(req: NextRequest) {
       .limit(120);
 
     // === ЦВЕТОВОЙ ПОИСК ===
-    
+
     if (colorMode === "simple" && colorsParam) {
-      // ПРОСТОЙ РЕЖИМ: ищем картинки где любой из выбранных цветов есть в любом слоте
+      // ПРОСТОЙ РЕЖИМ: ищем картинки где ВСЕ выбранные цвета есть (каждый в любом слоте)
       const buckets = colorsParam
         .split(",")
         .map((c) => c.trim().toLowerCase())
         .filter(Boolean);
 
       if (buckets.length) {
-        // Строим OR-условие: любой слот содержит любой из выбранных цветов
-        const orParts: string[] = [];
+        // AND логика: для КАЖДОГО цвета — он должен быть хотя бы в одном слоте
         for (const bucket of buckets) {
-          orParts.push(`dominant_color.eq.${bucket}`);
-          orParts.push(`secondary_color.eq.${bucket}`);
-          orParts.push(`third_color.eq.${bucket}`);
-          orParts.push(`fourth_color.eq.${bucket}`);
-          orParts.push(`fifth_color.eq.${bucket}`);
+          // Для каждого цвета создаём OR по всем слотам
+          const orParts = [
+            `dominant_color.eq.${bucket}`,
+            `secondary_color.eq.${bucket}`,
+            `third_color.eq.${bucket}`,
+            `fourth_color.eq.${bucket}`,
+            `fifth_color.eq.${bucket}`,
+          ];
+          q = q.or(orParts.join(","));
         }
-        q = q.or(orParts.join(","));
       }
     } else if (colorMode === "dominant") {
       // РЕЖИМ ПО ДОМИНАНТНОСТИ: каждый заполненный слот должен совпадать
       const slotFilters: { column: string; value: string }[] = [];
-      
+
       if (slot0) {
         const col = getSlotColumn(0);
         if (col) slotFilters.push({ column: col, value: slot0.toLowerCase() });
