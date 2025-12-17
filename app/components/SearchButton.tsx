@@ -357,11 +357,12 @@ export default function SearchButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center rounded-full border bg-white px-3 py-1 text-xs font-medium transition hover:border-gray-400 hover:bg-gray-50"
+        className="flex items-center justify-center rounded-xl bg-gray-100 p-2 transition hover:bg-gray-200"
+        title="Поиск"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 text-gray-500">
-          <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" strokeWidth="2.1" />
-          <line x1="15.5" y1="15.5" x2="19" y2="19" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 text-gray-400">
+          <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
+          <line x1="15.5" y1="15.5" x2="19" y2="19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </button>
 
@@ -840,8 +841,8 @@ export default function SearchButton() {
                         type="button"
                         onClick={() => setColorPickerMode('palette')}
                         className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'palette'
-                            ? 'bg-gray-900 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                       >
                         Палитра
@@ -850,8 +851,8 @@ export default function SearchButton() {
                         type="button"
                         onClick={() => setColorPickerMode('wheel')}
                         className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'wheel'
-                            ? 'bg-gray-900 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                       >
                         Круг
@@ -885,10 +886,10 @@ export default function SearchButton() {
                                 onClick={() => handleDominantColorClick(color.id)}
                                 disabled={activeSlotIndex === null}
                                 className={`h-5 w-5 rounded-full border-2 transition ${isSelectedInSlot
-                                    ? 'border-gray-900 ring-2 ring-gray-900/40'
-                                    : activeSlotIndex === null
-                                      ? 'border-gray-200 opacity-50 cursor-not-allowed'
-                                      : 'border-gray-200 hover:border-gray-400'
+                                  ? 'border-gray-900 ring-2 ring-gray-900/40'
+                                  : activeSlotIndex === null
+                                    ? 'border-gray-200 opacity-50 cursor-not-allowed'
+                                    : 'border-gray-200 hover:border-gray-400'
                                   }`}
                                 style={{ backgroundColor: color.hex }}
                                 title={color.label}
@@ -922,10 +923,10 @@ export default function SearchButton() {
                                     onClick={() => handleDominantColorClick(baseColor.id)}
                                     disabled={activeSlotIndex === null}
                                     className={`h-5 w-5 rounded-full border-2 transition ${activeSlotIndex !== null && dominantSlots[activeSlotIndex] === baseColor.id
-                                        ? 'border-gray-900 ring-1 ring-gray-900/40'
-                                        : activeSlotIndex === null
-                                          ? 'border-transparent opacity-50 cursor-not-allowed'
-                                          : 'border-transparent hover:border-gray-400'
+                                      ? 'border-gray-900 ring-1 ring-gray-900/40'
+                                      : activeSlotIndex === null
+                                        ? 'border-transparent opacity-50 cursor-not-allowed'
+                                        : 'border-transparent hover:border-gray-400'
                                       }`}
                                     style={{ backgroundColor: baseColor.hex }}
                                     title={baseColor.label}
@@ -944,10 +945,10 @@ export default function SearchButton() {
                                         onClick={() => handleDominantColorClick(baseColor.id)}
                                         disabled={activeSlotIndex === null}
                                         className={`h-5 w-5 rounded-full border transition ${activeSlotIndex !== null && dominantSlots[activeSlotIndex] === baseColor.id
-                                            ? 'border-gray-400'
-                                            : activeSlotIndex === null
-                                              ? 'border-transparent opacity-50 cursor-not-allowed'
-                                              : 'border-transparent hover:border-gray-400'
+                                          ? 'border-gray-400'
+                                          : activeSlotIndex === null
+                                            ? 'border-transparent opacity-50 cursor-not-allowed'
+                                            : 'border-transparent hover:border-gray-400'
                                           }`}
                                         style={{ backgroundColor: shadeHex }}
                                         title={baseColor.label}

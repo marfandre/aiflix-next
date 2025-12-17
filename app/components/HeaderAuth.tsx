@@ -148,19 +148,12 @@ export default function HeaderAuth() {
 
   return (
     <>
-      {!hasSession ? (
+      {!hasSession && (
         <button
           onClick={() => setOpen(true)}
           className="h-9 rounded-md bg-black px-4 text-sm text-white"
         >
           Войти
-        </button>
-      ) : (
-        <button
-          onClick={handleSignOut}
-          className="h-9 rounded-full border border-[#ff8b8b] bg-[#ff6b6b]/20 px-4 text-sm font-medium text-black hover:bg-[#ff6b6b]/30 transition"
-        >
-          Выйти
         </button>
       )}
 

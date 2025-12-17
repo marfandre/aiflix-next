@@ -2,8 +2,7 @@
 import "./globals.css";
 import Link from "next/link";
 import type { Metadata } from "next";
-import PublicProfileLink from "./components/PublicProfileLink";
-import HeaderAuth from "./components/HeaderAuth";
+import ProfileDropdown from "./components/ProfileDropdown";
 
 export const metadata: Metadata = {
   title: "WAIVA",
@@ -34,14 +33,9 @@ export default function RootLayout({
               </Link>
             </nav>
 
-            {/* Правый блок */}
+            {/* Правый блок — выпадающее меню профиля */}
             <div className="ml-auto flex items-center gap-3">
-              <PublicProfileLink />
-              <Link href="/account" className="text-sm hover:underline">
-                Личный кабинет
-              </Link>
-              {/* Кнопки Войти/Выйти + модалка авторизации */}
-              <HeaderAuth />
+              <ProfileDropdown />
             </div>
           </div>
         </header>

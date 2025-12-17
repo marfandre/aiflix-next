@@ -48,20 +48,13 @@ export default function Header() {
             <Link href="/profile" className="hidden sm:inline hover:underline">Профиль</Link>
             <Link href="/dashboard" className="hidden sm:inline hover:underline">Личный кабинет</Link>
 
-            {/* Кнопки авторизации */}
-            {!hasSession ? (
+            {/* Кнопка Войти (только для неавторизованных) */}
+            {!hasSession && (
               <button
                 onClick={() => setAuthOpen(true)}
                 className="rounded bg-black px-4 py-2 text-white"
               >
                 Войти
-              </button>
-            ) : (
-              <button
-                onClick={handleSignOut}
-                className="rounded border px-4 py-2"
-              >
-                Выйти
               </button>
             )}
           </div>
