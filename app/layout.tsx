@@ -27,14 +27,13 @@ export default function RootLayout({
 
             {/* Левые пункты навигации */}
             <nav className="flex items-center gap-6">
-              {/* Кнопку "Загрузить" убрали, оставили только "О проекте" */}
               <Link href="/about" className="text-sm hover:underline">
                 О проекте
               </Link>
             </nav>
 
-            {/* Правый блок — выпадающее меню профиля */}
-            <div className="ml-auto flex items-center gap-3">
+            {/* Правый блок */}
+            <div className="ml-auto flex items-center gap-2">
               <ProfileDropdown />
             </div>
           </div>
