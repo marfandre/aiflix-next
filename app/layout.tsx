@@ -3,6 +3,7 @@ import "./globals.css";
 import Link from "next/link";
 import type { Metadata } from "next";
 import ProfileDropdown from "./components/ProfileDropdown";
+import NotificationBell from "./components/NotificationBell";
 
 export const metadata: Metadata = {
   title: "WAIVA",
@@ -33,8 +34,9 @@ export default function RootLayout({
             </nav>
 
             {/* Правый блок */}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1">
               <ProfileDropdown />
+              <NotificationBell />
             </div>
           </div>
         </header>

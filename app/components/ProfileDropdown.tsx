@@ -25,12 +25,13 @@ export default function ProfileDropdown() {
 
             if (user) {
                 // Загружаем аватар из profiles
-                const { data: profile } = await supabase
+                const { data: profile, error } = await supabase
                     .from('profiles')
                     .select('avatar_url')
                     .eq('id', user.id)
                     .maybeSingle();
 
+                console.log('ProfileDropdown avatar load:', { userId: user.id, profile, error });
                 setAvatarUrl(profile?.avatar_url || null);
             }
         }

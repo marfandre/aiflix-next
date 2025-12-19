@@ -41,13 +41,13 @@ export default async function Home({
   const videos =
     tab === "video"
       ? await supabase
-          .from("films")
-          .select(
-            "id, user_id, title, description, playback_id, created_at, profiles!inner(username, avatar_url)"
-          )
-          .order("created_at", { ascending: false })
-          .limit(60)
-          .then((r) => r.data ?? [])
+        .from("films")
+        .select(
+          "id, user_id, title, description, playback_id, created_at, profiles!inner(username, avatar_url)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(60)
+        .then((r) => r.data ?? [])
       : [];
 
   return (
@@ -102,6 +102,7 @@ export default async function Home({
                       target="film"
                       id={v.id}
                       userId={userId}
+                      ownerId={v.user_id}
                       className="ml-auto shrink-0"
                     />
                   </div>

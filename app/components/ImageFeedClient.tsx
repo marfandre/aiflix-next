@@ -31,9 +31,9 @@ type ImageRow = {
   image_type?: string | null;
   images_count?: number | null;
   profiles:
-    | { username: string | null; avatar_url: string | null }[]
-    | { username: string | null; avatar_url: string | null }
-    | null;
+  | { username: string | null; avatar_url: string | null }[]
+  | { username: string | null; avatar_url: string | null }
+  | null;
 };
 
 type ImageVariant = {
@@ -185,11 +185,11 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
               ...newImage,
               profiles: profileData
                 ? [
-                    {
-                      username: profileData.username,
-                      avatar_url: profileData.avatar_url,
-                    },
-                  ]
+                  {
+                    username: profileData.username,
+                    avatar_url: profileData.avatar_url,
+                  },
+                ]
                 : [],
             };
 
@@ -346,6 +346,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                     target="image"
                     id={im.id}
                     userId={userId}
+                    ownerId={im.user_id}
                     className="ml-auto shrink-0"
                   />
                 </div>
@@ -541,11 +542,10 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                                 key={v.path + idx}
                                 type="button"
                                 onClick={() => setSlideIndex(idx)}
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  idx === slideIndex
+                                className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
                                     ? "bg-white"
                                     : "bg-white/40"
-                                }`}
+                                  }`}
                               />
                             ))}
                           </div>

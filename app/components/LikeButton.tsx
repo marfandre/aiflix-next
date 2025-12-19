@@ -8,6 +8,7 @@ type Props = {
   target: 'film' | 'image';     // что лайкаем
   id: string;                   // id фильма или картинки
   userId?: string | null;       // можно передавать с сервера, но мы всё равно проверяем auth
+  ownerId?: string | null;      // id владельца контента для уведомлений
   className?: string;
 };
 
@@ -17,7 +18,7 @@ type LikeRow = {
   image_id?: string | null;
 };
 
-export default function LikeButton({ target, id, userId, className }: Props) {
+export default function LikeButton({ target, id, userId, ownerId, className }: Props) {
   const supabase = createClientComponentClient();
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(
@@ -155,6 +156,13 @@ export default function LikeButton({ target, id, userId, className }: Props) {
             setLiked(false);
             setCount((c) => Math.max(0, c - 1));
           }
+        } else if (ownerId) {
+          // Успешный лайк — создаём уведомление владельцу
+          fetch('/api/notifications/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target, targetId: id, ownerId }),
+          }).catch((e) => console.error('notification create error:', e));
         }
       }
     } catch (e: any) {
