@@ -1,0 +1,205 @@
+
+========================
+AI CONTENT TAGS v1.1 (UPDATED)
+========================
+
+FORMAT:
+tag_id | ru | en
+
+========================
+GENRE / STYLE (ЖАНР)
+========================
+sci_fi | научная фантастика | sci-fi
+fantasy | фэнтези | fantasy
+cyberpunk | киберпанк | cyberpunk
+steampunk | стимпанк | steampunk
+solarpunk | соларпанк | solarpunk
+dieselpunk | дизельпанк | dieselpunk
+post_apocalyptic | постапокалипсис | post-apocalyptic
+dystopian | антиутопия | dystopian
+utopian | утопия | utopian
+horror | хоррор | horror
+dark_fantasy | тёмное фэнтези | dark fantasy
+space_opera | космоопера | space opera
+noir | нуар | noir
+western | вестерн | western
+medieval | средневековый | medieval
+historical | исторический | historical
+mythological | мифологический | mythological
+surrealism | сюрреализм | surrealism
+abstract | абстракция | abstract
+realism | реализм | realism
+hyperrealism | гиперреализм | hyperrealism
+minimalism | минимализм | minimalism
+brutalism | брутализм | brutalism
+gothic | готика | gothic
+baroque | барокко | baroque
+art_deco | арт-деко | art deco
+retro | ретро | retro
+vintage | винтаж | vintage
+vaporwave | вейпорвейв | vaporwave
+synthwave | синтвейв | synthwave
+anime | аниме | anime
+manga | манга | manga
+comic | комикс | comic
+illustration | иллюстрация | illustration
+digital_art | цифровое искусство | digital art
+concept_art | концепт-арт | concept art
+concept_design | концептуальный дизайн | concept design
+environment_art | окружение, мир | environment art
+character_design | дизайн персонажа | character design
+watercolor | акварель | watercolor
+oil_painting | масляная живопись | oil painting
+sketch | скетч | sketch
+low_poly | low poly | low poly
+pixel_art | пиксель-арт | pixel art
+photorealistic | фотореализм | photorealistic
+ai_art | AI-арт | AI art
+cinematic | кинематографичный | cinematic
+space_art | космическое искусство | space art
+sci_fantasy | научное фэнтези | science fantasy
+dark_sci_fi | тёмная фантастика | dark sci-fi
+isometric | изометрия | isometric
+3d_render | 3D рендер | 3D render
+matte_painting | мэт-пейнтинг | matte painting
+
+========================
+ATMOSPHERE / MOOD (АТМОСФЕРА)
+========================
+calm | спокойный | calm
+peaceful | умиротворённый | peaceful
+cozy | уютный | cozy
+warm | тёплый | warm
+cold | холодный | cold
+dark | тёмный | dark
+gloomy | мрачный | gloomy
+eerie | жуткий | eerie
+mysterious | загадочный | mysterious
+dreamy | мечтательный | dreamy
+epic | эпичный | epic
+dramatic | драматичный | dramatic
+melancholic | меланхоличный | melancholic
+romantic | романтичный | romantic
+nostalgic | ностальгический | nostalgic
+magical | магический | magical
+mystical | мистический | mystical
+vibrant | насыщенный | vibrant
+muted | приглушённый | muted
+minimal | минималистичный | minimal
+clean | чистый | clean
+chaotic | хаотичный | chaotic
+intense | напряжённый | intense
+soft | мягкий | soft
+moody | атмосферный | moody
+quiet | тихий | quiet
+lonely | одинокий | lonely
+hopeful | обнадёживающий | hopeful
+sad | грустный | sad
+happy | радостный | happy
+playful | игривый | playful
+ominous | зловещий | ominous
+brutal | жёсткий | brutal
+elegant | элегантный | elegant
+luxurious | роскошный | luxurious
+apocalyptic | апокалиптичный | apocalyptic
+ethereal | эфирный | ethereal
+foggy | туманный | foggy
+rainy | дождливый | rainy
+stormy | штормовой | stormy
+snowy | снежный | snowy
+glowing | светящийся | glowing
+neon | неоновый | neon
+serene | безмятежный | serene
+emotional | эмоциональный | emotional
+poetic | поэтичный | poetic
+cosmic | космический | cosmic
+vast | ощущение масштаба | vast
+isolated | изолированный | isolated
+tranquil | спокойный, тихий | tranquil
+awe | вызывающий трепет | awe
+silent | безмолвный | silent
+uncanny | тревожно-странный | uncanny
+golden_hour | золотой час | golden hour
+
+========================
+СЦЕНА / SCENE (СЦЕНА)
+========================
+portrait | портрет | portrait
+landscape | пейзаж | landscape
+close_up | крупный план | close-up
+wide_shot | общий план | wide shot
+forest | лес | forest
+jungle | джунгли | jungle
+desert | пустыня | desert
+mountains | горы | mountains
+ocean | океан | ocean
+sea | море | sea
+beach | пляж | beach
+island | остров | island
+river | река | river
+lake | озеро | lake
+waterfall | водопад | waterfall
+cave | пещера | cave
+volcano | вулкан | volcano
+sky | небо | sky
+clouds | облака | clouds
+sunset | закат | sunset
+sunrise | рассвет | sunrise
+night_sky | ночное небо | night sky
+stars | звёзды | stars
+galaxy | галактика | galaxy
+planet | планета | planet
+moon | луна | moon
+outer_space | открытый космос | outer space
+space_station | космическая станция | space station
+alien_planet | инопланетная планета | alien planet
+asteroid | астероид | asteroid
+orbit | орбита | orbit
+city | город | city
+cityscape | городской пейзаж | cityscape
+street | улица | street
+road | дорога | road
+bridge | мост | bridge
+skyscraper | небоскрёб | skyscraper
+building | здание | building
+house | дом | house
+village | деревня | village
+ruins | руины | ruins
+abandoned_city | заброшенный город | abandoned city
+futuristic_city | город будущего | futuristic city
+room | комната | room
+corridor | коридор | corridor
+library | библиотека | library
+laboratory | лаборатория | laboratory
+temple | храм | temple
+castle | замок | castle
+palace | дворец | palace
+human | человек | human
+silhouette | силуэт | silhouette
+astronaut | астронавт | astronaut
+robot | робот | robot
+android | андроид | android
+cyborg | киборг | cyborg
+alien | инопланетянин | alien
+creature | существо | creature
+dragon | дракон | dragon
+angel | ангел | angel
+demon | демон | demon
+fire | огонь | fire
+smoke | дым | smoke
+fog | туман | fog
+portal | портал | portal
+spaceship | космический корабль | spaceship
+spaceship_interior | интерьер корабля | spaceship interior
+vehicle | транспорт | vehicle
+car | автомобиль | car
+train | поезд | train
+ship | корабль | ship
+tower | башня | tower
+monument | монумент | monument
+interior | интерьер | interior
+aerial_view | вид сверху | aerial view
+underwater | под водой | underwater
+floating_islands | парящие острова | floating islands
+mech | мех | mech
+weapon | оружие | weapon

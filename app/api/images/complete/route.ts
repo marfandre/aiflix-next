@@ -86,9 +86,7 @@ export async function POST(req: Request) {
       description,
       prompt,
       model,
-      genres,
-      mood,
-      imageType,
+      tags,        // новое поле тегов
     } = await req.json();
 
     const supa = createRouteHandlerClient({ cookies });
@@ -126,23 +124,13 @@ export async function POST(req: Request) {
         ? model.trim().toLowerCase()
         : null;
 
-    const genresToSave =
-      Array.isArray(genres) && genres.length
-        ? genres
-            .map((g: any) => String(g).trim())
-            .filter(Boolean)
-            .slice(0, 10)
-        : null;
-
-    const moodToSave =
-      typeof mood === "string" && mood.trim()
-        ? mood.trim().toLowerCase()
-        : null;
-
-    const imageTypeToSave =
-      typeof imageType === "string" && imageType.trim()
-        ? imageType.trim().toLowerCase()
-        : null;
+    const tagsToSave =
+      Array.isArray(tags) && tags.length
+        ? tags
+          .map((t: any) => String(t).trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 10)
+        : [];
 
     // 3. Готовим строки для вставки
     const rowsToInsert = imageList.map((img) => {
@@ -154,8 +142,8 @@ export async function POST(req: Request) {
         (Array.isArray(img.colors) && img.colors.length
           ? img.colors
           : Array.isArray(colors) && colors.length
-          ? colors
-          : []) as string[];
+            ? colors
+            : []) as string[];
 
       const normalizedColors = rawColors
         .filter((c) => typeof c === "string")
@@ -188,9 +176,7 @@ export async function POST(req: Request) {
         fifth_color: bucket4 ?? null,
 
         model: modelToSave,
-        genres: genresToSave,
-        mood: moodToSave,
-        image_type: imageTypeToSave,
+        tags: tagsToSave,
       };
     });
 

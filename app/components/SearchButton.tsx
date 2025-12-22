@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ColorWheel } from './ColorWheel';
+import TagSelector from './TagSelector';
 
 type SearchResultFilm = {
   id: string;
@@ -56,25 +57,7 @@ const MODEL_SEARCH_KEYS: Record<string, string> = {
   'Runway': 'runway',
 };
 
-const MOOD_SUGGESTIONS: string[] = [
-  'cozy',
-  'gloomy',
-  'epic',
-  'dark',
-  'bright',
-  'dreamy',
-  'noir',
-  'gritty',
-];
-
-const IMAGE_TYPE_SUGGESTIONS: string[] = [
-  'портрет',
-  'пейзаж',
-  'cinematic',
-  'isometric',
-  '3d render',
-  'flat illustration',
-];
+// MOOD_SUGGESTIONS и IMAGE_TYPE_SUGGESTIONS удалены — теперь используем TagSelector
 
 // Палитра цветов для выбора (соответствует корзинам в БД)
 const COLOR_PALETTE = [
@@ -155,7 +138,8 @@ export default function SearchButton() {
   const [includeVideo, setIncludeVideo] = useState(false);
   const [includeImages, setIncludeImages] = useState(false);
 
-  const [genresInput, setGenresInput] = useState('');
+  // === ТЕГИ (жанры + атмосфера + сцена) ===
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // === ЦВЕТОВОЙ ПОИСК ===
   const [colorSearchMode, setColorSearchMode] = useState<ColorSearchMode>('simple');
@@ -174,18 +158,12 @@ export default function SearchButton() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [dropdownModelOpen, setDropdownModelOpen] = useState(false);
 
-  // Настроение
-  const [moodInput, setMoodInput] = useState('');
-
-  // Тип изображения
-  const [selectedImageTypes, setSelectedImageTypes] = useState<string[]>([]);
-  const [dropdownImageTypeOpen, setDropdownImageTypeOpen] = useState(false);
-
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const modelDropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -200,6 +178,21 @@ export default function SearchButton() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [open]);
+
+  // Закрытие dropdown модели при клике вне
+  useEffect(() => {
+    function handleClickOutsideModel(e: MouseEvent) {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
+        setDropdownModelOpen(false);
+      }
+    }
+    if (dropdownModelOpen) {
+      document.addEventListener('mousedown', handleClickOutsideModel);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideModel);
+    };
+  }, [dropdownModelOpen]);
 
   // Обработчик выбора цвета в простом режиме
   function handleSimpleColorClick(colorId: string) {
@@ -243,16 +236,9 @@ export default function SearchButton() {
     const params = new URLSearchParams();
     params.set('types', types.join(','));
 
-    // Жанры
-    if (genresInput.trim()) {
-      params.set(
-        'genres',
-        genresInput
-          .split(',')
-          .map((g) => g.trim().toLowerCase())
-          .filter(Boolean)
-          .join(','),
-      );
+    // Теги (жанры + атмосфера + сцена)
+    if (selectedTags.length) {
+      params.set('tags', selectedTags.join(','));
     }
 
     // Модели
@@ -264,23 +250,6 @@ export default function SearchButton() {
       if (normalizedModels.length) {
         params.set('models', normalizedModels.join(','));
       }
-    }
-
-    // Настроение
-    if (moodInput.trim()) {
-      params.set(
-        'moods',
-        moodInput
-          .split(',')
-          .map((m) => m.trim().toLowerCase())
-          .filter(Boolean)
-          .join(','),
-      );
-    }
-
-    // Тип изображения
-    if (selectedImageTypes.length) {
-      params.set('imageTypes', selectedImageTypes.map((t) => t.toLowerCase()).join(','));
     }
 
     // === ЦВЕТА ===
@@ -323,11 +292,9 @@ export default function SearchButton() {
   }
 
   function resetAll() {
-    setGenresInput('');
+    setSelectedTags([]);
     setModelInput('');
     setSelectedModels([]);
-    setMoodInput('');
-    setSelectedImageTypes([]);
     setSimpleSelectedColors([]);
     setDominantSlots([null, null, null, null, null]);
     setActiveSlotIndex(null);
@@ -343,10 +310,6 @@ export default function SearchButton() {
     (m) =>
       m.toLowerCase().includes(modelInput.toLowerCase()) &&
       !selectedModels.includes(m),
-  );
-
-  const filteredImageTypeOptions = IMAGE_TYPE_SUGGESTIONS.filter(
-    (t) => !selectedImageTypes.includes(t),
   );
 
   // Размеры слотов для режима доминантности (убывающие)
@@ -425,54 +388,58 @@ export default function SearchButton() {
             <div className="mt-4 grid flex-1 grid-cols-1 gap-6 overflow-y-auto text-xs md:grid-cols-2">
               {/* Левая колонка */}
               <div className="space-y-4">
-                {/* Жанры */}
+                {/* Теги (жанры + атмосфера + сцена) */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Жанры</label>
-                  <input
-                    type="text"
-                    value={genresInput}
-                    onChange={(e) => setGenresInput(e.target.value)}
-                    placeholder="например: sci-fi, horror"
-                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                    Теги (жанры, атмосфера, сцена)
+                  </label>
+                  <TagSelector
+                    selectedTags={selectedTags}
+                    onTagsChange={setSelectedTags}
+                    maxTags={10}
+                    placeholder="Введите тег..."
                   />
-                </div>
-
-                {/* Настроение */}
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Атмосфера / настроение</label>
-                  <input
-                    type="text"
-                    value={moodInput}
-                    onChange={(e) => setMoodInput(e.target.value)}
-                    placeholder="например: cozy, gloomy, epic"
-                    className="w-full rounded-lg border px-3 py-2 text-sm"
-                  />
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {MOOD_SUGGESTIONS.map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setMoodInput(m)}
-                        className="rounded-full border border-gray-200 px-2 py-1 text-[11px] text-gray-700 hover:border-gray-400"
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Модель */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">Модель</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={modelInput}
-                      onChange={(e) => setModelInput(e.target.value)}
-                      onFocus={() => setDropdownModelOpen(true)}
-                      placeholder="начните вводить название модели"
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
+                  <div className="relative" ref={modelDropdownRef}>
+                    {/* Контейнер с чипами и input */}
+                    <div
+                      className="flex flex-wrap items-center gap-1.5 min-h-[40px] rounded-lg border border-gray-200 bg-white px-2 py-1.5 cursor-text"
+                      onClick={() => {
+                        setDropdownModelOpen(true);
+                        // focus input
+                      }}
+                    >
+                      {selectedModels.map((m) => (
+                        <span
+                          key={m}
+                          className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
+                        >
+                          <span>{m}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedModels((prev) => prev.filter((x) => x !== m));
+                            }}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        type="text"
+                        value={modelInput}
+                        onChange={(e) => setModelInput(e.target.value)}
+                        onFocus={() => setDropdownModelOpen(true)}
+                        placeholder={selectedModels.length === 0 ? "начните вводить название модели" : ""}
+                        className="flex-1 min-w-[100px] border-none outline-none bg-transparent text-sm placeholder:text-gray-400"
+                      />
+                    </div>
                     {dropdownModelOpen && (
                       <div className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border bg-white text-xs shadow">
                         {filteredModelOptions.length > 0 ? (
@@ -485,7 +452,7 @@ export default function SearchButton() {
                                 setModelInput('');
                                 setDropdownModelOpen(false);
                               }}
-                              className="block w-full px-3 py-1 text-left hover:bg-gray-100"
+                              className="block w-full px-3 py-1.5 text-left hover:bg-gray-100"
                             >
                               {m}
                             </button>
@@ -496,67 +463,6 @@ export default function SearchButton() {
                       </div>
                     )}
                   </div>
-                  {selectedModels.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {selectedModels.map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setSelectedModels((prev) => prev.filter((x) => x !== m))}
-                          className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] text-gray-800"
-                        >
-                          <span>{m}</span>
-                          <span className="text-gray-500">×</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Тип изображения */}
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Тип изображения</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      onFocus={() => setDropdownImageTypeOpen(true)}
-                      placeholder="например: портрет, пейзаж"
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                      readOnly
-                    />
-                    {dropdownImageTypeOpen && (
-                      <div className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border bg-white text-xs shadow">
-                        {filteredImageTypeOptions.map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => {
-                              setSelectedImageTypes((prev) => [...prev, t]);
-                              setDropdownImageTypeOpen(false);
-                            }}
-                            className="block w-full px-3 py-1 text-left hover:bg-gray-100"
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {selectedImageTypes.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {selectedImageTypes.map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setSelectedImageTypes((prev) => prev.filter((x) => x !== t))}
-                          className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] text-gray-800"
-                        >
-                          <span>{t}</span>
-                          <span className="text-gray-500">×</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
 

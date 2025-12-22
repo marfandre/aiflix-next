@@ -110,8 +110,11 @@ export async function GET(req: NextRequest) {
   const includeVideo = types.includes("video");
   const includeImages = types.includes("images");
 
-  const genresParam = sp.get("genres");
+  const tagsParam = sp.get("tags");      // новый параметр тегов
   const modelsParam = sp.get("models");
+
+  // Старые параметры (обратная совместимость)
+  const genresParam = sp.get("genres");
   const moodsParam = sp.get("moods");
   const imageTypesParam = sp.get("imageTypes");
 
@@ -141,10 +144,8 @@ export async function GET(req: NextRequest) {
     id: string;
     title: string | null;
     colors: string[] | null;
-    genres: string[] | null;
+    tags: string[] | null;
     model: string | null;
-    mood: string | null;
-    image_type: string | null;
     dominant_color: string | null;
     secondary_color: string | null;
     third_color: string | null;
@@ -191,7 +192,7 @@ export async function GET(req: NextRequest) {
     let q = supabase
       .from("images_meta")
       .select(
-        "id, title, colors, genres, model, mood, image_type, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
+        "id, title, colors, tags, model, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
       )
       .order("created_at", { ascending: false })
       .limit(120);
@@ -278,11 +279,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Жанры
-    if (genresParam) {
-      const genres = genresParam.split(",").map((g) => g.trim().toLowerCase()).filter(Boolean);
-      if (genres.length) {
-        q = q.overlaps("genres", genres);
+    // Теги (новая система)
+    if (tagsParam) {
+      const tags = tagsParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+      if (tags.length) {
+        q = q.overlaps("tags", tags);
       }
     }
 
@@ -295,19 +296,24 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Настроение
-    if (moodsParam) {
-      const moods = moodsParam.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
-      if (moods.length) {
-        q = q.in("mood", moods);
+    // === Старые параметры (обратная совместимость) ===
+    // Если пришли старые параметры — конвертируем в поиск по tags
+    if (genresParam && !tagsParam) {
+      const genres = genresParam.split(",").map((g) => g.trim().toLowerCase()).filter(Boolean);
+      if (genres.length) {
+        q = q.overlaps("tags", genres);
       }
     }
-
-    // Тип изображения
-    if (imageTypesParam) {
+    if (moodsParam && !tagsParam) {
+      const moods = moodsParam.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
+      if (moods.length) {
+        q = q.overlaps("tags", moods);
+      }
+    }
+    if (imageTypesParam && !tagsParam) {
       const imageTypes = imageTypesParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
       if (imageTypes.length) {
-        q = q.in("image_type", imageTypes);
+        q = q.overlaps("tags", imageTypes);
       }
     }
 

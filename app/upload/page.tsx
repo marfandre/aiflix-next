@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import TagSelector from '../components/TagSelector';
 
 const supabase = createClientComponentClient();
 
@@ -137,10 +138,8 @@ export default function UploadPage() {
   // Модель
   const [model, setModel] = useState<string>('');
 
-  // Жанры / настроение / тип изображения
-  const [genresInput, setGenresInput] = useState<string>(''); // "sci-fi, cyberpunk"
-  const [mood, setMood] = useState<string>('');               // "cozy dark"
-  const [imageType, setImageType] = useState<string>('');     // только для картинок
+  // Теги (жанры + атмосфера + сцена)
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // IMAGES CAROUSEL STATE (для картинок)
   const [images, setImages] = useState<LocalImage[]>([]);
@@ -152,12 +151,6 @@ export default function UploadPage() {
   const [isEditingPalette, setIsEditingPalette] = useState(false);
   const [draftColors, setDraftColors] = useState<string[] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  // Преобразуем строку жанров в массив строк для API
-  const parsedGenres = genresInput
-    .split(',')
-    .map((g) => g.trim())
-    .filter(Boolean);
 
   const currentImage = images[currentIndex] ?? null;
 
@@ -255,8 +248,7 @@ export default function UploadPage() {
             title,
             description,
             model: model || null,
-            genres: parsedGenres.length ? parsedGenres : null,
-            mood: mood || null,
+            tags: selectedTags.length ? selectedTags : null,
           }),
         });
         if (!startRes.ok) throw new Error('Не удалось получить URL загрузки видео');
@@ -275,8 +267,7 @@ export default function UploadPage() {
         setPrompt('');
         setFile(null);
         setModel('');
-        setGenresInput('');
-        setMood('');
+        setSelectedTags([]);
       } else {
         // ---------- IMAGE (карусель) ----------
         // 1) Заливаем каждый файл в storage
@@ -327,9 +318,7 @@ export default function UploadPage() {
             description,
             prompt,
             model: model || null,
-            genres: parsedGenres.length ? parsedGenres : null,
-            mood: mood || null,
-            imageType: imageType || null,
+            tags: selectedTags.length ? selectedTags : null,
           }),
         });
 
@@ -343,9 +332,7 @@ export default function UploadPage() {
         setDescription('');
         setPrompt('');
         setModel('');
-        setGenresInput('');
-        setMood('');
-        setImageType('');
+        setSelectedTags([]);
 
         // Чистим локальные превью
         images.forEach((img) => {
@@ -388,9 +375,8 @@ export default function UploadPage() {
               setError(null);
               setSuccess(null);
             }}
-            className={`rounded px-4 py-2 ${
-              type === 'video' ? 'bg-black text-white' : 'border'
-            }`}
+            className={`rounded px-4 py-2 ${type === 'video' ? 'bg-black text-white' : 'border'
+              }`}
           >
             Видео
           </button>
@@ -401,9 +387,8 @@ export default function UploadPage() {
               setError(null);
               setSuccess(null);
             }}
-            className={`rounded px-4 py-2 ${
-              type === 'image' ? 'bg-black text-white' : 'border'
-            }`}
+            className={`rounded px-4 py-2 ${type === 'image' ? 'bg-black text-white' : 'border'
+              }`}
           >
             Картинка
           </button>
@@ -510,47 +495,16 @@ export default function UploadPage() {
                 </div>
               )}
 
-              {/* Жанры */}
+              {/* Теги (жанры, атмосфера, сцена) */}
               <div>
-                <label className="mb-1 block text-sm">Жанры</label>
-                <input
-                  value={genresInput}
-                  onChange={(e) => setGenresInput(e.target.value)}
-                  className="w-full rounded border px-3 py-2 text-sm"
-                  placeholder="например: sci-fi, cyberpunk, drama"
+                <label className="mb-1 block text-sm">Теги (жанры, атмосфера, сцена)</label>
+                <TagSelector
+                  selectedTags={selectedTags}
+                  onTagsChange={setSelectedTags}
+                  maxTags={10}
+                  placeholder="Введите тег..."
                 />
               </div>
-
-              {/* Атмосфера / настроение */}
-              <div>
-                <label className="mb-1 block text-sm">Атмосфера / настроение</label>
-                <input
-                  value={mood}
-                  onChange={(e) => setMood(e.target.value)}
-                  className="w-full rounded border px-3 py-2 text-sm"
-                  placeholder="например: cozy, dark futuristic, epic"
-                />
-              </div>
-
-              {/* Тип изображения — только для картинок */}
-              {type === 'image' && (
-                <div>
-                  <label className="mb-1 block text-sm">Тип изображения</label>
-                  <select
-                    value={imageType}
-                    onChange={(e) => setImageType(e.target.value)}
-                    className="w-full rounded border px-3 py-2 text-sm"
-                  >
-                    <option value="">Не указано</option>
-                    <option value="portrait">Портрет</option>
-                    <option value="landscape">Пейзаж</option>
-                    <option value="interior">Интерьер</option>
-                    <option value="cityscape">Город</option>
-                    <option value="abstract">Абстракция</option>
-                    <option value="macro">Макро</option>
-                  </select>
-                </div>
-              )}
 
               {/* Модель */}
               <div>
@@ -727,11 +681,10 @@ export default function UploadPage() {
                             if (!isEditingPalette) return;
                             setSelectedIndex(index);
                           }}
-                          className={`flex items-center justify-center rounded-full border transition ${
-                            isSelected
-                              ? 'border-black ring-2 ring-black/60'
-                              : 'border-gray-200'
-                          }`}
+                          className={`flex items-center justify-center rounded-full border transition ${isSelected
+                            ? 'border-black ring-2 ring-black/60'
+                            : 'border-gray-200'
+                            }`}
                           style={{
                             padding: isSelected ? 3 : 1,
                           }}
