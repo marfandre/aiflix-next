@@ -8,31 +8,45 @@ const supabase = createClientComponentClient();
 
 type MediaType = 'video' | 'image';
 
-// дополнительные цвета для палитры
+// AI-оптимизированная цветовая палитра
+const COLOR_PALETTE = [
+  { id: 'red', hex: '#FF1744', label: 'Красный' },
+  { id: 'orange', hex: '#FF6D00', label: 'Оранжевый' },
+  { id: 'yellow', hex: '#FFEA00', label: 'Жёлтый' },
+  { id: 'green', hex: '#00E676', label: 'Зелёный' },
+  { id: 'teal', hex: '#1DE9B6', label: 'Бирюзовый' },
+  { id: 'cyan', hex: '#00E5FF', label: 'Голубой' },
+  { id: 'blue', hex: '#2979FF', label: 'Синий' },
+  { id: 'indigo', hex: '#651FFF', label: 'Индиго' },
+  { id: 'purple', hex: '#D500F9', label: 'Фиолетовый' },
+  { id: 'pink', hex: '#FF4081', label: 'Розовый' },
+  { id: 'brown', hex: '#8D6E63', label: 'Коричневый' },
+  { id: 'black', hex: '#121212', label: 'Чёрный' },
+  { id: 'white', hex: '#FAFAFA', label: 'Белый' },
+];
+
+// Оттенки для AI-контента
+const COLOR_SHADES: Record<string, string[]> = {
+  red: ['#FFCDD2', '#FF8A80', '#FF5252', '#FF1744', '#D50000', '#B71C1C', '#7F0000'],
+  orange: ['#FFE0B2', '#FFAB40', '#FF9100', '#FF6D00', '#E65100', '#BF360C', '#8D2000'],
+  yellow: ['#FFF9C4', '#FFFF00', '#FFEA00', '#FFD600', '#FFC400', '#FFAB00', '#FF8F00'],
+  green: ['#B9F6CA', '#69F0AE', '#00E676', '#00C853', '#00A843', '#008836', '#006B24'],
+  teal: ['#A7FFEB', '#64FFDA', '#1DE9B6', '#00BFA5', '#009688', '#00796B', '#004D40'],
+  cyan: ['#B2EBF2', '#80DEEA', '#4DD0E1', '#00E5FF', '#00B8D4', '#0097A7', '#006064'],
+  blue: ['#BBDEFB', '#82B1FF', '#448AFF', '#2979FF', '#2962FF', '#1A46CC', '#0D2899'],
+  indigo: ['#D1C4E9', '#B388FF', '#7C4DFF', '#651FFF', '#6200EA', '#4A00B0', '#2E0076'],
+  purple: ['#E1BEE7', '#EA80FC', '#E040FB', '#D500F9', '#AA00FF', '#8000BF', '#560080'],
+  pink: ['#F8BBD0', '#FF80AB', '#FF4081', '#F50057', '#C51162', '#960D4A', '#670833'],
+  brown: ['#D7CCC8', '#BCAAA4', '#A1887F', '#8D6E63', '#6D4C41', '#4E342E', '#3E2723'],
+  black: ['#FAFAFA', '#E0E0E0', '#9E9E9E', '#616161', '#424242', '#212121', '#121212'],
+};
+
+// Собираем все цвета палитры + оттенки для замены
 const EXTRA_REPLACEMENT_COLORS: string[] = [
-  '#ffffff',
-  '#f5f5f5',
-  '#000000',
-  '#808080',
-  '#1f2933',
-
-  '#ff0000',
-  '#ff7f00',
-  '#ffbf00',
-  '#ffff00',
-  '#9acd32',
-
-  '#00ff00',
-  '#00ffff',
-  '#008b8b',
-  '#0000ff',
-  '#4169e1',
-
-  '#800080',
-  '#ff00ff',
-  '#8b4513',
-  '#d2691e',
-  '#ffc0cb',
+  // Базовые цвета
+  ...COLOR_PALETTE.map(c => c.hex),
+  // Все оттенки
+  ...Object.values(COLOR_SHADES).flat(),
 ];
 
 async function extractColorsFromFile(file: File): Promise<string[] | null> {
@@ -151,6 +165,8 @@ export default function UploadPage() {
   const [isEditingPalette, setIsEditingPalette] = useState(false);
   const [draftColors, setDraftColors] = useState<string[] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedPaletteColor, setSelectedPaletteColor] = useState<string | null>(null); // какой базовый цвет выбран для показа оттенков
+  const [showShades, setShowShades] = useState(false);
 
   const currentImage = images[currentIndex] ?? null;
 
@@ -758,35 +774,144 @@ export default function UploadPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-8 gap-2 max-[480px]:grid-cols-6">
-                      {replacementPalette.map((c, index) => (
-                        <button
-                          key={c + index}
-                          type="button"
-                          className="rounded-md border border-gray-200 p-[2px]"
-                          onClick={() => {
-                            if (!isEditingPalette) return;
-                            if (selectedIndex == null) return;
-                            setDraftColors((prev) => {
-                              if (!prev) return prev;
-                              const next = [...prev];
-                              next[selectedIndex] = c;
-                              return next;
-                            });
-                          }}
-                          title="Заменить выбранный цвет этим"
-                        >
-                          <span
-                            className="block rounded-[4px]"
-                            style={{
-                              backgroundColor: c,
-                              width: 22,
-                              height: 22,
+                    {/* Цвета из картинки + Пипетка */}
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="text-[10px] text-gray-500">Из картинки:</span>
+                      <div className="flex gap-1">
+                        {currentBasePalette.map((c, index) => (
+                          <button
+                            key={c + index}
+                            type="button"
+                            onClick={() => {
+                              if (selectedIndex == null) return;
+                              setDraftColors((prev) => {
+                                if (!prev) return prev;
+                                const next = [...prev];
+                                next[selectedIndex] = c;
+                                return next;
+                              });
                             }}
-                          />
+                            title={c}
+                            className="rounded-full border border-gray-200 hover:border-gray-400 hover:scale-110 transition-transform"
+                          >
+                            <span
+                              className="block rounded-full"
+                              style={{ backgroundColor: c, width: 22, height: 22 }}
+                            />
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Пипетка — иконка */}
+                      {'EyeDropper' in window && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (selectedIndex == null) return;
+                            try {
+                              // @ts-ignore - EyeDropper API
+                              const eyeDropper = new window.EyeDropper();
+                              const result = await eyeDropper.open();
+                              if (result?.sRGBHex) {
+                                setDraftColors((prev) => {
+                                  if (!prev) return prev;
+                                  const next = [...prev];
+                                  next[selectedIndex] = result.sRGBHex.toUpperCase();
+                                  return next;
+                                });
+                              }
+                            } catch (e) {
+                              // User cancelled
+                            }
+                          }}
+                          disabled={selectedIndex == null}
+                          className="ml-1 w-7 h-7 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Пипетка — захватить цвет с экрана"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-600">
+                            <path d="m2 22 1-1h3l9-9" />
+                            <path d="M3 21v-3l9-9" />
+                            <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z" />
+                          </svg>
                         </button>
-                      ))}
+                      )}
                     </div>
+
+                    {/* AI Палитра — круглые кнопки */}
+                    <div className="flex gap-1.5 flex-wrap">
+                      {COLOR_PALETTE.map((color) => {
+                        const isSelected = selectedPaletteColor === color.id;
+                        return (
+                          <button
+                            key={color.id}
+                            type="button"
+                            className={`rounded-full transition-all ${isSelected ? 'ring-2 ring-gray-900 ring-offset-1 scale-110' : 'hover:scale-110'}`}
+                            onClick={() => {
+                              // Toggle: при повторном клике скрыть оттенки
+                              if (isSelected) {
+                                setSelectedPaletteColor(null);
+                              } else {
+                                setSelectedPaletteColor(color.id);
+                              }
+                              // Также применить цвет
+                              if (selectedIndex != null) {
+                                setDraftColors((prev) => {
+                                  if (!prev) return prev;
+                                  const next = [...prev];
+                                  next[selectedIndex] = color.hex;
+                                  return next;
+                                });
+                              }
+                            }}
+                            title={color.label}
+                          >
+                            <span
+                              className="block rounded-full border border-gray-200"
+                              style={{ backgroundColor: color.hex, width: 26, height: 26 }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Кнопка Оттенки / Скрыть оттенки */}
+                    {selectedPaletteColor && COLOR_SHADES[selectedPaletteColor] && (
+                      <button
+                        type="button"
+                        onClick={() => setShowShades(!showShades)}
+                        className="mt-2 rounded-full border border-gray-300 px-3 py-1 text-[11px] text-gray-600 hover:bg-gray-100"
+                      >
+                        {showShades ? 'Скрыть оттенки' : 'Оттенки'}
+                      </button>
+                    )}
+
+                    {/* Оттенки — появляются по кнопке */}
+                    {selectedPaletteColor && showShades && COLOR_SHADES[selectedPaletteColor] && (
+                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                        {COLOR_SHADES[selectedPaletteColor].map((shadeHex, idx) => (
+                          <button
+                            key={shadeHex}
+                            type="button"
+                            className="rounded-full hover:scale-110 transition-transform"
+                            onClick={() => {
+                              if (selectedIndex == null) return;
+                              setDraftColors((prev) => {
+                                if (!prev) return prev;
+                                const next = [...prev];
+                                next[selectedIndex] = shadeHex;
+                                return next;
+                              });
+                            }}
+                            title={`Оттенок ${idx + 1}`}
+                          >
+                            <span
+                              className="block rounded-full border border-gray-100"
+                              style={{ backgroundColor: shadeHex, width: 22, height: 22 }}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

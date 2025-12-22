@@ -17,21 +17,22 @@ const supabase = createClient(
 );
 
 /**
- * БАЗОВЫЕ ЦВЕТА ПАЛИТРЫ (bucket'ы)
+ * БАЗОВЫЕ ЦВЕТА ПАЛИТРЫ (bucket'ы) - AI-оптимизированные
  */
 const BUCKET_BASE_COLORS: { id: string; hex: string; r: number; g: number; b: number }[] = [
-  { id: "yellow", hex: "#ffd60a", r: 0, g: 0, b: 0 },
-  { id: "orange", hex: "#ff9500", r: 0, g: 0, b: 0 },
-  { id: "red", hex: "#ff3b30", r: 0, g: 0, b: 0 },
-  { id: "green", hex: "#34c759", r: 0, g: 0, b: 0 },
-  { id: "teal", hex: "#00c7be", r: 0, g: 0, b: 0 },
-  { id: "cyan", hex: "#32ade6", r: 0, g: 0, b: 0 },
-  { id: "blue", hex: "#007aff", r: 0, g: 0, b: 0 },
-  { id: "indigo", hex: "#5856d6", r: 0, g: 0, b: 0 },
-  { id: "purple", hex: "#af52de", r: 0, g: 0, b: 0 },
-  { id: "pink", hex: "#ff2d55", r: 0, g: 0, b: 0 },
-  { id: "brown", hex: "#a2845e", r: 0, g: 0, b: 0 },
-  { id: "gray", hex: "#8e8e93", r: 0, g: 0, b: 0 },
+  { id: "red", hex: "#FF1744", r: 0, g: 0, b: 0 },
+  { id: "orange", hex: "#FF6D00", r: 0, g: 0, b: 0 },
+  { id: "yellow", hex: "#FFEA00", r: 0, g: 0, b: 0 },
+  { id: "green", hex: "#00E676", r: 0, g: 0, b: 0 },
+  { id: "teal", hex: "#1DE9B6", r: 0, g: 0, b: 0 },
+  { id: "cyan", hex: "#00E5FF", r: 0, g: 0, b: 0 },
+  { id: "blue", hex: "#2979FF", r: 0, g: 0, b: 0 },
+  { id: "indigo", hex: "#651FFF", r: 0, g: 0, b: 0 },
+  { id: "purple", hex: "#D500F9", r: 0, g: 0, b: 0 },
+  { id: "pink", hex: "#FF4081", r: 0, g: 0, b: 0 },
+  { id: "brown", hex: "#8D6E63", r: 0, g: 0, b: 0 },
+  { id: "black", hex: "#121212", r: 0, g: 0, b: 0 },
+  { id: "white", hex: "#FAFAFA", r: 0, g: 0, b: 0 },
 ];
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -120,7 +121,8 @@ export async function GET(req: NextRequest) {
 
   // === НОВЫЕ ПАРАМЕТРЫ ЦВЕТОВОГО ПОИСКА ===
   const colorMode = sp.get("colorMode"); // 'simple' | 'dominant' | null
-  const colorsParam = sp.get("colors");  // для простого режима: "red,blue,green"
+  const colorsParam = sp.get("colors");  // для простого режима: "red,blue,green" (старый формат)
+  const hexColorsParam = sp.get("hexColors"); // новый формат: "#FF1744,#00E676"
 
   // Для режима доминантности: slot0, slot1, slot2, slot3, slot4
   const slot0 = sp.get("slot0");
@@ -199,17 +201,25 @@ export async function GET(req: NextRequest) {
 
     // === ЦВЕТОВОЙ ПОИСК ===
 
-    if (colorMode === "simple" && colorsParam) {
+    if (colorMode === "simple" && (colorsParam || hexColorsParam)) {
       // ПРОСТОЙ РЕЖИМ: ищем картинки где ВСЕ выбранные цвета есть (каждый в любом слоте)
-      const buckets = colorsParam
-        .split(",")
-        .map((c) => c.trim().toLowerCase())
-        .filter(Boolean);
+      let buckets: string[] = [];
+
+      if (hexColorsParam) {
+        // Новый формат: hex-коды -> мапим в bucketы
+        const hexColors = hexColorsParam.split(",").map((c) => c.trim()).filter(Boolean);
+        buckets = hexColors.map((hex) => mapHexToBucket(hex)).filter(Boolean) as string[];
+      } else if (colorsParam) {
+        // Старый формат: bucket ID
+        buckets = colorsParam
+          .split(",")
+          .map((c) => c.trim().toLowerCase())
+          .filter(Boolean);
+      }
 
       if (buckets.length) {
         // AND логика: для КАЖДОГО цвета — он должен быть хотя бы в одном слоте
         for (const bucket of buckets) {
-          // Для каждого цвета создаём OR по всем слотам
           const orParts = [
             `dominant_color.eq.${bucket}`,
             `secondary_color.eq.${bucket}`,

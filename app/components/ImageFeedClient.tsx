@@ -27,8 +27,7 @@ type ImageRow = {
   created_at: string | null;
   colors: string[] | null;
   model?: string | null;
-  mood?: string | null;
-  image_type?: string | null;
+  tags?: string[] | null;
   images_count?: number | null;
   profiles:
   | { username: string | null; avatar_url: string | null }[]
@@ -69,6 +68,7 @@ function formatModelName(raw?: string | null): string {
 export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
   const [images, setImages] = useState<ImageRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tagsMap, setTagsMap] = useState<Record<string, string>>({}); // id -> name_ru
 
   const [selected, setSelected] = useState<ImageRow | null>(null);
   const [variants, setVariants] = useState<ImageVariant[]>([]);
@@ -76,6 +76,20 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
   const [variantsLoading, setVariantsLoading] = useState(false);
 
   const supa = createClientComponentClient();
+
+  // Загрузка тегов для маппинга id -> name_ru
+  useEffect(() => {
+    fetch('/api/tags')
+      .then(r => r.json())
+      .then(data => {
+        const map: Record<string, string> = {};
+        for (const t of data.all ?? []) {
+          map[t.id] = t.name_ru;
+        }
+        setTagsMap(map);
+      })
+      .catch(() => { });
+  }, []);
 
   // ---------- ЗАГРУЗКА ЛЕНТЫ С ФИЛЬТРАМИ ----------
   useEffect(() => {
@@ -85,7 +99,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
       let query = supa
         .from("images_meta")
         .select(
-          "id, user_id, path, title, description, prompt, created_at, colors, model, mood, image_type, images_count, profiles(username, avatar_url)"
+          "id, user_id, path, title, description, prompt, created_at, colors, model, tags, images_count, profiles(username, avatar_url)"
         )
         .order("created_at", { ascending: false })
         .limit(60);
@@ -115,23 +129,9 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
         }
       }
 
-      // настроение / атмосфера
-      if (searchParams.moods) {
-        const moods = searchParams.moods
-          .split(",")
-          .map((m) => m.trim().toLowerCase())
-          .filter(Boolean);
-        if (moods.length) query = query.in("mood", moods);
-      }
-
-      // тип изображения
-      if (searchParams.imageTypes) {
-        const types = searchParams.imageTypes
-          .split(",")
-          .map((t) => t.trim().toLowerCase())
-          .filter(Boolean);
-        if (types.length) query = query.in("image_type", types);
-      }
+      // теги (заменили mood и image_type)
+      // Фильтрация по тегам не поддерживается в этом компоненте напрямую
+      // (используйте поиск через SearchButton)
 
       const { data, error } = await query;
 
@@ -148,17 +148,13 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
     supa,
     searchParams.colors,
     searchParams.models,
-    searchParams.moods,
-    searchParams.imageTypes,
   ]);
 
   // ---------- ПОДПИСКА НА НОВЫЕ КАРТИНКИ (без фильтров) ----------
   useEffect(() => {
     if (
       searchParams.colors ||
-      searchParams.models ||
-      searchParams.moods ||
-      searchParams.imageTypes
+      searchParams.models
     )
       return;
 
@@ -208,8 +204,6 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
     supa,
     searchParams.colors,
     searchParams.models,
-    searchParams.moods,
-    searchParams.imageTypes,
   ]);
 
   const publicImageUrl = (path: string) => {
@@ -428,9 +422,28 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                   <div className="text-xs text-gray-600">
                     Модель:{" "}
                     <span className="font-medium">
-                      {formatModelName(selected.model || selected.image_type)}
+                      {formatModelName(selected.model)}
                     </span>
                   </div>
+
+                  {/* Теги */}
+                  {selected.tags && selected.tags.length > 0 && (
+                    <div className="mt-2">
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                        Теги
+                      </span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {selected.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
+                          >
+                            {tagsMap[tag] || tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* низ: ОПИСАНИЕ + автор/дата */}
@@ -543,8 +556,8 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                                 type="button"
                                 onClick={() => setSlideIndex(idx)}
                                 className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
-                                    ? "bg-white"
-                                    : "bg-white/40"
+                                  ? "bg-white"
+                                  : "bg-white/40"
                                   }`}
                               />
                             ))}

@@ -61,35 +61,35 @@ const MODEL_SEARCH_KEYS: Record<string, string> = {
 
 // Палитра цветов для выбора (соответствует корзинам в БД)
 const COLOR_PALETTE = [
-  { id: 'red', hex: '#FF3B30', label: 'Красный' },
-  { id: 'orange', hex: '#FF9500', label: 'Оранжевый' },
-  { id: 'yellow', hex: '#FFD60A', label: 'Жёлтый' },
-  { id: 'green', hex: '#34C759', label: 'Зелёный' },
-  { id: 'teal', hex: '#00C7BE', label: 'Бирюзовый' },
-  { id: 'cyan', hex: '#32ADE6', label: 'Голубой' },
-  { id: 'blue', hex: '#007AFF', label: 'Синий' },
-  { id: 'indigo', hex: '#5856D6', label: 'Индиго' },
-  { id: 'purple', hex: '#AF52DE', label: 'Фиолетовый' },
-  { id: 'pink', hex: '#FF2D55', label: 'Розовый' },
-  { id: 'brown', hex: '#A2845E', label: 'Коричневый' },
-  { id: 'black', hex: '#000000', label: 'Чёрный' },
-  { id: 'white', hex: '#FFFFFF', label: 'Белый' },
+  { id: 'red', hex: '#FF1744', label: 'Красный' },      // Более яркий, неоновый красный
+  { id: 'orange', hex: '#FF6D00', label: 'Оранжевый' }, // Насыщенный оранжевый
+  { id: 'yellow', hex: '#FFEA00', label: 'Жёлтый' },    // Яркий солнечный жёлтый
+  { id: 'green', hex: '#00E676', label: 'Зелёный' },    // Неоновый зелёный
+  { id: 'teal', hex: '#1DE9B6', label: 'Бирюзовый' },   // Яркий бирюзовый
+  { id: 'cyan', hex: '#00E5FF', label: 'Голубой' },     // Неоновый голубой
+  { id: 'blue', hex: '#2979FF', label: 'Синий' },       // Насыщенный синий
+  { id: 'indigo', hex: '#651FFF', label: 'Индиго' },    // Электрический индиго
+  { id: 'purple', hex: '#D500F9', label: 'Фиолетовый' },// Неоновый фиолетовый
+  { id: 'pink', hex: '#FF4081', label: 'Розовый' },     // Яркий розовый
+  { id: 'brown', hex: '#8D6E63', label: 'Коричневый' }, // Тёплый коричневый
+  { id: 'black', hex: '#121212', label: 'Чёрный' },     // Глубокий чёрный
+  { id: 'white', hex: '#FAFAFA', label: 'Белый' },      // Мягкий белый
 ];
 
-// Оттенки для каждого базового цвета (светлые → тёмные)
+// Оттенки для AI-контента: более насыщенные, с неоновыми акцентами
 const COLOR_SHADES: Record<string, string[]> = {
-  red: ['#FFE5E5', '#FFCCCC', '#FF9999', '#FF6666', '#CC2F27', '#991F1D', '#661514'],
-  orange: ['#FFF0E5', '#FFD9BF', '#FFB380', '#FF8C40', '#CC7700', '#995900', '#663C00'],
-  yellow: ['#FFFBE5', '#FFF5BF', '#FFEC80', '#FFE340', '#CCAB08', '#998006', '#665504'],
-  green: ['#E8F8ED', '#C7F0D5', '#8FE1AB', '#57D281', '#2AA047', '#1F7835', '#155023'],
-  teal: ['#E5FFFE', '#BFFBF9', '#80F7F2', '#40F3EB', '#009F98', '#00776F', '#004F49'],
-  cyan: ['#E9F6FC', '#C9E9F8', '#93D3F1', '#5DBDEA', '#2889B8', '#1E678A', '#14455C'],
-  blue: ['#E5F0FF', '#BFD9FF', '#80B3FF', '#408CFF', '#0062CC', '#004A99', '#003166'],
-  indigo: ['#EEEDFA', '#D5D4F2', '#ABA8E5', '#817DD8', '#4643AB', '#343280', '#232155'],
-  purple: ['#F5EAFA', '#E7CFF2', '#CF9FE5', '#B76FD8', '#8C42B2', '#693185', '#462158'],
-  pink: ['#FFE8EC', '#FFCCD5', '#FF99AB', '#FF6681', '#CC2444', '#991B33', '#661222'],
-  brown: ['#F5F0EA', '#E8DDD0', '#D1BBA1', '#BA9972', '#82694B', '#615038', '#413625'],
-  black: ['#F5F5F5', '#E5E5E5', '#CCCCCC', '#999999', '#666666', '#333333', '#1A1A1A'],
+  red: ['#FFCDD2', '#FF8A80', '#FF5252', '#FF1744', '#D50000', '#B71C1C', '#7F0000'],
+  orange: ['#FFE0B2', '#FFAB40', '#FF9100', '#FF6D00', '#E65100', '#BF360C', '#8D2000'],
+  yellow: ['#FFF9C4', '#FFFF00', '#FFEA00', '#FFD600', '#FFC400', '#FFAB00', '#FF8F00'],
+  green: ['#B9F6CA', '#69F0AE', '#00E676', '#00C853', '#00A843', '#008836', '#006B24'],
+  teal: ['#A7FFEB', '#64FFDA', '#1DE9B6', '#00BFA5', '#009688', '#00796B', '#004D40'],
+  cyan: ['#B2EBF2', '#80DEEA', '#4DD0E1', '#00E5FF', '#00B8D4', '#0097A7', '#006064'],
+  blue: ['#BBDEFB', '#82B1FF', '#448AFF', '#2979FF', '#2962FF', '#1A46CC', '#0D2899'],
+  indigo: ['#D1C4E9', '#B388FF', '#7C4DFF', '#651FFF', '#6200EA', '#4A00B0', '#2E0076'],
+  purple: ['#E1BEE7', '#EA80FC', '#E040FB', '#D500F9', '#AA00FF', '#8000BF', '#560080'],
+  pink: ['#F8BBD0', '#FF80AB', '#FF4081', '#F50057', '#C51162', '#960D4A', '#670833'],
+  brown: ['#D7CCC8', '#BCAAA4', '#A1887F', '#8D6E63', '#6D4C41', '#4E342E', '#3E2723'],
+  black: ['#FAFAFA', '#E0E0E0', '#9E9E9E', '#616161', '#424242', '#212121', '#121212'],
   // white не имеет оттенков
 };
 
@@ -147,8 +147,9 @@ export default function SearchButton() {
   const [colorSearchMode, setColorSearchMode] = useState<ColorSearchMode>('simple');
   const [colorPickerMode, setColorPickerMode] = useState<ColorPickerMode>('palette');
   const [showShades, setShowShades] = useState(false);
+  const [pickerPreviewColor, setPickerPreviewColor] = useState('#FF0000'); // цвет для превью
 
-  // Простой режим: массив выбранных цветов (bucket id)
+  // Простой режим: массив выбранных цветов (hex-коды)
   const [simpleSelectedColors, setSimpleSelectedColors] = useState<string[]>([]);
 
   // Режим по доминантности: 5 слотов
@@ -196,13 +197,14 @@ export default function SearchButton() {
     };
   }, [dropdownModelOpen]);
 
-  // Обработчик выбора цвета в простом режиме
-  function handleSimpleColorClick(colorId: string) {
+  // Обработчик выбора цвета в простом режиме (теперь принимает hex)
+  function handleSimpleColorClick(hexColor: string) {
     setSimpleSelectedColors((prev) => {
-      if (prev.includes(colorId)) {
-        return prev.filter((c) => c !== colorId);
+      if (prev.includes(hexColor)) {
+        return prev.filter((c) => c !== hexColor);
       }
-      return [...prev, colorId];
+      if (prev.length >= 5) return prev; // максимум 5 цветов
+      return [...prev, hexColor];
     });
   }
 
@@ -256,10 +258,10 @@ export default function SearchButton() {
 
     // === ЦВЕТА ===
     if (colorSearchMode === 'simple') {
-      // Простой режим: ищем картинки где любой из выбранных цветов есть в любом слоте
+      // Простой режим: ищем по hex-кодам
       if (simpleSelectedColors.length) {
         params.set('colorMode', 'simple');
-        params.set('colors', simpleSelectedColors.join(','));
+        params.set('hexColors', simpleSelectedColors.join(','));
       }
     } else {
       // Режим по доминантности: передаём каждый слот отдельно
@@ -508,26 +510,23 @@ export default function SearchButton() {
                     {/* 5 слотов для выбранных цветов */}
                     <div className="mb-4 flex items-center justify-center gap-2">
                       {[0, 1, 2, 3, 4].map((slotIdx) => {
-                        const colorId = simpleSelectedColors[slotIdx] ?? null;
-                        const colorData = colorId ? COLOR_PALETTE.find((c) => c.id === colorId) : null;
+                        const hexColor = simpleSelectedColors[slotIdx] ?? null;
                         return (
                           <div
                             key={slotIdx}
-                            className={`group relative flex h-8 w-8 items-center justify-center rounded-full border-2 ${colorData
+                            className={`group relative flex h-8 w-8 items-center justify-center rounded-full border-2 ${hexColor
                               ? 'border-gray-300 cursor-pointer'
                               : 'border-dashed border-gray-300'
                               }`}
-                            style={{ backgroundColor: colorData?.hex || '#f9fafb' }}
-                            title={colorData ? `${colorData.label} — нажмите чтобы удалить` : `Слот ${slotIdx + 1}`}
+                            style={{ backgroundColor: hexColor || '#f9fafb' }}
+                            title={hexColor ? `${hexColor} — нажмите чтобы удалить` : `Слот ${slotIdx + 1}`}
                             onClick={() => {
-                              if (colorData) {
-                                // Удаляем только этот цвет по индексу
+                              if (hexColor) {
                                 setSimpleSelectedColors((prev) => prev.filter((_, i) => i !== slotIdx));
                               }
                             }}
                           >
-                            {/* Крестик при наведении на заполненный слот */}
-                            {colorData && (
+                            {hexColor && (
                               <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                                 ✕
                               </span>
@@ -567,22 +566,22 @@ export default function SearchButton() {
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                       >
-                        Круг
+                        Точный цвет
                       </button>
                     </div>
 
                     {/* Палитра */}
                     {colorPickerMode === 'palette' && (
                       <div>
-                        {/* 12 базовых цветов — в одну строку */}
-                        <div className="flex gap-1">
+                        {/* Базовые цвета */}
+                        <div className="flex gap-1 mb-2">
                           {COLOR_PALETTE.map((color) => {
-                            const isSelected = simpleSelectedColors.includes(color.id);
+                            const isSelected = simpleSelectedColors.includes(color.hex);
                             return (
                               <button
                                 key={color.id}
                                 type="button"
-                                onClick={() => handleSimpleColorClick(color.id)}
+                                onClick={() => handleSimpleColorClick(color.hex)}
                                 className={`h-5 w-5 rounded-full border-2 transition ${isSelected
                                   ? 'border-gray-900 ring-2 ring-gray-900/40'
                                   : 'border-gray-200 hover:border-gray-400'
@@ -594,28 +593,27 @@ export default function SearchButton() {
                           })}
                         </div>
 
-                        {/* Кнопка Оттенки — только если хотя бы 1 цвет выбран */}
-                        {simpleSelectedColors.length > 0 && (
+                        {/* Кнопка Оттенки — только если выбран хотя бы 1 базовый цвет */}
+                        {COLOR_PALETTE.some(c => simpleSelectedColors.includes(c.hex)) && (
                           <button
                             type="button"
                             onClick={() => setShowShades(!showShades)}
-                            className="mt-3 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
+                            className="mt-1 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
                           >
                             <span>{showShades ? '▲' : '▼'}</span>
                             <span>{showShades ? 'Скрыть оттенки' : 'Оттенки'}</span>
                           </button>
                         )}
 
-                        {/* Оттенки — для каждого выбранного цвета строка из 8 оттенков */}
-                        {showShades && simpleSelectedColors.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {simpleSelectedColors.map((colorId) => {
-                              const baseColor = COLOR_PALETTE.find((c) => c.id === colorId);
-                              const shades = COLOR_SHADES[colorId] || [];
-                              if (!baseColor) return null;
+                        {/* Оттенки — только для выбранных базовых цветов */}
+                        {showShades && COLOR_PALETTE.some(c => simpleSelectedColors.includes(c.hex)) && (
+                          <div className="mt-2 space-y-2">
+                            {COLOR_PALETTE.filter(c => simpleSelectedColors.includes(c.hex)).map((baseColor) => {
+                              const shades = COLOR_SHADES[baseColor.id] || [];
+                              if (shades.length === 0) return null;
 
                               return (
-                                <div key={colorId} className="flex items-center gap-2">
+                                <div key={baseColor.id} className="flex items-center gap-2">
                                   {/* Базовый цвет слева */}
                                   <div
                                     className="h-5 w-5 rounded-full border-2 border-gray-900 flex-shrink-0"
@@ -624,16 +622,22 @@ export default function SearchButton() {
                                   />
                                   {/* Оттенки в строку */}
                                   <div className="flex gap-1">
-                                    {shades.slice(0, 8).map((shadeHex, idx) => (
-                                      <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => handleSimpleColorClick(colorId)}
-                                        className="h-4 w-4 rounded-full border border-gray-200 hover:border-gray-400 transition"
-                                        style={{ backgroundColor: shadeHex }}
-                                        title={`${baseColor.label} оттенок ${idx + 1}`}
-                                      />
-                                    ))}
+                                    {shades.map((shadeHex, idx) => {
+                                      const isShadeSelected = simpleSelectedColors.includes(shadeHex);
+                                      return (
+                                        <button
+                                          key={idx}
+                                          type="button"
+                                          onClick={() => handleSimpleColorClick(shadeHex)}
+                                          className={`h-4 w-4 rounded-full border transition ${isShadeSelected
+                                            ? 'border-gray-900 ring-1 ring-gray-900/40'
+                                            : 'border-gray-200 hover:border-gray-400'
+                                            }`}
+                                          style={{ backgroundColor: shadeHex }}
+                                          title={`${baseColor.label} оттенок ${idx + 1}`}
+                                        />
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
@@ -643,18 +647,35 @@ export default function SearchButton() {
                       </div>
                     )}
 
-                    {/* Цветовой круг */}
+                    {/* Color Picker */}
                     {colorPickerMode === 'wheel' && (
                       <div className="flex flex-col items-center">
-                        <ColorWheel
-                          size={160}
-                          onClick={(c) => {
-                            const bucket = mapHexToBucket(c.hex);
-                            if (bucket) handleSimpleColorClick(bucket);
-                          }}
-                        />
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={pickerPreviewColor}
+                            className="h-12 w-12 cursor-pointer rounded-lg border-2 border-gray-200 bg-white"
+                            onChange={(e) => setPickerPreviewColor(e.target.value.toUpperCase())}
+                            title="Выберите цвет"
+                          />
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-600 font-mono">{pickerPreviewColor}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!simpleSelectedColors.includes(pickerPreviewColor) && simpleSelectedColors.length < 5) {
+                                  handleSimpleColorClick(pickerPreviewColor);
+                                }
+                              }}
+                              disabled={simpleSelectedColors.includes(pickerPreviewColor) || simpleSelectedColors.length >= 5}
+                              className="rounded bg-gray-900 px-3 py-1 text-[11px] text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            >
+                              Добавить
+                            </button>
+                          </div>
+                        </div>
                         <p className="mt-2 text-center text-[10px] text-gray-400">
-                          Кликните на цвет — он конвертируется в ближайший базовый
+                          Выберите цвет, затем нажмите «Добавить»
                         </p>
                       </div>
                     )}
