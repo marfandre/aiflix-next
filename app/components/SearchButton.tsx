@@ -72,7 +72,8 @@ const COLOR_PALETTE = [
   { id: 'purple', hex: '#AF52DE', label: 'Фиолетовый' },
   { id: 'pink', hex: '#FF2D55', label: 'Розовый' },
   { id: 'brown', hex: '#A2845E', label: 'Коричневый' },
-  { id: 'gray', hex: '#8E8E93', label: 'Серый' },
+  { id: 'black', hex: '#000000', label: 'Чёрный' },
+  { id: 'white', hex: '#FFFFFF', label: 'Белый' },
 ];
 
 // Оттенки для каждого базового цвета (светлые → тёмные)
@@ -88,7 +89,8 @@ const COLOR_SHADES: Record<string, string[]> = {
   purple: ['#F5EAFA', '#E7CFF2', '#CF9FE5', '#B76FD8', '#8C42B2', '#693185', '#462158'],
   pink: ['#FFE8EC', '#FFCCD5', '#FF99AB', '#FF6681', '#CC2444', '#991B33', '#661222'],
   brown: ['#F5F0EA', '#E8DDD0', '#D1BBA1', '#BA9972', '#82694B', '#615038', '#413625'],
-  gray: ['#F5F5F5', '#E5E5E5', '#CCCCCC', '#B3B3B3', '#717175', '#555558', '#38383B'],
+  black: ['#F5F5F5', '#E5E5E5', '#CCCCCC', '#999999', '#666666', '#333333', '#1A1A1A'],
+  // white не имеет оттенков
 };
 
 type ColorSearchMode = 'simple' | 'dominant';
@@ -592,63 +594,50 @@ export default function SearchButton() {
                           })}
                         </div>
 
-                        {/* Кнопка Показать оттенки */}
-                        <button
-                          type="button"
-                          onClick={() => setShowShades(!showShades)}
-                          className="mt-3 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
-                        >
-                          <span>{showShades ? '▲' : '▼'}</span>
-                          <span>{showShades ? 'Скрыть оттенки' : 'Показать оттенки'}</span>
-                        </button>
+                        {/* Кнопка Оттенки — только если хотя бы 1 цвет выбран */}
+                        {simpleSelectedColors.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowShades(!showShades)}
+                            className="mt-3 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
+                          >
+                            <span>{showShades ? '▲' : '▼'}</span>
+                            <span>{showShades ? 'Скрыть оттенки' : 'Оттенки'}</span>
+                          </button>
+                        )}
 
-                        {/* Оттенки — матричный формат как в Word */}
-                        {showShades && (
-                          <div className="mt-3 rounded-lg border bg-gray-50 p-3">
-                            <div className="mb-2 text-[11px] font-medium text-gray-600">
-                              Оттенки (кликните для выбора базового цвета)
-                            </div>
-                            {/* Матрица: колонки = цвета, строки = оттенки */}
-                            <div className="flex flex-col gap-1">
-                              {/* Строка с базовыми цветами сверху */}
-                              <div className="flex gap-1">
-                                {COLOR_PALETTE.map((baseColor) => (
-                                  <button
-                                    key={baseColor.id}
-                                    type="button"
-                                    onClick={() => handleSimpleColorClick(baseColor.id)}
-                                    className={`h-5 w-5 rounded-full border-2 transition ${simpleSelectedColors.includes(baseColor.id)
-                                      ? 'border-gray-900 ring-1 ring-gray-900/40'
-                                      : 'border-transparent hover:border-gray-400'
-                                      }`}
+                        {/* Оттенки — для каждого выбранного цвета строка из 8 оттенков */}
+                        {showShades && simpleSelectedColors.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {simpleSelectedColors.map((colorId) => {
+                              const baseColor = COLOR_PALETTE.find((c) => c.id === colorId);
+                              const shades = COLOR_SHADES[colorId] || [];
+                              if (!baseColor) return null;
+
+                              return (
+                                <div key={colorId} className="flex items-center gap-2">
+                                  {/* Базовый цвет слева */}
+                                  <div
+                                    className="h-5 w-5 rounded-full border-2 border-gray-900 flex-shrink-0"
                                     style={{ backgroundColor: baseColor.hex }}
                                     title={baseColor.label}
                                   />
-                                ))}
-                              </div>
-                              {/* Строки оттенков (от светлого к тёмному) */}
-                              {[0, 1, 2, 3, 4, 5, 6].map((shadeIdx) => (
-                                <div key={shadeIdx} className="flex gap-1">
-                                  {COLOR_PALETTE.map((baseColor) => {
-                                    const shadeHex = COLOR_SHADES[baseColor.id]?.[shadeIdx];
-                                    if (!shadeHex) return <div key={baseColor.id} className="h-5 w-5" />;
-                                    return (
+                                  {/* Оттенки в строку */}
+                                  <div className="flex gap-1">
+                                    {shades.slice(0, 8).map((shadeHex, idx) => (
                                       <button
-                                        key={baseColor.id}
+                                        key={idx}
                                         type="button"
-                                        onClick={() => handleSimpleColorClick(baseColor.id)}
-                                        className={`h-5 w-5 rounded-full border transition ${simpleSelectedColors.includes(baseColor.id)
-                                          ? 'border-gray-400'
-                                          : 'border-transparent hover:border-gray-400'
-                                          }`}
+                                        onClick={() => handleSimpleColorClick(colorId)}
+                                        className="h-4 w-4 rounded-full border border-gray-200 hover:border-gray-400 transition"
                                         style={{ backgroundColor: shadeHex }}
-                                        title={`${baseColor.label}`}
+                                        title={`${baseColor.label} оттенок ${idx + 1}`}
                                       />
-                                    );
-                                  })}
+                                    ))}
+                                  </div>
                                 </div>
-                              ))}
-                            </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -804,66 +793,50 @@ export default function SearchButton() {
                           })}
                         </div>
 
-                        {/* Кнопка Показать оттенки */}
-                        <button
-                          type="button"
-                          onClick={() => setShowShades(!showShades)}
-                          className="mt-3 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
-                        >
-                          <span>{showShades ? '▲' : '▼'}</span>
-                          <span>{showShades ? 'Скрыть оттенки' : 'Показать оттенки'}</span>
-                        </button>
+                        {/* Кнопка Оттенки — только если хотя бы 1 цвет выбран */}
+                        {dominantSlots.some(Boolean) && (
+                          <button
+                            type="button"
+                            onClick={() => setShowShades(!showShades)}
+                            className="mt-3 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
+                          >
+                            <span>{showShades ? '▲' : '▼'}</span>
+                            <span>{showShades ? 'Скрыть оттенки' : 'Оттенки'}</span>
+                          </button>
+                        )}
 
-                        {/* Оттенки — матричный формат */}
-                        {showShades && (
-                          <div className="mt-3 rounded-lg border bg-gray-50 p-3">
-                            <div className="mb-2 text-[11px] font-medium text-gray-600">
-                              Оттенки (кликните для выбора)
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <div className="flex gap-1">
-                                {COLOR_PALETTE.map((baseColor) => (
-                                  <button
-                                    key={baseColor.id}
-                                    type="button"
-                                    onClick={() => handleDominantColorClick(baseColor.id)}
-                                    disabled={activeSlotIndex === null}
-                                    className={`h-5 w-5 rounded-full border-2 transition ${activeSlotIndex !== null && dominantSlots[activeSlotIndex] === baseColor.id
-                                      ? 'border-gray-900 ring-1 ring-gray-900/40'
-                                      : activeSlotIndex === null
-                                        ? 'border-transparent opacity-50 cursor-not-allowed'
-                                        : 'border-transparent hover:border-gray-400'
-                                      }`}
+                        {/* Оттенки — для каждого выбранного цвета строка из 8 оттенков */}
+                        {showShades && dominantSlots.some(Boolean) && (
+                          <div className="mt-3 space-y-2">
+                            {Array.from(new Set(dominantSlots.filter(Boolean))).map((colorId) => {
+                              if (!colorId) return null;
+                              const baseColor = COLOR_PALETTE.find((c) => c.id === colorId);
+                              const shades = COLOR_SHADES[colorId] || [];
+                              if (!baseColor) return null;
+
+                              return (
+                                <div key={colorId} className="flex items-center gap-2">
+                                  <div
+                                    className="h-5 w-5 rounded-full border-2 border-gray-900 flex-shrink-0"
                                     style={{ backgroundColor: baseColor.hex }}
                                     title={baseColor.label}
                                   />
-                                ))}
-                              </div>
-                              {[0, 1, 2, 3, 4, 5, 6].map((shadeIdx) => (
-                                <div key={shadeIdx} className="flex gap-1">
-                                  {COLOR_PALETTE.map((baseColor) => {
-                                    const shadeHex = COLOR_SHADES[baseColor.id]?.[shadeIdx];
-                                    if (!shadeHex) return <div key={baseColor.id} className="h-5 w-5" />;
-                                    return (
+                                  <div className="flex gap-1">
+                                    {shades.slice(0, 8).map((shadeHex, idx) => (
                                       <button
-                                        key={baseColor.id}
+                                        key={idx}
                                         type="button"
-                                        onClick={() => handleDominantColorClick(baseColor.id)}
+                                        onClick={() => handleDominantColorClick(colorId)}
                                         disabled={activeSlotIndex === null}
-                                        className={`h-5 w-5 rounded-full border transition ${activeSlotIndex !== null && dominantSlots[activeSlotIndex] === baseColor.id
-                                          ? 'border-gray-400'
-                                          : activeSlotIndex === null
-                                            ? 'border-transparent opacity-50 cursor-not-allowed'
-                                            : 'border-transparent hover:border-gray-400'
-                                          }`}
+                                        className={`h-4 w-4 rounded-full border transition ${activeSlotIndex === null ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-200 hover:border-gray-400'}`}
                                         style={{ backgroundColor: shadeHex }}
-                                        title={baseColor.label}
+                                        title={`${baseColor.label} оттенок ${idx + 1}`}
                                       />
-                                    );
-                                  })}
+                                    ))}
+                                  </div>
                                 </div>
-                              ))}
-                            </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
