@@ -367,6 +367,13 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
                         {isExpanded && (
                           <defs>
+                            {/* Глянцевый градиент — только для увеличенного режима */}
+                            <linearGradient id={`gloss-${im.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+                              <stop offset="40%" stopColor="rgba(255,255,255,0.1)" />
+                              <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+                              <stop offset="100%" stopColor="rgba(0,0,0,0.15)" />
+                            </linearGradient>
                             {/* Маска для круга */}
                             <clipPath id={`clip-${im.id}`}>
                               <circle cx={radius} cy={radius} r={radius} />
@@ -384,6 +391,8 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                                 fill={color}
                               />
                             ))}
+                            {/* Глянцевый оверлей */}
+                            <circle cx={radius} cy={radius} r={radius} fill={`url(#gloss-${im.id})`} />
                           </g>
                         ) : (
                           // Плоский стиль для маленькой кнопки
@@ -396,17 +405,15 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                           ))
                         )}
 
-                        {/* Обводка — только для маленького режима */}
-                        {!isExpanded && (
-                          <circle
-                            cx={radius}
-                            cy={radius}
-                            r={radius - 0.5}
-                            fill="none"
-                            stroke="rgba(255,255,255,0.5)"
-                            strokeWidth={1}
-                          />
-                        )}
+                        {/* Обводка */}
+                        <circle
+                          cx={radius}
+                          cy={radius}
+                          r={radius - 0.5}
+                          fill="none"
+                          stroke={isExpanded ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)"}
+                          strokeWidth={1}
+                        />
                       </svg>
                     </button>
                   );
@@ -417,16 +424,16 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                   <Link
                     href={`/u/${encodeURIComponent(nick)}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="pointer-events-auto flex items-center gap-1.5 text-white hover:underline"
+                    className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
                   >
                     {avatar && (
                       <img
                         src={avatar}
                         alt={nick}
-                        className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/40"
+                        className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
                       />
                     )}
-                    <span className="truncate text-xs font-medium drop-shadow-md">@{nick}</span>
+                    <span className="truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
                   </Link>
                 </div>
 
