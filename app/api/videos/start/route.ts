@@ -12,7 +12,7 @@ const mux = new Mux({
 
 export async function POST(req: Request) {
   try {
-    const { title, description, model, genres, mood } = await req.json();
+    const { title, description, model, genres, mood, colors } = await req.json();
 
     // 1) Пользователь
     const supa = createRouteHandlerClient({ cookies });
@@ -69,6 +69,15 @@ export async function POST(req: Request) {
       moodToSave = mood.trim().toLowerCase();
     }
 
+    // Цвета из клиента
+    let colorsToSave: string[] | null = null;
+    if (Array.isArray(colors) && colors.length) {
+      colorsToSave = colors
+        .map((c: any) => String(c).trim())
+        .filter(Boolean)
+        .slice(0, 5);
+    }
+
     // 4) Создаём запись в films
     const { error: insError } = await service.from('films').insert({
       user_id: user.id,
@@ -79,6 +88,7 @@ export async function POST(req: Request) {
       model: modelNorm,
       genres: genresToSave,
       mood: moodToSave,
+      colors: colorsToSave,
     });
 
     if (insError) {

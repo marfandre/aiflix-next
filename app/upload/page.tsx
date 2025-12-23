@@ -72,6 +72,87 @@ async function extractColorsFromFile(file: File): Promise<string[] | null> {
   }
 }
 
+// Извлечение кадра из видео и получение цветов
+async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: string | null; colors: string[] }> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+
+    const objectUrl = URL.createObjectURL(videoFile);
+    video.src = objectUrl;
+
+    video.onloadeddata = async () => {
+      // Перематываем на 1 секунду или на середину если короче
+      const seekTime = Math.min(1, video.duration / 2);
+      video.currentTime = seekTime;
+    };
+
+    video.onseeked = async () => {
+      try {
+        // Создаём canvas и рисуем кадр
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          resolve({ previewUrl: null, colors: [] });
+          return;
+        }
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Получаем превью как data URL
+        const previewUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+        // Конвертируем в blob для отправки на API
+        canvas.toBlob(async (blob) => {
+          URL.revokeObjectURL(objectUrl);
+
+          if (!blob) {
+            resolve({ previewUrl, colors: [] });
+            return;
+          }
+
+          // Отправляем на API палитры
+          const formData = new FormData();
+          formData.append('file', blob, 'frame.jpg');
+
+          try {
+            const res = await fetch('/api/palette', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              resolve({ previewUrl, colors: data.colors ?? [] });
+            } else {
+              resolve({ previewUrl, colors: [] });
+            }
+          } catch {
+            resolve({ previewUrl, colors: [] });
+          }
+        }, 'image/jpeg', 0.8);
+      } catch {
+        URL.revokeObjectURL(objectUrl);
+        resolve({ previewUrl: null, colors: [] });
+      }
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ previewUrl: null, colors: [] });
+    };
+
+    // Начинаем загрузку
+    video.load();
+  });
+}
+
 type LocalImage = {
   file: File;
   previewUrl: string;
@@ -145,6 +226,9 @@ export default function UploadPage() {
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState(''); // промт для картинок
   const [file, setFile] = useState<File | null>(null); // используется только для видео
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null); // превью кадра видео
+  const [videoColors, setVideoColors] = useState<string[]>([]); // цвета видео
+  const [isVideoColorsLoading, setIsVideoColorsLoading] = useState(false); // загрузка цветов видео
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -265,6 +349,7 @@ export default function UploadPage() {
             description,
             model: model || null,
             tags: selectedTags.length ? selectedTags : null,
+            colors: videoColors.length ? videoColors.slice(0, 5) : null,
           }),
         });
         if (!startRes.ok) throw new Error('Не удалось получить URL загрузки видео');
@@ -282,6 +367,8 @@ export default function UploadPage() {
         setDescription('');
         setPrompt('');
         setFile(null);
+        setVideoPreviewUrl(null);
+        setVideoColors([]);
         setModel('');
         setSelectedTags([]);
       } else {
@@ -569,11 +656,28 @@ export default function UploadPage() {
                   <input
                     type="file"
                     accept="video/mp4,video/webm"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const newFile = e.target.files?.[0] ?? null;
                       setFile(newFile);
                       setError(null);
                       setSuccess(null);
+
+                      // Очищаем предыдущие данные
+                      setVideoPreviewUrl(null);
+                      setVideoColors([]);
+
+                      if (newFile) {
+                        setIsVideoColorsLoading(true);
+                        try {
+                          const { previewUrl, colors } = await extractColorsFromVideo(newFile);
+                          setVideoPreviewUrl(previewUrl);
+                          setVideoColors(colors);
+                        } catch (err) {
+                          console.error('Error extracting video colors:', err);
+                        } finally {
+                          setIsVideoColorsLoading(false);
+                        }
+                      }
                     }}
                   />
                 ) : (
@@ -595,6 +699,57 @@ export default function UploadPage() {
                 {isLoading ? 'Загрузка…' : 'Загрузить'}
               </button>
             </form>
+
+            {/* Правая колонка — предпросмотр видео и цвета */}
+            {type === 'video' && (
+              <div className="relative rounded-xl border bg-white p-4 md:-mt-16">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-gray-700">
+                    Предпросмотр видео
+                  </h2>
+                </div>
+
+                {/* Превью кадра */}
+                <div className="relative mb-3 flex items-center justify-center">
+                  {videoPreviewUrl ? (
+                    <img
+                      src={videoPreviewUrl}
+                      alt="Превью кадра"
+                      className="max-h-80 w-full max-w-full rounded object-contain"
+                    />
+                  ) : (
+                    <p className="h-48 w-full rounded bg-gray-50 text-center text-sm text-gray-500 flex items-center justify-center">
+                      {file ? (isVideoColorsLoading ? 'Извлекаем кадр...' : 'Кадр не загружен') : 'Выберите видеофайл'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Индикатор загрузки цветов */}
+                {isVideoColorsLoading && (
+                  <p className="text-xs text-gray-500 mb-2">Определяем цвета...</p>
+                )}
+
+                {/* Палитра цветов видео */}
+                {videoColors.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      {videoColors.slice(0, 5).map((c, index) => (
+                        <div
+                          key={c + index}
+                          className="rounded-full border border-gray-200"
+                          style={{
+                            backgroundColor: c,
+                            width: 32,
+                            height: 32,
+                          }}
+                          title={c}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Правая колонка — предпросмотр картинок и палитра */}
             {type === 'image' && (

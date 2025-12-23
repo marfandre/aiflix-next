@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import LikeButton from "./LikeButton";
@@ -58,6 +58,16 @@ export default function VideoFeedClient({ userId }: Props) {
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<VideoRow | null>(null);
     const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
+
+    // Dynamic color cycling
+    const [dynamicColors, setDynamicColors] = useState<Record<string, string[]>>({});
+    const [colorTimeIndex, setColorTimeIndex] = useState<Record<string, number>>({});
+    const [colorLoading, setColorLoading] = useState<Record<string, boolean>>({});
+    const [cyclingVideoId, setCyclingVideoId] = useState<string | null>(null);
+
+    // Timestamps for cycling (in seconds)
+    const COLOR_TIMESTAMPS = [1, 3, 6, 10, 15, 20];
+    const CYCLE_INTERVAL_MS = 1500; // Интервал смены цветов
 
     const supa = createClientComponentClient();
 
@@ -156,6 +166,53 @@ export default function VideoFeedClient({ userId }: Props) {
 
     const closeModal = () => setSelected(null);
 
+    // Функция для загрузки цветов с определённого таймкода
+    const fetchColorsAtTime = useCallback(async (videoId: string, playbackId: string) => {
+        // Получаем текущий индекс времени и переходим к следующему
+        setColorTimeIndex(prev => {
+            const currentIdx = prev[videoId] ?? 0;
+            const nextIdx = (currentIdx + 1) % COLOR_TIMESTAMPS.length;
+            return { ...prev, [videoId]: nextIdx };
+        });
+
+        setColorLoading(prev => ({ ...prev, [videoId]: true }));
+
+        try {
+            // Читаем актуальный индекс через функциональное обновление
+            const timeIdx = (colorTimeIndex[videoId] ?? 0) + 1;
+            const time = COLOR_TIMESTAMPS[timeIdx % COLOR_TIMESTAMPS.length];
+
+            const res = await fetch(`/api/videos/palette?playbackId=${playbackId}&time=${time}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.colors && data.colors.length > 0) {
+                    setDynamicColors(prev => ({ ...prev, [videoId]: data.colors }));
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching colors:', err);
+        } finally {
+            setColorLoading(prev => ({ ...prev, [videoId]: false }));
+        }
+    }, [colorTimeIndex, COLOR_TIMESTAMPS]);
+
+    // Автоматическая смена цветов
+    useEffect(() => {
+        if (!cyclingVideoId) return;
+
+        const video = videos.find(v => v.id === cyclingVideoId);
+        if (!video || !video.playback_id) {
+            setCyclingVideoId(null);
+            return;
+        }
+
+        const intervalId = setInterval(() => {
+            fetchColorsAtTime(cyclingVideoId, video.playback_id!);
+        }, CYCLE_INTERVAL_MS);
+
+        return () => clearInterval(intervalId);
+    }, [cyclingVideoId, videos, fetchColorsAtTime, CYCLE_INTERVAL_MS]);
+
     if (loading) return <div className="py-6 text-gray-500">Загрузка...</div>;
     if (videos.length === 0) return <div className="py-6 text-gray-500">Нет видео</div>;
 
@@ -209,10 +266,12 @@ export default function VideoFeedClient({ userId }: Props) {
                                     </div>
 
                                     {/* Круговая диаграмма цветов */}
-                                    {v.colors && v.colors.length > 0 && (() => {
-                                        const colors = v.colors.slice(0, 5);
+                                    {((v.colors && v.colors.length > 0) || (dynamicColors[v.id] && dynamicColors[v.id].length > 0)) && v.playback_id && (() => {
+                                        // Используем динамические цвета если есть, иначе — сохранённые
+                                        const colors = (dynamicColors[v.id] ?? v.colors ?? []).slice(0, 5);
                                         const segmentAngle = 360 / colors.length;
                                         const isExpanded = expandedChartId === v.id;
+                                        const isLoadingColors = colorLoading[v.id];
                                         const size = isExpanded ? 64 : 20;
                                         const radius = size / 2;
                                         const cx = radius;
@@ -234,9 +293,19 @@ export default function VideoFeedClient({ userId }: Props) {
                                                 type="button"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setExpandedChartId(isExpanded ? null : v.id);
+                                                    if (isExpanded) {
+                                                        // Если уже развёрнут — сворачиваем и останавливаем цикл
+                                                        setExpandedChartId(null);
+                                                        setCyclingVideoId(null);
+                                                    } else {
+                                                        // Разворачиваем и запускаем автоматическую смену цветов
+                                                        setExpandedChartId(v.id);
+                                                        setCyclingVideoId(v.id);
+                                                        // Сразу загружаем первый набор цветов
+                                                        fetchColorsAtTime(v.id, v.playback_id!);
+                                                    }
                                                 }}
-                                                className="absolute bottom-2 right-2 rounded-full z-10 transition-all duration-300 cursor-pointer"
+                                                className={`absolute bottom-2 right-2 rounded-full z-10 transition-all duration-300 cursor-pointer ${isLoadingColors ? 'animate-pulse' : ''}`}
                                                 style={{
                                                     width: size,
                                                     height: size,
@@ -244,6 +313,7 @@ export default function VideoFeedClient({ userId }: Props) {
                                                         ? '0 4px 12px rgba(0,0,0,0.4)'
                                                         : '0 1px 3px rgba(0,0,0,0.3)'
                                                 }}
+                                                title={isExpanded ? "Клик = остановить" : "Клик = показать цвета"}
                                             >
                                                 <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
                                                     {colors.map((color, i) => (
@@ -251,6 +321,7 @@ export default function VideoFeedClient({ userId }: Props) {
                                                             key={i}
                                                             d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
                                                             fill={color}
+                                                            className="transition-all duration-500"
                                                         />
                                                     ))}
                                                     <circle
