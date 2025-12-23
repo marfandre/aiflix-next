@@ -93,7 +93,6 @@ const COLOR_SHADES: Record<string, string[]> = {
   // white не имеет оттенков
 };
 
-type ColorSearchMode = 'simple' | 'dominant';
 type ColorPickerMode = 'palette' | 'wheel';
 
 // Функция маппинга произвольного HEX → ближайший bucket
@@ -144,7 +143,6 @@ export default function SearchButton() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // === ЦВЕТОВОЙ ПОИСК ===
-  const [colorSearchMode, setColorSearchMode] = useState<ColorSearchMode>('simple');
   const [colorPickerMode, setColorPickerMode] = useState<ColorPickerMode>('palette');
   const [showShades, setShowShades] = useState(false);
   const [pickerPreviewColor, setPickerPreviewColor] = useState('#FF0000'); // цвет для превью
@@ -239,12 +237,10 @@ export default function SearchButton() {
     }
 
     // === ЦВЕТА ===
-    if (colorSearchMode === 'simple') {
-      // Простой режим: ищем по hex-кодам
-      if (simpleSelectedColors.length) {
-        params.set('colorMode', 'simple');
-        params.set('hexColors', simpleSelectedColors.join(','));
-      }
+    // Ищем по hex-кодам
+    if (simpleSelectedColors.length) {
+      params.set('colorMode', 'simple');
+      params.set('hexColors', simpleSelectedColors.join(','));
     }
 
     setLoading(true);
@@ -441,202 +437,186 @@ export default function SearchButton() {
               <div>
                 <label className="mb-2 block text-xs font-medium text-gray-600">Поиск по цвету</label>
 
-                {/* Переключатель режима */}
-                <div className="mb-3 flex border-b text-xs font-medium text-gray-500">
-                  <button
-                    type="button"
-                    onClick={() => setColorSearchMode('simple')}
-                    className={`relative px-3 pb-2 pt-1 ${colorSearchMode === 'simple' ? 'text-black' : 'text-gray-500'
-                      }`}
-                  >
-                    Простой
-                    {colorSearchMode === 'simple' && (
-                      <span className="absolute inset-x-1 -bottom-[1px] h-[2px] rounded-full bg-black" />
+
+                {/* Выбор цветов */}
+                <div>
+                  <p className="mb-2 text-[11px] text-gray-500">
+                    Выберите цвета — найдутся картинки, где эти цвета присутствуют в любой позиции палитры.
+                  </p>
+
+                  {/* 5 слотов для выбранных цветов */}
+                  <div className="mb-4 flex items-center justify-center gap-2">
+                    {[0, 1, 2, 3, 4].map((slotIdx) => {
+                      const hexColor = simpleSelectedColors[slotIdx] ?? null;
+                      return (
+                        <div
+                          key={slotIdx}
+                          className={`group relative flex h-8 w-8 items-center justify-center rounded-full border-2 ${hexColor
+                            ? 'border-gray-300 cursor-pointer'
+                            : 'border-dashed border-gray-300'
+                            }`}
+                          style={{ backgroundColor: hexColor || '#f9fafb' }}
+                          title={hexColor ? `${hexColor} — нажмите чтобы удалить` : `Слот ${slotIdx + 1}`}
+                          onClick={() => {
+                            if (hexColor) {
+                              setSimpleSelectedColors((prev) => prev.filter((_, i) => i !== slotIdx));
+                            }
+                          }}
+                        >
+                          {hexColor && (
+                            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                              ✕
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {simpleSelectedColors.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSimpleSelectedColors([])}
+                        className="ml-2 text-[10px] text-gray-400 hover:text-gray-600"
+                        title="Очистить все"
+                      >
+                        ✕
+                      </button>
                     )}
-                  </button>
-                </div>
+                  </div>
 
-                {/* === ПРОСТОЙ РЕЖИМ === */}
-                {colorSearchMode === 'simple' && (
-                  <div>
-                    <p className="mb-2 text-[11px] text-gray-500">
-                      Выберите цвета — найдутся картинки, где эти цвета присутствуют в любой позиции палитры.
-                    </p>
+                  {/* Вкладки Палитра / Круг */}
+                  <div className="mb-3 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setColorPickerMode('palette')}
+                      className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'palette'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                      Палитра
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setColorPickerMode('wheel')}
+                      className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'wheel'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                      Точный цвет
+                    </button>
+                  </div>
 
-                    {/* 5 слотов для выбранных цветов */}
-                    <div className="mb-4 flex items-center justify-center gap-2">
-                      {[0, 1, 2, 3, 4].map((slotIdx) => {
-                        const hexColor = simpleSelectedColors[slotIdx] ?? null;
-                        return (
-                          <div
-                            key={slotIdx}
-                            className={`group relative flex h-8 w-8 items-center justify-center rounded-full border-2 ${hexColor
-                              ? 'border-gray-300 cursor-pointer'
-                              : 'border-dashed border-gray-300'
-                              }`}
-                            style={{ backgroundColor: hexColor || '#f9fafb' }}
-                            title={hexColor ? `${hexColor} — нажмите чтобы удалить` : `Слот ${slotIdx + 1}`}
-                            onClick={() => {
-                              if (hexColor) {
-                                setSimpleSelectedColors((prev) => prev.filter((_, i) => i !== slotIdx));
-                              }
-                            }}
-                          >
-                            {hexColor && (
-                              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                ✕
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {simpleSelectedColors.length > 0 && (
+                  {/* Палитра */}
+                  {colorPickerMode === 'palette' && (
+                    <div>
+                      {/* Базовые цвета */}
+                      <div className="flex gap-1 mb-2">
+                        {COLOR_PALETTE.map((color) => {
+                          const isSelected = simpleSelectedColors.includes(color.hex);
+                          return (
+                            <button
+                              key={color.id}
+                              type="button"
+                              onClick={() => handleSimpleColorClick(color.hex)}
+                              className={`h-5 w-5 rounded-full border-2 transition ${isSelected
+                                ? 'border-gray-900 ring-2 ring-gray-900/40'
+                                : 'border-gray-200 hover:border-gray-400'
+                                }`}
+                              style={{ backgroundColor: color.hex }}
+                              title={color.label}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {/* Кнопка Оттенки — только если выбран хотя бы 1 базовый цвет */}
+                      {COLOR_PALETTE.some(c => simpleSelectedColors.includes(c.hex)) && (
                         <button
                           type="button"
-                          onClick={() => setSimpleSelectedColors([])}
-                          className="ml-2 text-[10px] text-gray-400 hover:text-gray-600"
-                          title="Очистить все"
+                          onClick={() => setShowShades(!showShades)}
+                          className="mt-1 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
                         >
-                          ✕
+                          <span>{showShades ? '▲' : '▼'}</span>
+                          <span>{showShades ? 'Скрыть оттенки' : 'Оттенки'}</span>
                         </button>
                       )}
-                    </div>
 
-                    {/* Вкладки Палитра / Круг */}
-                    <div className="mb-3 flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setColorPickerMode('palette')}
-                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'palette'
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                      >
-                        Палитра
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setColorPickerMode('wheel')}
-                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'wheel'
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                      >
-                        Точный цвет
-                      </button>
-                    </div>
+                      {/* Оттенки — только для выбранных базовых цветов */}
+                      {showShades && COLOR_PALETTE.some(c => simpleSelectedColors.includes(c.hex)) && (
+                        <div className="mt-2 space-y-2">
+                          {COLOR_PALETTE.filter(c => simpleSelectedColors.includes(c.hex)).map((baseColor) => {
+                            const shades = COLOR_SHADES[baseColor.id] || [];
+                            if (shades.length === 0) return null;
 
-                    {/* Палитра */}
-                    {colorPickerMode === 'palette' && (
-                      <div>
-                        {/* Базовые цвета */}
-                        <div className="flex gap-1 mb-2">
-                          {COLOR_PALETTE.map((color) => {
-                            const isSelected = simpleSelectedColors.includes(color.hex);
                             return (
-                              <button
-                                key={color.id}
-                                type="button"
-                                onClick={() => handleSimpleColorClick(color.hex)}
-                                className={`h-5 w-5 rounded-full border-2 transition ${isSelected
-                                  ? 'border-gray-900 ring-2 ring-gray-900/40'
-                                  : 'border-gray-200 hover:border-gray-400'
-                                  }`}
-                                style={{ backgroundColor: color.hex }}
-                                title={color.label}
-                              />
+                              <div key={baseColor.id} className="flex items-center gap-2">
+                                {/* Базовый цвет слева */}
+                                <div
+                                  className="h-5 w-5 rounded-full border-2 border-gray-900 flex-shrink-0"
+                                  style={{ backgroundColor: baseColor.hex }}
+                                  title={baseColor.label}
+                                />
+                                {/* Оттенки в строку */}
+                                <div className="flex gap-1">
+                                  {shades.map((shadeHex, idx) => {
+                                    const isShadeSelected = simpleSelectedColors.includes(shadeHex);
+                                    return (
+                                      <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => handleSimpleColorClick(shadeHex)}
+                                        className={`h-4 w-4 rounded-full border transition ${isShadeSelected
+                                          ? 'border-gray-900 ring-1 ring-gray-900/40'
+                                          : 'border-gray-200 hover:border-gray-400'
+                                          }`}
+                                        style={{ backgroundColor: shadeHex }}
+                                        title={`${baseColor.label} оттенок ${idx + 1}`}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
+                      )}
+                    </div>
+                  )}
 
-                        {/* Кнопка Оттенки — только если выбран хотя бы 1 базовый цвет */}
-                        {COLOR_PALETTE.some(c => simpleSelectedColors.includes(c.hex)) && (
+                  {/* Color Picker */}
+                  {colorPickerMode === 'wheel' && (
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={pickerPreviewColor}
+                          className="h-12 w-12 cursor-pointer rounded-lg border-2 border-gray-200 bg-white"
+                          onChange={(e) => setPickerPreviewColor(e.target.value.toUpperCase())}
+                          title="Выберите цвет"
+                        />
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] text-gray-600 font-mono">{pickerPreviewColor}</span>
                           <button
                             type="button"
-                            onClick={() => setShowShades(!showShades)}
-                            className="mt-1 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
+                            onClick={() => {
+                              if (!simpleSelectedColors.includes(pickerPreviewColor) && simpleSelectedColors.length < 5) {
+                                handleSimpleColorClick(pickerPreviewColor);
+                              }
+                            }}
+                            disabled={simpleSelectedColors.includes(pickerPreviewColor) || simpleSelectedColors.length >= 5}
+                            className="rounded bg-gray-900 px-3 py-1 text-[11px] text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                           >
-                            <span>{showShades ? '▲' : '▼'}</span>
-                            <span>{showShades ? 'Скрыть оттенки' : 'Оттенки'}</span>
+                            Добавить
                           </button>
-                        )}
-
-                        {/* Оттенки — только для выбранных базовых цветов */}
-                        {showShades && COLOR_PALETTE.some(c => simpleSelectedColors.includes(c.hex)) && (
-                          <div className="mt-2 space-y-2">
-                            {COLOR_PALETTE.filter(c => simpleSelectedColors.includes(c.hex)).map((baseColor) => {
-                              const shades = COLOR_SHADES[baseColor.id] || [];
-                              if (shades.length === 0) return null;
-
-                              return (
-                                <div key={baseColor.id} className="flex items-center gap-2">
-                                  {/* Базовый цвет слева */}
-                                  <div
-                                    className="h-5 w-5 rounded-full border-2 border-gray-900 flex-shrink-0"
-                                    style={{ backgroundColor: baseColor.hex }}
-                                    title={baseColor.label}
-                                  />
-                                  {/* Оттенки в строку */}
-                                  <div className="flex gap-1">
-                                    {shades.map((shadeHex, idx) => {
-                                      const isShadeSelected = simpleSelectedColors.includes(shadeHex);
-                                      return (
-                                        <button
-                                          key={idx}
-                                          type="button"
-                                          onClick={() => handleSimpleColorClick(shadeHex)}
-                                          className={`h-4 w-4 rounded-full border transition ${isShadeSelected
-                                            ? 'border-gray-900 ring-1 ring-gray-900/40'
-                                            : 'border-gray-200 hover:border-gray-400'
-                                            }`}
-                                          style={{ backgroundColor: shadeHex }}
-                                          title={`${baseColor.label} оттенок ${idx + 1}`}
-                                        />
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Color Picker */}
-                    {colorPickerMode === 'wheel' && (
-                      <div className="flex flex-col items-center">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="color"
-                            value={pickerPreviewColor}
-                            className="h-12 w-12 cursor-pointer rounded-lg border-2 border-gray-200 bg-white"
-                            onChange={(e) => setPickerPreviewColor(e.target.value.toUpperCase())}
-                            title="Выберите цвет"
-                          />
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[11px] text-gray-600 font-mono">{pickerPreviewColor}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!simpleSelectedColors.includes(pickerPreviewColor) && simpleSelectedColors.length < 5) {
-                                  handleSimpleColorClick(pickerPreviewColor);
-                                }
-                              }}
-                              disabled={simpleSelectedColors.includes(pickerPreviewColor) || simpleSelectedColors.length >= 5}
-                              className="rounded bg-gray-900 px-3 py-1 text-[11px] text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                            >
-                              Добавить
-                            </button>
-                          </div>
                         </div>
-                        <p className="mt-2 text-center text-[10px] text-gray-400">
-                          Выберите цвет, затем нажмите «Добавить»
-                        </p>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <p className="mt-2 text-center text-[10px] text-gray-400">
+                        Выберите цвет, затем нажмите «Добавить»
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
