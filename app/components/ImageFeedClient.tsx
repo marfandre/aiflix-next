@@ -287,7 +287,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
   return (
     <>
       {/* СЕТКА ЛЕНТЫ */}
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid gap-1 overflow-hidden rounded-2xl sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {images.map((im) => {
           const p = Array.isArray(im.profiles) ? im.profiles[0] : im.profiles;
           const nick: string = p?.username ?? "user";
@@ -301,50 +301,57 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
           return (
             <div
               key={im.id}
-              className="overflow-hidden rounded-xl border bg-white shadow-sm"
+              className="group relative overflow-hidden"
             >
               <button
                 type="button"
                 onClick={() => openImage(im)}
-                className="relative block aspect-square w-full bg-gray-100"
+                className="relative block aspect-[4/5] w-full bg-gray-100"
               >
                 <img
                   src={url}
                   alt={title}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                {/* Счётчик изображений (всегда виден) */}
                 {showCarouselBadge && (
-                  <div className="absolute bottom-1 right-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                  <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
                     {imagesCount}
                   </div>
                 )}
-              </button>
 
-              <div className="px-4 py-3">
-                <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                {/* Инфо при наведении */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                   <Link
                     href={`/u/${encodeURIComponent(nick)}`}
-                    className="flex min-w-0 items-center gap-2 hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                    className="pointer-events-auto flex min-w-0 items-center gap-1.5 text-white hover:underline"
                   >
                     {avatar && (
                       <img
                         src={avatar}
                         alt={nick}
-                        className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-gray-300"
+                        className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/40"
                       />
                     )}
-                    <span className="truncate">@{nick}</span>
+                    <span className="truncate text-xs font-medium drop-shadow-md">@{nick}</span>
                   </Link>
 
-                  <LikeButton
-                    target="image"
-                    id={im.id}
-                    userId={userId}
-                    ownerId={im.user_id}
-                    className="ml-auto shrink-0"
-                  />
+                  <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                    <LikeButton
+                      target="image"
+                      id={im.id}
+                      userId={userId}
+                      ownerId={im.user_id}
+                      className="text-white drop-shadow-md"
+                    />
+                  </div>
                 </div>
-              </div>
+              </button>
             </div>
           );
         })}
