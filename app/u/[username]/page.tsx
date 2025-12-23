@@ -184,7 +184,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
         </div>
       </div>
 
-      <div className="mt-6 mb-4 flex justify-center">
+      <div className="mt-6 mb-14 flex justify-center">
         <ProfileTabs />
       </div>
 
