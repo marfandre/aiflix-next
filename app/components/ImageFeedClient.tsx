@@ -554,8 +554,8 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                       </>
                     )}
 
-                    {/* Frosted glass overlay внизу */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md p-4">
+                    {/* Оптическое стекло effect */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-4 border-t border-white/30">
                       <div className="flex flex-col gap-2 text-white">
                         {/* Промт + копирование */}
                         <div className="flex items-start justify-between gap-3">
@@ -566,9 +566,20 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                             type="button"
                             onClick={handleCopyPrompt}
                             disabled={!selected.prompt && !selected.description}
-                            className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-xs hover:bg-white/30 disabled:opacity-40"
+                            className="shrink-0 rounded-full bg-white/20 p-2 hover:bg-white/30 disabled:opacity-40"
+                            title="Скопировать промт"
                           >
-                            Скопировать
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <rect x="9" y="9" width="11" height="11" rx="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
                           </button>
                         </div>
 
