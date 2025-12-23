@@ -87,12 +87,82 @@ export async function POST(req: NextRequest) {
       if (playback_id) patch.playback_id = playback_id;
       patch.status = 'ready';
 
-      const { error } = await supa
+      // Обновляем видео
+      const { data: updatedFilm, error } = await supa
         .from('films')
         .update(patch)
-        .eq('asset_id', asset_id as string);
+        .eq('asset_id', asset_id as string)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+
+      // Автоматическое извлечение цветов из thumbnail
+      if (playback_id && updatedFilm?.id) {
+        try {
+          const thumbnailUrl = `https://image.mux.com/${playback_id}/thumbnail.jpg?time=1`;
+          const response = await fetch(thumbnailUrl);
+
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            // Извлекаем цвета с помощью sharp и quantize
+            const sharp = (await import('sharp')).default;
+
+            const image = sharp(buffer).resize(300, 300, {
+              fit: 'inside',
+              withoutEnlargement: true,
+            });
+
+            const { data: pixelData, info } = await image
+              .removeAlpha()
+              .raw()
+              .toBuffer({ resolveWithObject: true });
+
+            // Собираем пиксели для quantize
+            type RGB = [number, number, number];
+            const pixels: RGB[] = [];
+            const totalPixels = info.width * info.height;
+            const quality = 5;
+
+            for (let i = 0; i < totalPixels; i += quality) {
+              const idx = i * info.channels;
+              pixels.push([pixelData[idx], pixelData[idx + 1], pixelData[idx + 2]]);
+            }
+
+            if (pixels.length > 0) {
+              const quantizeMod = await import('quantize');
+              const quantize = (quantizeMod.default || quantizeMod) as any;
+              const result = quantize(pixels, 10);
+
+              if (result) {
+                const palette = result.palette() as RGB[];
+
+                // Конвертируем в HEX
+                const colors = palette.slice(0, 5).map(([r, g, b]: RGB) => {
+                  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+                  const rr = clamp(r).toString(16).padStart(2, '0');
+                  const gg = clamp(g).toString(16).padStart(2, '0');
+                  const bb = clamp(b).toString(16).padStart(2, '0');
+                  return `#${rr}${gg}${bb}`.toUpperCase();
+                });
+
+                // Сохраняем цвета
+                await supa
+                  .from('films')
+                  .update({ colors })
+                  .eq('id', updatedFilm.id);
+
+                console.log(`Colors extracted for film ${updatedFilm.id}:`, colors);
+              }
+            }
+          }
+        } catch (colorErr) {
+          // Не прерываем основной flow если цвета не получилось извлечь
+          console.error('Color extraction error:', colorErr);
+        }
+      }
 
       return NextResponse.json({ ok: true }, { status: 200 });
     }
