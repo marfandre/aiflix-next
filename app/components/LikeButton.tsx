@@ -178,29 +178,25 @@ export default function LikeButton({ target, id, userId, ownerId, className }: P
       onClick={handleClick}
       disabled={loading}
       className={clsx(
-        'inline-flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 disabled:opacity-50',
+        'flex h-7 w-7 items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm transition hover:bg-black/70 disabled:opacity-50',
         className
       )}
       aria-pressed={liked}
+      title={liked ? 'Убрать лайк' : 'Поставить лайк'}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
         className={clsx(
-          'h-4 w-4 transition-colors',
-          !loaded && 'invisible', // <- пока не загрузили — невидимое сердечко
-          loaded && liked && 'fill-red-500 text-red-500'
+          'h-4 w-4 transition-all',
+          !loaded && 'invisible',
+          loaded && liked ? 'fill-red-500 text-red-500 scale-110' : 'fill-white/80 text-white/80'
         )}
       >
         <path
           d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
         />
       </svg>
-      <span>{count}</span>
     </button>
   );
 }
