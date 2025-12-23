@@ -47,6 +47,7 @@ export default function TagSelector({
     const [loading, setLoading] = useState(false);
     const [showAll, setShowAll] = useState(false);
     const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
+    const [preferEnglish, setPreferEnglish] = useState(false); // запоминаем язык при вводе
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
         new Set(["genre", "mood", "scene"])
     );
@@ -125,10 +126,16 @@ export default function TagSelector({
     }, [tagsData]);
 
     const toggleTag = (tagId: string) => {
-        if (selectedTags.includes(tagId)) {
-            onTagsChange(selectedTags.filter((t) => t !== tagId));
+        // Ищем тег с любым языковым суффиксом
+        const existingTag = selectedTags.find((t) => t === tagId || t.startsWith(tagId + ':'));
+
+        if (existingTag) {
+            // Удаляем тег (с любым суффиксом)
+            onTagsChange(selectedTags.filter((t) => t !== existingTag));
         } else if (selectedTags.length < maxTags) {
-            onTagsChange([...selectedTags, tagId]);
+            // Добавляем тег с суффиксом языка
+            const langSuffix = preferEnglish ? ':en' : ':ru';
+            onTagsChange([...selectedTags, tagId + langSuffix]);
         }
         setSearch("");
     };
@@ -149,8 +156,27 @@ export default function TagSelector({
         });
     };
 
+    // Парсит tagId в формате "tag_id:lang" или просто "tag_id"
+    const parseTagWithLang = (tagWithLang: string): { tagId: string; lang: 'en' | 'ru' } => {
+        if (tagWithLang.endsWith(':en')) {
+            return { tagId: tagWithLang.slice(0, -3), lang: 'en' };
+        }
+        if (tagWithLang.endsWith(':ru')) {
+            return { tagId: tagWithLang.slice(0, -3), lang: 'ru' };
+        }
+        return { tagId: tagWithLang, lang: 'ru' }; // по умолчанию русский
+    };
+
     const getTagById = (id: string): Tag | undefined => {
-        return tagsData?.all.find((t) => t.id === id);
+        const { tagId } = parseTagWithLang(id);
+        return tagsData?.all.find((t) => t.id === tagId);
+    };
+
+    const getTagDisplayName = (tagWithLang: string): string => {
+        const { tagId, lang } = parseTagWithLang(tagWithLang);
+        const tag = tagsData?.all.find((t) => t.id === tagId);
+        if (!tag) return tagId;
+        return lang === 'en' ? tag.name_en : tag.name_ru;
     };
 
     // Подсветка совпадений в тексте
@@ -178,6 +204,20 @@ export default function TagSelector({
 
     const isSearching = search.trim().length >= 1;
 
+    // Определяем язык ввода и запоминаем его
+    const hasLatin = /[a-zA-Z]/.test(search);
+    const hasCyrillic = /[а-яА-ЯёЁ]/.test(search);
+
+    // Обновляем preferEnglish при вводе
+    if (search.length > 0) {
+        const currentlyEnglish = hasLatin && !hasCyrillic;
+        if (currentlyEnglish !== preferEnglish) {
+            setPreferEnglish(currentlyEnglish);
+        }
+    }
+
+    const getDisplayName = (tag: Tag) => preferEnglish ? tag.name_en : tag.name_ru;
+
     // Первые 7 результатов для режима поиска
     const searchResults = filteredTags.slice(0, 7);
 
@@ -192,13 +232,12 @@ export default function TagSelector({
                 }}
             >
                 {selectedTags.map((tagId) => {
-                    const tag = getTagById(tagId);
                     return (
                         <span
                             key={tagId}
                             className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
                         >
-                            <span>{tag?.name_ru ?? tagId}</span>
+                            <span>{getTagDisplayName(tagId)}</span>
                             <button
                                 type="button"
                                 onClick={(e) => {
@@ -277,7 +316,7 @@ export default function TagSelector({
                                                         : "text-gray-700 hover:bg-gray-50"
                                                     }`}
                                             >
-                                                <span>{highlightMatch(tag.name_ru, search)}</span>
+                                                <span>{highlightMatch(getDisplayName(tag), search)}</span>
                                                 {isHovered && !isDisabled && !isSelected && (
                                                     <span className="text-xs text-gray-400">
                                                         {CATEGORY_LABELS[tag.category]}

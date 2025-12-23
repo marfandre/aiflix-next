@@ -14,8 +14,7 @@ type ProfileImage = {
   created_at: string | null;
   colors?: string[] | null;
   model?: string | null;
-  mood?: string | null;
-  image_type?: string | null;
+  tags?: string[] | null;
   images_count?: number | null;
 };
 
@@ -268,7 +267,7 @@ export default function ProfileImagesClient({
                   <div className="text-xs text-gray-600">
                     Модель:{" "}
                     <span className="font-medium">
-                      {formatModelName(selected.model || selected.image_type)}
+                      {formatModelName(selected.model)}
                     </span>
                   </div>
                 </div>
@@ -311,17 +310,14 @@ export default function ProfileImagesClient({
                     currentColors.length > 0 &&
                     currentColors.map((c, index) => {
                       if (!c) return null;
-                      const base = 40;
-                      const step = 3;
-                      const size = Math.max(10, base - index * step);
                       return (
                         <div
                           key={c + index}
                           className="rounded-full border border-gray-200"
                           style={{
                             backgroundColor: c,
-                            width: size,
-                            height: size,
+                            width: 32,
+                            height: 32,
                           }}
                           title={c}
                         />
@@ -375,11 +371,10 @@ export default function ProfileImagesClient({
                                 key={v.path + idx}
                                 type="button"
                                 onClick={() => setSlideIndex(idx)}
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  idx === slideIndex
-                                    ? "bg-white"
-                                    : "bg-white/40"
-                                }`}
+                                className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
+                                  ? "bg-white"
+                                  : "bg-white/40"
+                                  }`}
                               />
                             ))}
                           </div>

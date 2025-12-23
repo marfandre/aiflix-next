@@ -152,9 +152,6 @@ export default function SearchButton() {
   // Простой режим: массив выбранных цветов (hex-коды)
   const [simpleSelectedColors, setSimpleSelectedColors] = useState<string[]>([]);
 
-  // Режим по доминантности: 5 слотов
-  const [dominantSlots, setDominantSlots] = useState<(string | null)[]>([null, null, null, null, null]);
-  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
 
   // Модели
   const [modelInput, setModelInput] = useState('');
@@ -208,21 +205,6 @@ export default function SearchButton() {
     });
   }
 
-  // Обработчик выбора цвета в режиме доминантности
-  function handleDominantColorClick(colorId: string) {
-    if (activeSlotIndex === null) return;
-
-    setDominantSlots((prev) => {
-      const next = [...prev];
-      // Если этот цвет уже в текущем слоте — убираем
-      if (next[activeSlotIndex] === colorId) {
-        next[activeSlotIndex] = null;
-      } else {
-        next[activeSlotIndex] = colorId;
-      }
-      return next;
-    });
-  }
 
   async function handleSearch() {
     setError(null);
@@ -263,19 +245,6 @@ export default function SearchButton() {
         params.set('colorMode', 'simple');
         params.set('hexColors', simpleSelectedColors.join(','));
       }
-    } else {
-      // Режим по доминантности: передаём каждый слот отдельно
-      const filledSlots = dominantSlots
-        .map((color, index) => (color ? { index, color } : null))
-        .filter(Boolean) as { index: number; color: string }[];
-
-      if (filledSlots.length) {
-        params.set('colorMode', 'dominant');
-        // Формат: slot0=red,slot2=blue (только заполненные)
-        filledSlots.forEach(({ index, color }) => {
-          params.set(`slot${index}`, color);
-        });
-      }
     }
 
     setLoading(true);
@@ -300,8 +269,6 @@ export default function SearchButton() {
     setModelInput('');
     setSelectedModels([]);
     setSimpleSelectedColors([]);
-    setDominantSlots([null, null, null, null, null]);
-    setActiveSlotIndex(null);
     setColorPickerMode('palette');
     setShowShades(false);
     setResults(null);
@@ -316,8 +283,8 @@ export default function SearchButton() {
       !selectedModels.includes(m),
   );
 
-  // Размеры слотов для режима доминантности (убывающие)
-  const SLOT_SIZES = [36, 30, 26, 22, 18];
+  // Размеры слотов для режима цветов (одинаковые)
+  const SLOT_SIZES = [32, 32, 32, 32, 32];
 
   return (
     <div className="relative">
@@ -484,17 +451,6 @@ export default function SearchButton() {
                   >
                     Простой
                     {colorSearchMode === 'simple' && (
-                      <span className="absolute inset-x-1 -bottom-[1px] h-[2px] rounded-full bg-black" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setColorSearchMode('dominant')}
-                    className={`relative px-3 pb-2 pt-1 ${colorSearchMode === 'dominant' ? 'text-black' : 'text-gray-500'
-                      }`}
-                  >
-                    По доминантности
-                    {colorSearchMode === 'dominant' && (
                       <span className="absolute inset-x-1 -bottom-[1px] h-[2px] rounded-full bg-black" />
                     )}
                   </button>
@@ -681,225 +637,9 @@ export default function SearchButton() {
                     )}
                   </div>
                 )}
-
-                {/* === РЕЖИМ ПО ДОМИНАНТНОСТИ === */}
-                {colorSearchMode === 'dominant' && (
-                  <div>
-                    <p className="mb-3 text-[11px] text-gray-500">
-                      Кликните на кружок, затем выберите цвет. Левый кружок — самый доминантный цвет, правый — наименее значимый.
-                    </p>
-
-                    {/* 5 слотов */}
-                    <div className="mb-4 flex items-center justify-center gap-3">
-                      {dominantSlots.map((colorId, index) => {
-                        const size = SLOT_SIZES[index];
-                        const isActive = activeSlotIndex === index;
-                        const colorData = colorId ? COLOR_PALETTE.find((c) => c.id === colorId) : null;
-
-                        return (
-                          <div
-                            key={index}
-                            className="group relative"
-                            style={{ width: size, height: size }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setActiveSlotIndex(isActive ? null : index)}
-                              className={`flex h-full w-full items-center justify-center rounded-full border-2 transition ${isActive
-                                ? 'border-gray-900 ring-2 ring-gray-900/40'
-                                : 'border-gray-300'
-                                }`}
-                              style={{
-                                backgroundColor: colorData?.hex || '#f3f4f6',
-                              }}
-                              title={`Слот ${index + 1}${colorData ? `: ${colorData.label}` : ''}`}
-                            >
-                              {!colorData && (
-                                <span className="text-[9px] text-gray-400">{index + 1}</span>
-                              )}
-                            </button>
-                            {/* Крестик для удаления цвета */}
-                            {colorData && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDominantSlots((prev) => {
-                                    const next = [...prev];
-                                    next[index] = null;
-                                    return next;
-                                  });
-                                }}
-                                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Удалить цвет"
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {dominantSlots.some((s) => s !== null) && (
-                        <button
-                          type="button"
-                          onClick={() => setDominantSlots([null, null, null, null, null])}
-                          className="ml-2 text-[10px] text-gray-400 hover:text-gray-600"
-                          title="Очистить все"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Вкладки Палитра / Круг */}
-                    <div className="mb-3 flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setColorPickerMode('palette')}
-                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'palette'
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                      >
-                        Палитра
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setColorPickerMode('wheel')}
-                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'wheel'
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                      >
-                        Круг
-                      </button>
-                    </div>
-
-                    {/* Подсказка какой слот заполняется */}
-                    {activeSlotIndex !== null && (
-                      <div className="mb-2 text-[11px] text-gray-500">
-                        Выберите цвет для слота {activeSlotIndex + 1}
-                        {activeSlotIndex === 0 && ' (доминантный)'}
-                      </div>
-                    )}
-                    {activeSlotIndex === null && (
-                      <div className="mb-2 text-[11px] text-gray-400">
-                        Кликните на слот выше, чтобы выбрать для него цвет
-                      </div>
-                    )}
-
-                    {/* Палитра */}
-                    {colorPickerMode === 'palette' && (
-                      <div>
-                        {/* 12 базовых цветов */}
-                        <div className="flex gap-1">
-                          {COLOR_PALETTE.map((color) => {
-                            const isSelectedInSlot = activeSlotIndex !== null && dominantSlots[activeSlotIndex] === color.id;
-                            return (
-                              <button
-                                key={color.id}
-                                type="button"
-                                onClick={() => handleDominantColorClick(color.id)}
-                                disabled={activeSlotIndex === null}
-                                className={`h-5 w-5 rounded-full border-2 transition ${isSelectedInSlot
-                                  ? 'border-gray-900 ring-2 ring-gray-900/40'
-                                  : activeSlotIndex === null
-                                    ? 'border-gray-200 opacity-50 cursor-not-allowed'
-                                    : 'border-gray-200 hover:border-gray-400'
-                                  }`}
-                                style={{ backgroundColor: color.hex }}
-                                title={color.label}
-                              />
-                            );
-                          })}
-                        </div>
-
-                        {/* Кнопка Оттенки — только если хотя бы 1 цвет выбран */}
-                        {dominantSlots.some(Boolean) && (
-                          <button
-                            type="button"
-                            onClick={() => setShowShades(!showShades)}
-                            className="mt-3 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
-                          >
-                            <span>{showShades ? '▲' : '▼'}</span>
-                            <span>{showShades ? 'Скрыть оттенки' : 'Оттенки'}</span>
-                          </button>
-                        )}
-
-                        {/* Оттенки — для каждого выбранного цвета строка из 8 оттенков */}
-                        {showShades && dominantSlots.some(Boolean) && (
-                          <div className="mt-3 space-y-2">
-                            {Array.from(new Set(dominantSlots.filter(Boolean))).map((colorId) => {
-                              if (!colorId) return null;
-                              const baseColor = COLOR_PALETTE.find((c) => c.id === colorId);
-                              const shades = COLOR_SHADES[colorId] || [];
-                              if (!baseColor) return null;
-
-                              return (
-                                <div key={colorId} className="flex items-center gap-2">
-                                  <div
-                                    className="h-5 w-5 rounded-full border-2 border-gray-900 flex-shrink-0"
-                                    style={{ backgroundColor: baseColor.hex }}
-                                    title={baseColor.label}
-                                  />
-                                  <div className="flex gap-1">
-                                    {shades.slice(0, 8).map((shadeHex, idx) => (
-                                      <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => handleDominantColorClick(colorId)}
-                                        disabled={activeSlotIndex === null}
-                                        className={`h-4 w-4 rounded-full border transition ${activeSlotIndex === null ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-200 hover:border-gray-400'}`}
-                                        style={{ backgroundColor: shadeHex }}
-                                        title={`${baseColor.label} оттенок ${idx + 1}`}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Цветовой круг */}
-                    {colorPickerMode === 'wheel' && (
-                      <div className="flex flex-col items-center">
-                        <ColorWheel
-                          size={160}
-                          onClick={(c) => {
-                            const bucket = mapHexToBucket(c.hex);
-                            if (bucket) handleDominantColorClick(bucket);
-                          }}
-                        />
-                        <p className="mt-2 text-center text-[10px] text-gray-400">
-                          {activeSlotIndex !== null
-                            ? 'Кликните на цвет — он добавится в выбранный слот'
-                            : 'Сначала выберите слот выше'}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Подсказка по заполненным слотам */}
-                    {dominantSlots.some((s) => s !== null) && (
-                      <div className="mt-3 text-[11px] text-gray-600">
-                        Поиск:{' '}
-                        {dominantSlots
-                          .map((colorId, index) => {
-                            if (!colorId) return null;
-                            const colorData = COLOR_PALETTE.find((c) => c.id === colorId);
-                            const slotName = index === 0 ? 'доминантный' : index === 1 ? 'вторичный' : `слот ${index + 1}`;
-                            return `${slotName} = ${colorData?.label}`;
-                          })
-                          .filter(Boolean)
-                          .join(', ')}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
+
 
             {/* Футер */}
             <div className="mt-4 border-t pt-3">
@@ -919,71 +659,76 @@ export default function SearchButton() {
                     type="button"
                     onClick={handleSearch}
                     disabled={loading}
-                    className="inline-flex items-center justify-center rounded-full bg-black px-4 py-1.5 text-xs font-medium text-white hover:bg-gray-900 disabled:opacity-60"
+                    className="rounded-full bg-gray-900 px-3 py-1 text-xs text-white hover:bg-gray-800 disabled:opacity-50"
                   >
                     {loading ? 'Ищем…' : 'Найти'}
                   </button>
                 </div>
               </div>
+            </div>
 
-              {/* Результаты */}
-              <div className="mt-4 space-y-4 border-t pt-3">
-                {results && !(results.films?.length ?? 0) && !(results.images?.length ?? 0) && (
-                  <p className="text-sm text-gray-500">Ничего не найдено по заданным фильтрам.</p>
-                )}
+            {/* Ошибка */}
+            {error && (
+              <p className="mt-3 text-sm text-red-600">{error}</p>
+            )}
 
-                {results?.films?.length ? (
-                  <div>
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Видео</h3>
-                    <ul className="space-y-2">
-                      {results.films.map((f) => (
-                        <li key={f.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                          <div className="min-w-0">
-                            <div className="truncate font-medium text-gray-900">
-                              {(f.title ?? '').trim() || 'Без названия'}
-                            </div>
+            {/* Результаты */}
+            <div className="mt-4 space-y-4 border-t pt-3">
+              {results && !(results.films?.length ?? 0) && !(results.images?.length ?? 0) && (
+                <p className="text-sm text-gray-500">Ничего не найдено по заданным фильтрам.</p>
+              )}
+
+              {results?.films?.length ? (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Видео</h3>
+                  <ul className="space-y-2">
+                    {results.films.map((f) => (
+                      <li key={f.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-gray-900">
+                            {(f.title ?? '').trim() || 'Без названия'}
                           </div>
-                          <Link href={`/film/${f.id}`} className="ml-3 shrink-0 text-xs font-medium text-blue-600 hover:underline">
-                            Открыть
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
+                        </div>
+                        <Link href={`/film/${f.id}`} className="ml-3 shrink-0 text-xs font-medium text-blue-600 hover:underline">
+                          Открыть
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
-                {results?.images?.length ? (
-                  <div>
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Картинки</h3>
-                    <ul className="space-y-2">
-                      {results.images.map((im) => (
-                        <li key={im.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                          <div className="min-w-0">
-                            <div className="truncate font-medium text-gray-900">
-                              {(im.title ?? '').trim() || 'Картинка без названия'}
-                            </div>
-                            {im.colors?.length ? (
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {im.colors.slice(0, 5).map((c, i) => (
-                                  <span
-                                    key={c + i}
-                                    className="inline-block rounded-full border border-gray-200"
-                                    style={{ backgroundColor: c, width: 14, height: 14 }}
-                                    title={c}
-                                  />
-                                ))}
-                              </div>
-                            ) : null}
+              {results?.images?.length ? (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Картинки</h3>
+                  <ul className="space-y-2">
+                    {results.images.map((im) => (
+                      <li key={im.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-gray-900">
+                            {(im.title ?? '').trim() || 'Картинка без названия'}
                           </div>
-                          <Link href={`/images/${im.id}`} className="ml-3 shrink-0 text-xs font-medium text-blue-600 hover:underline">
-                            Открыть
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
+                          {im.colors?.length ? (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {im.colors.slice(0, 5).map((c, i) => (
+                                <span
+                                  key={c + i}
+                                  className="inline-block rounded-full border border-gray-200"
+                                  style={{ backgroundColor: c, width: 14, height: 14 }}
+                                  title={c}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                        <Link href={`/images/${im.id}`} className="ml-3 shrink-0 text-xs font-medium text-blue-600 hover:underline">
+                          Открыть
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

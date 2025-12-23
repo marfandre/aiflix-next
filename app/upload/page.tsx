@@ -603,22 +603,6 @@ export default function UploadPage() {
                   <h2 className="text-sm font-semibold text-gray-700">
                     Предпросмотр картинок
                   </h2>
-
-                  {displayMainColors.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!currentImage || !currentImage.mainColors.length) return;
-                        setIsEditingPalette(true);
-                        setDraftColors([...currentImage.mainColors.slice(0, 5)]);
-                        setSelectedIndex(0);
-                      }}
-                      className="rounded-full border px-2 py-1 text-xs"
-                      title="Редактировать палитру для текущего изображения"
-                    >
-                      ✏️
-                    </button>
-                  )}
                 </div>
 
                 {/* Область превью + стрелки + плюс */}
@@ -681,42 +665,70 @@ export default function UploadPage() {
                 )}
 
                 {displayMainColors.length > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
-                    {displayMainColors.map((c, index) => {
-                      const base = 32;
-                      const step = 4;
-                      const size = Math.max(16, base - index * step);
-                      const isSelected =
-                        isEditingPalette && selectedIndex === index;
+                  <div className="relative mt-2">
+                    <div className="flex flex-wrap items-center justify-center gap-3 pr-12">
+                      {displayMainColors.map((c, index) => {
+                        const isSelected =
+                          isEditingPalette && selectedIndex === index;
 
-                      return (
-                        <button
-                          key={c + index}
-                          type="button"
-                          onClick={() => {
-                            if (!isEditingPalette) return;
-                            setSelectedIndex(index);
-                          }}
-                          className={`flex items-center justify-center rounded-full border transition ${isSelected
-                            ? 'border-black ring-2 ring-black/60'
-                            : 'border-gray-200'
-                            }`}
-                          style={{
-                            padding: isSelected ? 3 : 1,
-                          }}
-                          title={isEditingPalette ? 'Выбрать этот цвет' : c}
-                        >
-                          <span
-                            className="block rounded-full"
-                            style={{
-                              backgroundColor: c,
-                              width: size,
-                              height: size,
+                        return (
+                          <button
+                            key={c + index}
+                            type="button"
+                            onClick={() => {
+                              if (!isEditingPalette) return;
+                              setSelectedIndex(index);
                             }}
-                          />
-                        </button>
-                      );
-                    })}
+                            className={`flex items-center justify-center rounded-full border transition ${isSelected
+                              ? 'border-black ring-2 ring-black/60'
+                              : 'border-gray-200'
+                              }`}
+                            style={{
+                              padding: isSelected ? 3 : 1,
+                            }}
+                            title={isEditingPalette ? 'Выбрать этот цвет' : c}
+                          >
+                            <span
+                              className="block rounded-full"
+                              style={{
+                                backgroundColor: c,
+                                width: 32,
+                                height: 32,
+                              }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Кнопка редактирования палитры */}
+                    {!isEditingPalette && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!currentImage || !currentImage.mainColors.length) return;
+                          setIsEditingPalette(true);
+                          setDraftColors([...currentImage.mainColors.slice(0, 5)]);
+                          setSelectedIndex(0);
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-500 shadow border border-gray-200 transition hover:bg-gray-50 hover:text-gray-700"
+                        title="Редактировать палитру"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-4 w-4"
+                        >
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 )}
 

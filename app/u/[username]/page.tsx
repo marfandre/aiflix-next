@@ -58,8 +58,7 @@ const normImage = (im: any) => {
     prompt: im?.prompt ?? null,
     colors: im?.colors ?? null,
     model: im?.model ?? null,
-    mood: im?.mood ?? null,
-    image_type: im?.image_type ?? null,
+    tags: im?.tags ?? null,
     images_count: im?.images_count ?? null,
   };
 };
@@ -109,7 +108,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
     const img_meta = await selectSafe(
       supa,
       'images_meta',
-      'id, user_id, path, title, description, created_at, prompt, colors, model, mood, image_type, images_count',
+      'id, user_id, path, title, description, created_at, prompt, colors, model, tags, images_count',
       [(q: any) => q.eq('user_id', profile.id)],
       { column: 'created_at', ascending: false },
       120

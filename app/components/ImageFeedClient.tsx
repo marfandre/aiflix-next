@@ -68,7 +68,7 @@ function formatModelName(raw?: string | null): string {
 export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
   const [images, setImages] = useState<ImageRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tagsMap, setTagsMap] = useState<Record<string, string>>({}); // id -> name_ru
+  const [tagsMap, setTagsMap] = useState<Record<string, { ru: string; en: string }>>({}); // id -> {ru, en}
 
   const [selected, setSelected] = useState<ImageRow | null>(null);
   const [variants, setVariants] = useState<ImageVariant[]>([]);
@@ -77,14 +77,14 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
 
   const supa = createClientComponentClient();
 
-  // Загрузка тегов для маппинга id -> name_ru
+  // Загрузка тегов для маппинга id -> {ru, en}
   useEffect(() => {
     fetch('/api/tags')
       .then(r => r.json())
       .then(data => {
-        const map: Record<string, string> = {};
+        const map: Record<string, { ru: string; en: string }> = {};
         for (const t of data.all ?? []) {
-          map[t.id] = t.name_ru;
+          map[t.id] = { ru: t.name_ru, en: t.name_en };
         }
         setTagsMap(map);
       })
@@ -433,14 +433,29 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                         Теги
                       </span>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {selected.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
-                          >
-                            {tagsMap[tag] || tag}
-                          </span>
-                        ))}
+                        {selected.tags.map((tagWithLang) => {
+                          // Парсим формат tag_id:lang
+                          let tagId = tagWithLang;
+                          let lang: 'ru' | 'en' = 'ru';
+                          if (tagWithLang.endsWith(':en')) {
+                            tagId = tagWithLang.slice(0, -3);
+                            lang = 'en';
+                          } else if (tagWithLang.endsWith(':ru')) {
+                            tagId = tagWithLang.slice(0, -3);
+                            lang = 'ru';
+                          }
+                          const tagNames = tagsMap[tagId];
+                          const displayName = tagNames ? tagNames[lang] : tagId;
+
+                          return (
+                            <span
+                              key={tagWithLang}
+                              className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
+                            >
+                              {displayName}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -492,17 +507,14 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                     currentColors.length > 0 &&
                     currentColors.map((c, index) => {
                       if (!c) return null;
-                      const base = 40;
-                      const step = 3;
-                      const size = Math.max(10, base - index * step);
                       return (
                         <div
                           key={c + index}
                           className="rounded-full border border-gray-200"
                           style={{
                             backgroundColor: c,
-                            width: size,
-                            height: size,
+                            width: 32,
+                            height: 32,
                           }}
                           title={c}
                         />
