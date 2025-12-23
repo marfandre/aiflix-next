@@ -347,6 +347,7 @@ export default function UploadPage() {
           body: JSON.stringify({
             title,
             description,
+            prompt: prompt || null,
             model: model || null,
             tags: selectedTags.length ? selectedTags : null,
             colors: videoColors.length ? videoColors.slice(0, 5) : null,
@@ -584,19 +585,17 @@ export default function UploadPage() {
                 />
               </div>
 
-              {/* Промт — только для картинок */}
-              {type === 'image' && (
-                <div>
-                  <label className="mb-1 block text-sm">Промт (prompt для генерации)</label>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="w-full rounded border px-3 py-2"
-                    rows={4}
-                    placeholder="промт, по которому была сгенерирована картинка (можно пустым)"
-                  />
-                </div>
-              )}
+              {/* Промт */}
+              <div>
+                <label className="mb-1 block text-sm">Промт (prompt для генерации)</label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="w-full rounded border px-3 py-2"
+                  rows={4}
+                  placeholder={type === 'video' ? 'промт, по которому было сгенерировано видео (можно пустым)' : 'промт, по которому была сгенерирована картинка (можно пустым)'}
+                />
+              </div>
 
               {/* Теги (жанры, атмосфера, сцена) */}
               <div>

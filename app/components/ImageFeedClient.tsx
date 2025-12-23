@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import LikeButton from "./LikeButton";
@@ -75,6 +75,8 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
   const [slideIndex, setSlideIndex] = useState(0);
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
+  const [imageWidth, setImageWidth] = useState<number | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   const supa = createClientComponentClient();
 
@@ -235,6 +237,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
     setSlideIndex(0);
     setVariants([fallbackVariant]);
     setVariantsLoading(true);
+    setImageWidth(null);
 
     try {
       const { data, error } = await supa
@@ -462,233 +465,179 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           onClick={closeModal}
         >
-          <div
-            className="relative flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-1 flex-col gap-4 p-4 md:flex-row">
-              {/* ЛЕВАЯ КОЛОНКА */}
-              <div className="mt-2 flex w-full flex-none flex-col justify-between gap-3 text-sm text-gray-700 md:w-[26rem]">
-                {/* верх: ПРОМТ + МОДЕЛЬ */}
-                <div className="space-y-3">
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                        Промт
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleCopyPrompt}
-                        disabled={!selected.prompt && !selected.description}
-                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          viewBox="0 0 24 24"
-                          className="h-3.5 w-3.5"
-                        >
-                          <rect
-                            x="9"
-                            y="9"
-                            width="11"
-                            height="11"
-                            rx="2"
-                            ry="2"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                          />
-                          <rect
-                            x="4"
-                            y="4"
-                            width="11"
-                            height="11"
-                            rx="2"
-                            ry="2"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                          />
-                        </svg>
-                        <span>Скопировать</span>
-                      </button>
-                    </div>
-
-                    {selected.prompt || selected.description ? (
-                      <p className="whitespace-pre-line text-xs text-gray-800">
-                        {selected.prompt || selected.description}
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-gray-400">
-                        Промт не указан.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="text-xs text-gray-600">
-                    Модель:{" "}
-                    <span className="font-medium">
-                      {formatModelName(selected.model)}
-                    </span>
-                  </div>
-
-                  {/* Теги */}
-                  {selected.tags && selected.tags.length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                        Теги
-                      </span>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {selected.tags.map((tagWithLang) => {
-                          // Парсим формат tag_id:lang
-                          let tagId = tagWithLang;
-                          let lang: 'ru' | 'en' = 'ru';
-                          if (tagWithLang.endsWith(':en')) {
-                            tagId = tagWithLang.slice(0, -3);
-                            lang = 'en';
-                          } else if (tagWithLang.endsWith(':ru')) {
-                            tagId = tagWithLang.slice(0, -3);
-                            lang = 'ru';
-                          }
-                          const tagNames = tagsMap[tagId];
-                          const displayName = tagNames ? tagNames[lang] : tagId;
-
-                          return (
-                            <span
-                              key={tagWithLang}
-                              className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
-                            >
-                              {displayName}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* низ: ОПИСАНИЕ + автор/дата */}
-                <div className="space-y-3">
-                  {selected.description && selected.prompt && (
-                    <div className="rounded-lg bg-gray-50 p-3">
-                      <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                        Описание
-                      </div>
-                      <p className="whitespace-pre-line text-xs text-gray-800">
-                        {selected.description}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="mt-4 border-t pt-2 text-xs text-gray-500">
-                    {(() => {
-                      const p = Array.isArray(selected.profiles)
-                        ? selected.profiles[0]
-                        : selected.profiles;
-                      const nick: string = p?.username ?? "user";
-                      return (
-                        <Link
-                          href={`/u/${encodeURIComponent(nick)}`}
-                          className="font-medium text-gray-700 hover:underline"
-                        >
-                          @{nick}
-                        </Link>
-                      );
-                    })()}
-                    {selected.created_at && (
-                      <div className="mt-0.5">
-                        {new Date(selected.created_at).toLocaleDateString(
-                          "ru-RU"
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+          {/* Flex контейнер для кружков + модалки */}
+          <div className="flex items-center gap-3">
+            {/* Цветовая палитра — слева от модалки */}
+            {Array.isArray(currentColors) && currentColors.length > 0 && (
+              <div className="flex-col gap-2 hidden sm:flex">
+                {currentColors.map((c, index) => {
+                  if (!c) return null;
+                  return (
+                    <div
+                      key={c + index}
+                      className="rounded-full border-2 border-white/30 shadow-lg"
+                      style={{
+                        backgroundColor: c,
+                        width: 28,
+                        height: 28,
+                      }}
+                      title={c}
+                    />
+                  );
+                })}
               </div>
+            )}
 
-              {/* ПРАВАЯ КОЛОНКА — палитра + картинка */}
-              <div className="flex flex-1 flex-col">
-                <div className="mb-2 flex items-center justify-center gap-1 md:justify-start">
-                  {Array.isArray(currentColors) &&
-                    currentColors.length > 0 &&
-                    currentColors.map((c, index) => {
-                      if (!c) return null;
-                      return (
-                        <div
-                          key={c + index}
-                          className="rounded-full border border-gray-200"
-                          style={{
-                            backgroundColor: c,
-                            width: 32,
-                            height: 32,
-                          }}
-                          title={c}
-                        />
-                      );
-                    })}
-                </div>
+            <div
+              className="relative flex max-h-[90vh] w-auto max-w-[95vw] flex-col overflow-hidden rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Картинка с overlay */}
+              <div className="relative flex items-center justify-center bg-black">
+                {currentVariant ? (
+                  <>
+                    <img
+                      ref={imageRef}
+                      src={publicImageUrl(currentVariant.path)}
+                      alt={(selected.title ?? "").trim() || "Картинка"}
+                      className="max-h-[90vh] w-auto max-w-full object-contain"
+                      onLoad={() => {
+                        if (imageRef.current) {
+                          setImageWidth(imageRef.current.offsetWidth);
+                        }
+                      }}
+                    />
 
-                <div className="relative flex flex-1 items-center justify-center rounded-lg bg-gray-50">
-                  {currentVariant ? (
-                    <>
-                      <img
-                        src={publicImageUrl(currentVariant.path)}
-                        alt={(selected.title ?? "").trim() || "Картинка"}
-                        className="max-h-[80vh] w-full object-contain"
-                      />
+                    {hasCarousel && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSlideIndex(
+                              (i) =>
+                                (i - 1 + variants.length) % variants.length
+                            )
+                          }
+                          className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
+                          title="Предыдущее изображение"
+                        >
+                          <span className="block text-lg leading-none text-white transition-transform group-hover:-translate-x-0.5">
+                            ‹
+                          </span>
+                        </button>
 
-                      {hasCarousel && (
-                        <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSlideIndex((i) => (i + 1) % variants.length)
+                          }
+                          className="group absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
+                        >
+                          <span className="block text-lg leading-none text-white transition-transform group-hover:translate-x-0.5">
+                            ›
+                          </span>
+                        </button>
+
+                        <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 gap-1">
+                          {variants.map((v, idx) => (
+                            <button
+                              key={v.path + idx}
+                              type="button"
+                              onClick={() => setSlideIndex(idx)}
+                              className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
+                                ? "bg-white"
+                                : "bg-white/40"
+                                }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Frosted glass overlay внизу */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md p-4">
+                      <div className="flex flex-col gap-2 text-white">
+                        {/* Промт + копирование */}
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="line-clamp-2 text-sm flex-1">
+                            {selected.prompt || selected.description || "Промт не указан"}
+                          </p>
                           <button
                             type="button"
-                            onClick={() =>
-                              setSlideIndex(
-                                (i) =>
-                                  (i - 1 + variants.length) % variants.length
-                              )
-                            }
-                            className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                            title="Предыдущее изображение"
+                            onClick={handleCopyPrompt}
+                            disabled={!selected.prompt && !selected.description}
+                            className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-xs hover:bg-white/30 disabled:opacity-40"
                           >
-                            <span className="block text-lg leading-none text-white transition-transform group-hover:-translate-x-0.5">
-                              ‹
-                            </span>
+                            Скопировать
                           </button>
+                        </div>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSlideIndex((i) => (i + 1) % variants.length)
-                            }
-                            className="group absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                          >
-                            <span className="block text-lg leading-none text-white transition-transform group-hover:translate-x-0.5">
-                              ›
+                        {/* Модель + Автор + Дата + Теги */}
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-white/80">
+                          <span>
+                            {formatModelName(selected.model)}
+                          </span>
+
+                          {(() => {
+                            const p = Array.isArray(selected.profiles)
+                              ? selected.profiles[0]
+                              : selected.profiles;
+                            const nick: string = p?.username ?? "user";
+                            return (
+                              <Link
+                                href={`/u/${encodeURIComponent(nick)}`}
+                                className="hover:text-white hover:underline"
+                              >
+                                @{nick}
+                              </Link>
+                            );
+                          })()}
+
+                          {selected.created_at && (
+                            <span className="text-white/60">
+                              {new Date(selected.created_at).toLocaleDateString("ru-RU")}
                             </span>
-                          </button>
+                          )}
 
-                          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1">
-                            {variants.map((v, idx) => (
-                              <button
-                                key={v.path + idx}
-                                type="button"
-                                onClick={() => setSlideIndex(idx)}
-                                className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
-                                  ? "bg-white"
-                                  : "bg-white/40"
-                                  }`}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      Не удалось загрузить изображение.
-                    </p>
-                  )}
-                </div>
+                          {/* Теги inline */}
+                          {selected.tags && selected.tags.length > 0 && (
+                            <>
+                              {selected.tags.slice(0, 3).map((tagWithLang) => {
+                                let tagId = tagWithLang;
+                                let lang: 'ru' | 'en' = 'ru';
+                                if (tagWithLang.endsWith(':en')) {
+                                  tagId = tagWithLang.slice(0, -3);
+                                  lang = 'en';
+                                } else if (tagWithLang.endsWith(':ru')) {
+                                  tagId = tagWithLang.slice(0, -3);
+                                  lang = 'ru';
+                                }
+                                const tagNames = tagsMap[tagId];
+                                const displayName = tagNames ? tagNames[lang] : tagId;
+
+                                return (
+                                  <span
+                                    key={tagWithLang}
+                                    className="rounded-full bg-white/20 px-2 py-0.5"
+                                  >
+                                    {displayName}
+                                  </span>
+                                );
+                              })}
+                              {selected.tags.length > 3 && (
+                                <span className="text-white/60">+{selected.tags.length - 3}</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-white/60 p-8">
+                    Не удалось загрузить изображение.
+                  </p>
+                )}
               </div>
             </div>
           </div>

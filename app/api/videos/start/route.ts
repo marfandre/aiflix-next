@@ -12,7 +12,7 @@ const mux = new Mux({
 
 export async function POST(req: Request) {
   try {
-    const { title, description, model, genres, mood, colors } = await req.json();
+    const { title, description, prompt, model, genres, mood, colors } = await req.json();
 
     // 1) Пользователь
     const supa = createRouteHandlerClient({ cookies });
@@ -83,6 +83,7 @@ export async function POST(req: Request) {
       user_id: user.id,
       title: title ?? null,
       description: description ?? null,
+      prompt: prompt ?? null,
       upload_id: upload.id,
       playback_id: null, // заполнит webhook
       model: modelNorm,

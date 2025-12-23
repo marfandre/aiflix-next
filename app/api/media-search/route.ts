@@ -148,6 +148,7 @@ export async function GET(req: NextRequest) {
     colors: string[] | null;
     tags: string[] | null;
     model: string | null;
+    path: string | null;
     dominant_color: string | null;
     secondary_color: string | null;
     third_color: string | null;
@@ -194,7 +195,7 @@ export async function GET(req: NextRequest) {
     let q = supabase
       .from("images_meta")
       .select(
-        "id, title, colors, tags, model, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
+        "id, title, colors, tags, model, path, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
       )
       .order("created_at", { ascending: false })
       .limit(120);
