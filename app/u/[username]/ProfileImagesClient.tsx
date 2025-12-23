@@ -65,6 +65,7 @@ export default function ProfileImagesClient({
   const [variants, setVariants] = useState<ImageVariant[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
   const [variantsLoading, setVariantsLoading] = useState(false);
+  const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
 
   const publicImageUrl = (path: string | null) => {
     if (!path) return "/placeholder.png";
@@ -144,57 +145,161 @@ export default function ProfileImagesClient({
 
   return (
     <>
-      {/* сетка в профиле */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {images.map((im) => {
-          const url = publicImageUrl(im.path);
-          const imagesCount =
-            typeof im.images_count === "number" ? im.images_count : 1;
-          const showCarouselBadge = imagesCount > 1;
+      {/* сетка в профиле — Lexica-стиль */}
+      <div className="overflow-hidden rounded-2xl">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {images.map((im) => {
+            const url = publicImageUrl(im.path);
+            const imagesCount =
+              typeof im.images_count === "number" ? im.images_count : 1;
+            const showCarouselBadge = imagesCount > 1;
 
-          return (
-            <div
-              key={im.id}
-              className="overflow-hidden rounded-xl border bg-white shadow-sm ring-1 ring-gray-100"
-            >
-              <button
-                type="button"
-                onClick={() => openImage(im)}
-                className="relative block aspect-[4/3] w-full bg-gray-100"
+            return (
+              <div
+                key={im.id}
+                className="group relative"
               >
-                <img
-                  src={url}
-                  alt={(im.title ?? "").trim() || "Картинка"}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-                {showCarouselBadge && (
-                  <div className="absolute bottom-1 right-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
-                    {imagesCount}
-                  </div>
-                )}
-              </button>
-
-              <div className="p-3">
-                <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                  <span className="truncate">@{nick}</span>
-                  <LikeButton
-                    target="image"
-                    id={im.id}
-                    userId={currentUserId}
-                    className="ml-auto shrink-0"
+                <button
+                  type="button"
+                  onClick={() => openImage(im)}
+                  className="relative block aspect-[4/5] w-full bg-gray-100"
+                >
+                  <img
+                    src={url}
+                    alt={(im.title ?? "").trim() || "Картинка"}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
                   />
-                </div>
+
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                  {/* Счётчик изображений (всегда виден) */}
+                  {showCarouselBadge && (
+                    <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                      {imagesCount}
+                    </div>
+                  )}
+
+                  {/* Круговая диаграмма цветов */}
+                  {im.colors && im.colors.length > 0 && (() => {
+                    const colors = im.colors.slice(0, 5);
+                    const segmentAngle = 360 / colors.length;
+                    const isExpanded = expandedChartId === im.id;
+                    const size = isExpanded ? 64 : 20;
+                    const radius = size / 2;
+                    const cx = radius;
+                    const cy = radius;
+
+                    const createSegmentPath = (startAngle: number, endAngle: number) => {
+                      const startRad = (startAngle - 90) * Math.PI / 180;
+                      const endRad = (endAngle - 90) * Math.PI / 180;
+                      const x1 = cx + radius * Math.cos(startRad);
+                      const y1 = cy + radius * Math.sin(startRad);
+                      const x2 = cx + radius * Math.cos(endRad);
+                      const y2 = cy + radius * Math.sin(endRad);
+                      const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+                      return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                    };
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedChartId(isExpanded ? null : im.id);
+                        }}
+                        className={`absolute rounded-full z-10 transition-all duration-300 cursor-pointer ${isExpanded ? 'bottom-2 right-2' : 'bottom-2 right-2'}`}
+                        style={{
+                          width: size,
+                          height: size,
+                          boxShadow: isExpanded
+                            ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.3)'
+                            : '0 1px 3px rgba(0,0,0,0.3)'
+                        }}
+                        title={`Нажмите чтобы ${isExpanded ? 'свернуть' : 'увеличить'}`}
+                      >
+                        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
+                          {isExpanded && (
+                            <defs>
+                              <linearGradient id={`gloss-profile-${im.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+                                <stop offset="40%" stopColor="rgba(255,255,255,0.1)" />
+                                <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+                                <stop offset="100%" stopColor="rgba(0,0,0,0.15)" />
+                              </linearGradient>
+                              <clipPath id={`clip-profile-${im.id}`}>
+                                <circle cx={radius} cy={radius} r={radius} />
+                              </clipPath>
+                            </defs>
+                          )}
+
+                          {isExpanded ? (
+                            <g clipPath={`url(#clip-profile-${im.id})`}>
+                              {colors.map((color, i) => (
+                                <path
+                                  key={i}
+                                  d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
+                                  fill={color}
+                                />
+                              ))}
+                              <circle cx={radius} cy={radius} r={radius} fill={`url(#gloss-profile-${im.id})`} />
+                            </g>
+                          ) : (
+                            colors.map((color, i) => (
+                              <path
+                                key={i}
+                                d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
+                                fill={color}
+                              />
+                            ))
+                          )}
+
+                          <circle
+                            cx={radius}
+                            cy={radius}
+                            r={radius - 0.5}
+                            fill="none"
+                            stroke={isExpanded ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)"}
+                            strokeWidth={1}
+                          />
+                        </svg>
+                      </button>
+                    );
+                  })()}
+
+                  {/* Никнейм при наведении */}
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <Link
+                      href={`/u/${encodeURIComponent(nick)}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
+                    >
+                      <span className="truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
+                    </Link>
+                  </div>
+
+                  {/* Кнопка лайка при наведении */}
+                  <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                      <LikeButton
+                        target="image"
+                        id={im.id}
+                        userId={currentUserId}
+                        className="text-white drop-shadow-md"
+                      />
+                    </div>
+                  </div>
+                </button>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {images.length === 0 && (
-          <div className="text-sm text-gray-500">Здесь пока нет картинок.</div>
-        )}
+          {images.length === 0 && (
+            <div className="text-sm text-gray-500">Здесь пока нет картинок.</div>
+          )}
+        </div>
       </div>
-
       {/* модалка */}
       {selected && (
         <div

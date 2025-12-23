@@ -287,174 +287,175 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
 
   return (
     <>
-      {/* СЕТКА ЛЕНТЫ */}
-      <div className="grid gap-2 overflow-hidden rounded-2xl sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {images.map((im) => {
-          const p = Array.isArray(im.profiles) ? im.profiles[0] : im.profiles;
-          const nick: string = p?.username ?? "user";
-          const avatar: string | null = p?.avatar_url ?? null;
-          const url = publicImageUrl(im.path);
-          const title = (im.title ?? "").trim() || "Картинка";
-          const imagesCount =
-            typeof im.images_count === "number" ? im.images_count : 1;
-          const showCarouselBadge = imagesCount > 1;
+      {/* СЕТКА ЛЕНТЫ — Lexica-стиль */}
+      <div className="overflow-hidden rounded-2xl">
+        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {images.map((im) => {
+            const p = Array.isArray(im.profiles) ? im.profiles[0] : im.profiles;
+            const nick: string = p?.username ?? "user";
+            const avatar: string | null = p?.avatar_url ?? null;
+            const url = publicImageUrl(im.path);
+            const title = (im.title ?? "").trim() || "Картинка";
+            const imagesCount =
+              typeof im.images_count === "number" ? im.images_count : 1;
+            const showCarouselBadge = imagesCount > 1;
 
-          return (
-            <div
-              key={im.id}
-              className="group relative"
-            >
-              <button
-                type="button"
-                onClick={() => openImage(im)}
-                className="relative block aspect-[4/5] w-full bg-gray-100"
+            return (
+              <div
+                key={im.id}
+                className="group relative"
               >
-                <img
-                  src={url}
-                  alt={title}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+                <button
+                  type="button"
+                  onClick={() => openImage(im)}
+                  className="relative block aspect-[4/5] w-full bg-gray-100"
+                >
+                  <img
+                    src={url}
+                    alt={title}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
 
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                {/* Счётчик изображений (всегда виден) */}
-                {showCarouselBadge && (
-                  <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
-                    {imagesCount}
-                  </div>
-                )}
+                  {/* Счётчик изображений (всегда виден) */}
+                  {showCarouselBadge && (
+                    <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                      {imagesCount}
+                    </div>
+                  )}
 
-                {/* Круговая диаграмма цветов (всегда видна, кликабельна) */}
-                {im.colors && im.colors.length > 0 && (() => {
-                  const colors = im.colors.slice(0, 5);
-                  const segmentAngle = 360 / colors.length;
-                  const isExpanded = expandedChartId === im.id;
-                  const size = isExpanded ? 64 : 20;
-                  const radius = size / 2;
-                  const cx = radius;
-                  const cy = radius;
+                  {/* Круговая диаграмма цветов (всегда видна, кликабельна) */}
+                  {im.colors && im.colors.length > 0 && (() => {
+                    const colors = im.colors.slice(0, 5);
+                    const segmentAngle = 360 / colors.length;
+                    const isExpanded = expandedChartId === im.id;
+                    const size = isExpanded ? 64 : 20;
+                    const radius = size / 2;
+                    const cx = radius;
+                    const cy = radius;
 
-                  // Функция для создания пути сегмента
-                  const createSegmentPath = (startAngle: number, endAngle: number) => {
-                    const startRad = (startAngle - 90) * Math.PI / 180;
-                    const endRad = (endAngle - 90) * Math.PI / 180;
-                    const x1 = cx + radius * Math.cos(startRad);
-                    const y1 = cy + radius * Math.sin(startRad);
-                    const x2 = cx + radius * Math.cos(endRad);
-                    const y2 = cy + radius * Math.sin(endRad);
-                    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-                    return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-                  };
+                    // Функция для создания пути сегмента
+                    const createSegmentPath = (startAngle: number, endAngle: number) => {
+                      const startRad = (startAngle - 90) * Math.PI / 180;
+                      const endRad = (endAngle - 90) * Math.PI / 180;
+                      const x1 = cx + radius * Math.cos(startRad);
+                      const y1 = cy + radius * Math.sin(startRad);
+                      const x2 = cx + radius * Math.cos(endRad);
+                      const y2 = cy + radius * Math.sin(endRad);
+                      const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+                      return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                    };
 
-                  return (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedChartId(isExpanded ? null : im.id);
-                      }}
-                      className={`absolute rounded-full z-10 transition-all duration-300 cursor-pointer ${isExpanded ? '-bottom-4 -right-4' : '-bottom-1 -right-1'}`}
-                      style={{
-                        width: size,
-                        height: size,
-                        boxShadow: isExpanded
-                          ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.3)'
-                          : '0 1px 3px rgba(0,0,0,0.3)'
-                      }}
-                      title={`Нажмите чтобы ${isExpanded ? 'свернуть' : 'увеличить'}`}
-                    >
-                      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
-                        {isExpanded && (
-                          <defs>
-                            {/* Глянцевый градиент — только для увеличенного режима */}
-                            <linearGradient id={`gloss-${im.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                              <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-                              <stop offset="40%" stopColor="rgba(255,255,255,0.1)" />
-                              <stop offset="60%" stopColor="rgba(0,0,0,0)" />
-                              <stop offset="100%" stopColor="rgba(0,0,0,0.15)" />
-                            </linearGradient>
-                            {/* Маска для круга */}
-                            <clipPath id={`clip-${im.id}`}>
-                              <circle cx={radius} cy={radius} r={radius} />
-                            </clipPath>
-                          </defs>
-                        )}
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedChartId(isExpanded ? null : im.id);
+                        }}
+                        className={`absolute rounded-full z-10 transition-all duration-300 cursor-pointer ${isExpanded ? 'bottom-2 right-2' : 'bottom-2 right-2'}`}
+                        style={{
+                          width: size,
+                          height: size,
+                          boxShadow: isExpanded
+                            ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.3)'
+                            : '0 1px 3px rgba(0,0,0,0.3)'
+                        }}
+                        title={`Нажмите чтобы ${isExpanded ? 'свернуть' : 'увеличить'}`}
+                      >
+                        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
+                          {isExpanded && (
+                            <defs>
+                              {/* Глянцевый градиент — только для увеличенного режима */}
+                              <linearGradient id={`gloss-${im.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+                                <stop offset="40%" stopColor="rgba(255,255,255,0.1)" />
+                                <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+                                <stop offset="100%" stopColor="rgba(0,0,0,0.15)" />
+                              </linearGradient>
+                              {/* Маска для круга */}
+                              <clipPath id={`clip-${im.id}`}>
+                                <circle cx={radius} cy={radius} r={radius} />
+                              </clipPath>
+                            </defs>
+                          )}
 
-                        {/* Сегменты */}
-                        {isExpanded ? (
-                          <g clipPath={`url(#clip-${im.id})`}>
-                            {colors.map((color, i) => (
+                          {/* Сегменты */}
+                          {isExpanded ? (
+                            <g clipPath={`url(#clip-${im.id})`}>
+                              {colors.map((color, i) => (
+                                <path
+                                  key={i}
+                                  d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
+                                  fill={color}
+                                />
+                              ))}
+                              {/* Глянцевый оверлей */}
+                              <circle cx={radius} cy={radius} r={radius} fill={`url(#gloss-${im.id})`} />
+                            </g>
+                          ) : (
+                            // Плоский стиль для маленькой кнопки
+                            colors.map((color, i) => (
                               <path
                                 key={i}
                                 d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
                                 fill={color}
                               />
-                            ))}
-                            {/* Глянцевый оверлей */}
-                            <circle cx={radius} cy={radius} r={radius} fill={`url(#gloss-${im.id})`} />
-                          </g>
-                        ) : (
-                          // Плоский стиль для маленькой кнопки
-                          colors.map((color, i) => (
-                            <path
-                              key={i}
-                              d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
-                              fill={color}
-                            />
-                          ))
-                        )}
+                            ))
+                          )}
 
-                        {/* Обводка */}
-                        <circle
-                          cx={radius}
-                          cy={radius}
-                          r={radius - 0.5}
-                          fill="none"
-                          stroke={isExpanded ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)"}
-                          strokeWidth={1}
+                          {/* Обводка */}
+                          <circle
+                            cx={radius}
+                            cy={radius}
+                            r={radius - 0.5}
+                            fill="none"
+                            stroke={isExpanded ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)"}
+                            strokeWidth={1}
+                          />
+                        </svg>
+                      </button>
+                    );
+                  })()}
+
+                  {/* Инфо при наведении */}
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <Link
+                      href={`/u/${encodeURIComponent(nick)}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
+                    >
+                      {avatar && (
+                        <img
+                          src={avatar}
+                          alt={nick}
+                          className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
                         />
-                      </svg>
-                    </button>
-                  );
-                })()}
-
-                {/* Инфо при наведении */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <Link
-                    href={`/u/${encodeURIComponent(nick)}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
-                  >
-                    {avatar && (
-                      <img
-                        src={avatar}
-                        alt={nick}
-                        className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
-                      />
-                    )}
-                    <span className="truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
-                  </Link>
-                </div>
-
-                {/* Кнопка лайка при наведении (по центру сверху) */}
-                <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                    <LikeButton
-                      target="image"
-                      id={im.id}
-                      userId={userId}
-                      ownerId={im.user_id}
-                      className="text-white drop-shadow-md"
-                    />
+                      )}
+                      <span className="truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
+                    </Link>
                   </div>
-                </div>
-              </button>
-            </div>
-          );
-        })}
-      </div>
 
+                  {/* Кнопка лайка при наведении (по центру сверху) */}
+                  <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                      <LikeButton
+                        target="image"
+                        id={im.id}
+                        userId={userId}
+                        ownerId={im.user_id}
+                        className="text-white drop-shadow-md"
+                      />
+                    </div>
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
       {/* МОДАЛКА С КАРТИНКОЙ */}
       {selected && (
         <div
