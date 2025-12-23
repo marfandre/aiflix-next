@@ -2,5 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
-body { @apply bg-white text-gray-900; }
+:root {
+    color-scheme: light;
+}
+
+body {
+    @apply bg-white text-gray-900;
+}

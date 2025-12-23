@@ -57,59 +57,75 @@ export default async function Home({
       </div>
 
       {tab === "video" && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(videos as any[]).map((v) => {
-            const p = Array.isArray(v.profiles) ? v.profiles[0] : v.profiles;
-            const nick: string = p?.username ?? "user";
-            const avatar: string | null = p?.avatar_url ?? null;
+        <div className="overflow-hidden rounded-2xl">
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {(videos as any[]).map((v) => {
+              const p = Array.isArray(v.profiles) ? v.profiles[0] : v.profiles;
+              const nick: string = p?.username ?? "user";
+              const avatar: string | null = p?.avatar_url ?? null;
 
-            const title = (v.title ?? "").trim() || "Без названия";
-            const href = `/film/${v.id}`;
+              const title = (v.title ?? "").trim() || "Без названия";
+              const href = `/film/${v.id}`;
 
-            return (
-              <div
-                key={v.id}
-                className="overflow-hidden rounded-xl border bg-white shadow-sm ring-1 ring-gray-100"
-              >
-                <Link
-                  href={href}
-                  className="block relative aspect-video bg-black"
-                >
-                  <img
-                    src={muxPoster(v.playback_id ?? null)}
-                    alt={title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                </Link>
+              return (
+                <div key={v.id} className="group relative">
+                  {/* Основная ссылка — только картинка */}
+                  <Link
+                    href={href}
+                    className="relative block aspect-[4/5] w-full bg-gray-100 overflow-hidden"
+                  >
+                    <img
+                      src={muxPoster(v.playback_id ?? null)}
+                      alt={title}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
 
-                <div className="px-4 py-3">
-                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                    {/* Иконка видео */}
+                    <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white flex items-center gap-1">
+                      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </Link>
+
+                  {/* Overlay с автором — вне Link */}
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                     <Link
                       href={`/u/${encodeURIComponent(nick)}`}
-                      className="flex items-center gap-2 min-w-0 hover:underline"
+                      className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
                     >
                       {avatar && (
                         <img
                           src={avatar}
                           alt={nick}
-                          className="h-5 w-5 shrink-0 rounded-full ring-1 ring-gray-300 object-cover"
+                          className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
                         />
                       )}
-                      <span className="truncate">@{nick}</span>
+                      <span className="truncate text-[11px] font-medium drop-shadow-md">
+                        {nick}
+                      </span>
                     </Link>
+                  </div>
 
-                    <LikeButton
-                      target="film"
-                      id={v.id}
-                      userId={userId}
-                      ownerId={v.user_id}
-                      className="ml-auto shrink-0"
-                    />
+                  {/* Кнопка лайка — вне Link */}
+                  <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className="pointer-events-auto">
+                      <LikeButton
+                        target="film"
+                        id={v.id}
+                        userId={userId}
+                        ownerId={v.user_id}
+                        className="text-white drop-shadow-md"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
