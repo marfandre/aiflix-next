@@ -128,7 +128,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-4 sm:p-6">
+    <div className="mx-auto max-w-[2000px] p-4 sm:p-6">
       {/* Шапка профиля */}
       <div className="mb-2">
         <div className="flex items-start gap-4">

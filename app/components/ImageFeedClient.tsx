@@ -289,7 +289,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
     <>
       {/* СЕТКА ЛЕНТЫ — Lexica-стиль */}
       <div className="overflow-hidden rounded-2xl">
-        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {images.map((im) => {
             const p = Array.isArray(im.profiles) ? im.profiles[0] : im.profiles;
             const nick: string = p?.username ?? "user";

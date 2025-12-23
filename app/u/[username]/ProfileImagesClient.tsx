@@ -147,7 +147,7 @@ export default function ProfileImagesClient({
     <>
       {/* сетка в профиле — Lexica-стиль */}
       <div className="overflow-hidden rounded-2xl">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {images.map((im) => {
             const url = publicImageUrl(im.path);
             const imagesCount =
