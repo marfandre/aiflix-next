@@ -233,6 +233,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
         <ProfileImagesClient
           images={images}
           nick={nick}
+          avatarUrl={avatar}
           currentUserId={currentUserId}
         />
       )}
