@@ -66,6 +66,14 @@ function formatModelName(raw?: string | null): string {
   return MODEL_LABELS[key] ?? raw;
 }
 
+/** Форматирует дату в формате "DEC 25" (месяц + год) */
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const month = date.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  const year = date.getFullYear().toString().slice(-2);
+  return `${month} ${year}`;
+}
+
 export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
   const [images, setImages] = useState<ImageRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -555,36 +563,39 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                     />
 
                     {/* Оптическое стекло effect */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-4 border-t border-white/30">
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-white/80">
+                    <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-3 border-t border-white/30">
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
 
-                        {/* Кнопка Промт */}
-                        <button
-                          type="button"
-                          onClick={() => setShowPrompt(true)}
-                          className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
-                        >
-                          <svg
-                            aria-hidden="true"
-                            viewBox="0 0 24 24"
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
+                        {/* Кнопка Промт + Дата */}
+                        <div className="flex flex-col items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowPrompt(true)}
+                            className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
                           >
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                          </svg>
-                          Промт
-                        </button>
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                              <line x1="16" y1="13" x2="8" y2="13" />
+                              <line x1="16" y1="17" x2="8" y2="17" />
+                            </svg>
+                            Промт
+                          </button>
+                          {selected.created_at && (
+                            <span className="text-[10px] text-white/50">
+                              {formatDate(selected.created_at)}
+                            </span>
+                          )}
+                        </div>
 
-                        {/* Модель */}
-                        <span>
-                          {formatModelName(selected.model)}
-                        </span>
-
+                        {/* Автор */}
                         {(() => {
                           const p = Array.isArray(selected.profiles)
                             ? selected.profiles[0]
@@ -594,7 +605,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                           return (
                             <Link
                               href={`/u/${encodeURIComponent(nick)}`}
-                              className="flex items-center gap-1.5 rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/30"
+                              className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
                             >
                               {avatar && (
                                 <img
@@ -608,11 +619,10 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                           );
                         })()}
 
-                        {selected.created_at && (
-                          <span className="text-white/60">
-                            {new Date(selected.created_at).toLocaleDateString("ru-RU")}
-                          </span>
-                        )}
+                        {/* Модель */}
+                        <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                          {formatModelName(selected.model)}
+                        </span>
 
                         {/* Теги inline */}
                         {selected.tags && selected.tags.length > 0 && (
