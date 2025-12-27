@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import LikeButton from "./LikeButton";
+import PromptModal from "./PromptModal";
 
 type SearchParams = {
   colors?: string;
@@ -213,17 +214,6 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
   const publicImageUrl = (path: string) => {
     const { data } = supa.storage.from("images").getPublicUrl(path);
     return data.publicUrl;
-  };
-
-  const handleCopyPrompt = async () => {
-    const text = selected?.prompt || selected?.description;
-    if (!text) return;
-    try {
-      if (typeof navigator === "undefined" || !navigator.clipboard) return;
-      await navigator.clipboard.writeText(text);
-    } catch (e) {
-      console.error("copy prompt error", e);
-    }
   };
 
   // ---------- ОТКРЫТИЕ МОДАЛКИ + ЗАГРУЗКА ВАРИАНТОВ ----------
@@ -557,62 +547,12 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                     )}
 
                     {/* Всплывающее окно с промтом */}
-                    {showPrompt && (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-10"
-                        onClick={() => setShowPrompt(false)}
-                      >
-                        <div
-                          className="max-w-[90%] max-h-[80%] overflow-auto rounded-xl bg-white/15 backdrop-blur-md p-6 border border-white/30"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex items-center justify-between gap-4 mb-4">
-                            <h3 className="text-white font-medium">Промт</h3>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={handleCopyPrompt}
-                                disabled={!selected.prompt && !selected.description}
-                                className="rounded-full bg-white/20 p-2 hover:bg-white/30 disabled:opacity-40 text-white"
-                                title="Скопировать промт"
-                              >
-                                <svg
-                                  aria-hidden="true"
-                                  viewBox="0 0 24 24"
-                                  className="h-4 w-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                >
-                                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                </svg>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setShowPrompt(false)}
-                                className="rounded-full bg-white/20 p-2 hover:bg-white/30 text-white"
-                                title="Закрыть"
-                              >
-                                <svg
-                                  aria-hidden="true"
-                                  viewBox="0 0 24 24"
-                                  className="h-4 w-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                >
-                                  <path d="M18 6L6 18M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                          <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
-                            {selected.prompt || selected.description || "Промт не указан"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    <PromptModal
+                      prompt={selected.prompt}
+                      description={selected.description}
+                      isOpen={showPrompt}
+                      onClose={() => setShowPrompt(false)}
+                    />
 
                     {/* Оптическое стекло effect */}
                     <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-4 border-t border-white/30">
