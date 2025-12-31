@@ -37,12 +37,12 @@ export async function POST(req: Request) {
       cors_origin: process.env.NEXT_PUBLIC_SITE_URL ?? '*',
       new_asset_settings: {
         playback_policy: ['public'],
+        passthrough: JSON.stringify({
+          user_id: user.id,
+          title: title ?? null,
+          model: model ?? null,
+        }),
       },
-      passthrough: JSON.stringify({
-        user_id: user.id,
-        title: title ?? null,
-        model: model ?? null,
-      }),
     });
 
     // 3) Сервисный Supabase

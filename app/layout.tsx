@@ -25,14 +25,10 @@ export default function RootLayout({
       </head>
       <body className="text-gray-900" style={{ backgroundColor: '#e5e7eb' }}>
         {/* Header / Navbar */}
-        <header className="sticky top-0 z-40 backdrop-blur" style={{ backgroundColor: '#faf8f5', borderBottom: '1px solid #8b7355' }}>
-          <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-5">
-            <Link href="/" className="block transition-opacity hover:opacity-80" style={{ width: '160px', height: '40px', overflow: 'hidden' }}>
-              <img src="/logo.png" alt="Waiva" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
-            </Link>
-
+        <header className="sticky top-0 z-40 backdrop-blur" style={{ backgroundColor: '#F8F9FB', borderBottom: '1px solid #9CA3AF' }}>
+          <div className="mx-auto flex max-w-7xl items-center justify-end gap-6 px-6 py-2">
             {/* Правый блок */}
-            <div className="ml-auto flex items-center gap-4">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-0">
                 <ProfileDropdown />
                 <NotificationBell />

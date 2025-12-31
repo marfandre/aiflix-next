@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 
@@ -32,25 +33,42 @@ export default async function Home({
   const tab: Tab = searchParams?.t === "images" ? "images" : "video";
 
   return (
-    <div className="mx-auto max-w-[2000px] px-4 py-8">
-      <div className="mb-14 flex justify-center">
-        <MediaTabs />
+    <>
+      {/* Логотип и табы — точно по центру экрана */}
+      <div className="w-full py-8">
+        {/* Логотип по центру */}
+        <div className="mb-6 flex justify-center">
+          <Link href="/" className="block transition-opacity hover:opacity-80">
+            <img
+              src="/logo.png"
+              alt="Waiva"
+              style={{ width: '180px', height: 'auto', objectFit: 'contain' }}
+            />
+          </Link>
+        </div>
+
+        {/* Переключатель режимов */}
+        <div className="mb-10 flex justify-center">
+          <MediaTabs />
+        </div>
       </div>
 
-      {tab === "video" && <VideoFeedClient userId={userId} />}
+      {/* Контент */}
+      <div className="mx-auto max-w-[2000px] px-4">
+        {tab === "video" && <VideoFeedClient userId={userId} />}
 
-      {tab === "images" && (
-        <ImageFeedClient
-          userId={userId}
-          searchParams={{
-            colors: searchParams?.colors,
-            models: searchParams?.models,
-            moods: searchParams?.moods,
-            imageTypes: searchParams?.imageTypes,
-          }}
-        />
-      )}
-    </div>
+        {tab === "images" && (
+          <ImageFeedClient
+            userId={userId}
+            searchParams={{
+              colors: searchParams?.colors,
+              models: searchParams?.models,
+              moods: searchParams?.moods,
+              imageTypes: searchParams?.imageTypes,
+            }}
+          />
+        )}
+      </div>
+    </>
   );
 }
-

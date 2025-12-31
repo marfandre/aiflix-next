@@ -192,7 +192,7 @@ export async function GET(req: NextRequest) {
 
   // ---------- IMAGES ----------
   if (includeImages) {
-    let q = supabase
+    let q: any = supabase
       .from("images_meta")
       .select(
         "id, title, colors, tags, model, path, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
@@ -258,7 +258,7 @@ export async function GET(req: NextRequest) {
 
       // Применяем ВСЕ фильтры (AND логика)
       for (const filter of slotFilters) {
-        q = q.eq(filter.column as any, filter.value);
+        q = q.eq(filter.column, filter.value);
       }
     } else if (slotColorParam && slotIndexParam) {
       // Старый формат (обратная совместимость)
@@ -267,7 +267,7 @@ export async function GET(req: NextRequest) {
       const slotColumn = getSlotColumn(idx);
 
       if (slotColumn && bucket) {
-        q = q.eq(slotColumn as any, bucket);
+        q = q.eq(slotColumn, bucket);
       }
     } else if (colorsParam && !colorMode) {
       // Старый формат без colorMode (обратная совместимость)

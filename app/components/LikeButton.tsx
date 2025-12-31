@@ -62,9 +62,9 @@ export default function LikeButton({ target, id, userId, ownerId, className }: P
     async (uid: string | null) => {
       try {
         const { data, error, count: total } = await supabase
-          .from<LikeRow>('likes')
+          .from('likes')
           .select('user_id', { count: 'exact' })
-          .eq(column as any, id);
+          .eq(column, id) as any;
 
         if (error) {
           console.error('LikeButton loadState select error:', error);
@@ -73,7 +73,7 @@ export default function LikeButton({ target, id, userId, ownerId, className }: P
 
         const rows = data ?? [];
         const likesCount = typeof total === 'number' ? total : rows.length;
-        const isLiked = !!uid && rows.some((r) => r.user_id === uid);
+        const isLiked = !!uid && rows.some((r: any) => r.user_id === uid);
 
         setCount(likesCount);
         setLiked(isLiked);
