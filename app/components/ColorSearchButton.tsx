@@ -44,10 +44,10 @@ export default function ColorSearchButton() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-9 w-9 items-center justify-center rounded-full transition hover:scale-105"
+        className="flex h-10 w-10 items-center justify-center rounded-full transition hover:scale-105"
         title="Быстрый поиск по цвету"
       >
-        <svg viewBox="0 0 24 24" className="h-5 w-5">
+        <svg viewBox="0 0 24 24" className="h-6 w-6">
           {["#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF"].map(
             (color, index) => {
               const angle = (index / 6) * Math.PI * 2;
@@ -76,9 +76,8 @@ export default function ColorSearchButton() {
                   key={index}
                   type="button"
                   onClick={() => setSelectedSlot(index)}
-                  className={`rounded-full border-2 transition ${
-                    isSelected ? "border-gray-900" : "border-transparent"
-                  }`}
+                  className={`rounded-full border-2 transition ${isSelected ? "border-gray-900" : "border-transparent"
+                    }`}
                   style={{
                     width: size,
                     height: size,

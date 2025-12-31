@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import Masonry from "react-masonry-css";
 import LikeButton from "./LikeButton";
 import PromptModal from "./PromptModal";
 
@@ -290,9 +291,19 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
 
   return (
     <>
-      {/* СЕТКА ЛЕНТЫ — Lexica-стиль */}
-      <div className="overflow-hidden rounded-2xl">
-        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {/* СЕТКА ЛЕНТЫ — Masonry стиль */}
+      <div className="overflow-hidden rounded-2xl w-full">
+        <Masonry
+          breakpointCols={{
+            default: 5,
+            1100: 5,
+            900: 4,
+            700: 3,
+            500: 2
+          }}
+          className="flex -ml-3 w-auto"
+          columnClassName="pl-3 bg-clip-padding"
+        >
           {images.map((im) => {
             const p = Array.isArray(im.profiles) ? im.profiles[0] : im.profiles;
             const nick: string = p?.username ?? "user";
@@ -306,17 +317,28 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
             return (
               <div
                 key={im.id}
-                className="group relative"
+                className="group relative mb-3"
               >
                 <button
                   type="button"
                   onClick={() => openImage(im)}
-                  className="relative block aspect-[4/5] w-full bg-gray-100"
+                  className="relative block w-full overflow-hidden bg-gray-100"
+                  style={{
+                    aspectRatio: 'auto',
+                    minHeight: '0',
+                    maxHeight: '500px'
+                  }}
                 >
                   <img
                     src={url}
                     alt={title}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    style={{
+                      objectFit: 'cover',
+                      objectPosition: 'center',
+                      minHeight: '180px',
+                      maxHeight: '500px'
+                    }}
                   />
 
                   {/* Hover overlay */}
@@ -457,7 +479,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
               </div>
             );
           })}
-        </div>
+        </Masonry>
       </div>
       {/* МОДАЛКА С КАРТИНКОЙ */}
       {selected && (
@@ -666,7 +688,8 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
     </>
   );
 }

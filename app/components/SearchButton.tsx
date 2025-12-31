@@ -376,10 +376,10 @@ export default function SearchButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center justify-center rounded-xl bg-gray-100 p-2 transition hover:bg-gray-200"
+        className="flex items-center justify-center rounded-xl bg-gray-100 p-2.5 transition hover:bg-gray-200"
         title="Поиск"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 text-gray-400">
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-gray-400">
           <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
           <line x1="15.5" y1="15.5" x2="19" y2="19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>

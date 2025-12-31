@@ -29,7 +29,7 @@ export default function MediaTabs() {
   };
 
   const baseBtn =
-    'px-4 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap';
+    'px-5 py-2 rounded-full text-base font-medium transition whitespace-nowrap';
 
   return (
     <div className="w-full flex items-center justify-center gap-3">
