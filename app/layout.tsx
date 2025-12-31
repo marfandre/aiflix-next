@@ -23,7 +23,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="text-gray-900" style={{ backgroundColor: '#d4d4d4' }}>
+      <body className="text-gray-900" style={{ backgroundColor: '#e5e7eb' }}>
         {/* Header / Navbar */}
         <header className="sticky top-0 z-40 backdrop-blur" style={{ backgroundColor: '#faf8f5', borderBottom: '1px solid #8b7355' }}>
           <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-5">
