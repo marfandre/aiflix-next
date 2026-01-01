@@ -53,11 +53,12 @@ export default function MessagesPage() {
       .in('id', Array.from(ids));
 
     const byLast = (p: Profile) =>
-      (last.findIndex(m => m.sender_id === p.id || m.recipient_id === p.id) ?? 9999);
-    profiles.sort((a, b) => byLast(a) - byLast(b));
+      ((last ?? []).findIndex(m => m.sender_id === p.id || m.recipient_id === p.id) ?? 9999);
+    const safeProfiles = profiles ?? [];
+    safeProfiles.sort((a, b) => byLast(a) - byLast(b));
 
-    setPeers(profiles);
-    if (!activePeer && profiles.length) setActivePeer(profiles[0]);
+    setPeers(safeProfiles);
+    if (!activePeer && safeProfiles.length) setActivePeer(safeProfiles[0]);
   };
 
   // ✔️ СНАЧАЛА помечаем входящие прочитанными, ПОТОМ грузим тред
@@ -77,7 +78,7 @@ export default function MessagesPage() {
       )
       .order('created_at', { ascending: true });
 
-    setMessages(msgs);
+    setMessages(msgs ?? []);
   };
 
   useEffect(() => {

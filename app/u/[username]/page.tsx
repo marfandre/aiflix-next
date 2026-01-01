@@ -168,10 +168,9 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
                 initialLast={profile.last_name ?? ''}
                 initialAvatarUrl={avatar}
                 initialBio={profile.bio ?? ''}
+                label="Редактировать"
                 className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold shadow ring-1 ring-gray-200 hover:bg-gray-50"
-              >
-                Редактировать
-              </EditProfileModal>
+              />
             </>
           ) : (
             <Link

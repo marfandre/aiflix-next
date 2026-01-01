@@ -1,10 +1,11 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-export default function NewMessagePage() {
+function NewMessageContent() {
   const supabase = createClientComponentClient();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -62,5 +63,13 @@ export default function NewMessagePage() {
       </button>
       {status && <p className="mt-3 text-sm text-gray-600">{status}</p>}
     </div>
+  );
+}
+
+export default function NewMessagePage() {
+  return (
+    <Suspense fallback={<div className="max-w-xl mx-auto mt-10 p-6 text-center">Загрузка...</div>}>
+      <NewMessageContent />
+    </Suspense>
   );
 }

@@ -30,10 +30,11 @@ export default async function ImageViewByIdPage({ params }: Props) {
   if (error || !data) return notFound();
 
   const title = (data.title ?? '').trim() || 'Картинка';
+  const profiles = data.profiles as any;
   const nick =
-    Array.isArray(data.profiles)
-      ? data.profiles[0]?.username ?? 'Гость'
-      : data.profiles?.username ?? 'Гость';
+    Array.isArray(profiles)
+      ? profiles[0]?.username ?? 'Гость'
+      : profiles?.username ?? 'Гость';
 
   const url = publicImageUrl(data.path);
   const dateStr = new Date(data.created_at).toLocaleDateString('ru-RU');

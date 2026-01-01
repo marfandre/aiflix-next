@@ -1,9 +1,9 @@
 // aiflix/app/film/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import MediaTabs from '../components/MediaTabs';
-
-export const revalidate = 60;
 
 type Row = {
   id: string;

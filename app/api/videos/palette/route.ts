@@ -1,6 +1,7 @@
 // app/api/videos/palette/route.ts
 // API для динамического извлечения цветов из видео на заданном таймкоде
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
