@@ -41,7 +41,8 @@ export default function MediaTabs() {
     'bg-transparent text-gray-500 hover:bg-gray-200/50 hover:text-gray-900';
 
   return (
-    <div className="w-full flex items-center justify-center gap-3">
+    <div className="relative w-full flex items-center justify-center">
+      {/* Табы — строго по центру */}
       <div className="inline-flex items-center gap-1 rounded-full bg-gray-100 shadow-sm p-1.5">
         <button
           type="button"
@@ -62,8 +63,8 @@ export default function MediaTabs() {
         </button>
       </div>
 
-      {/* Блок с кнопками поиска */}
-      <div className="flex items-center gap-2">
+      {/* Кнопки поиска — рядом с табами */}
+      <div className="flex items-center gap-2 ml-3">
         <SearchButton />
         <ColorSearchButton />
       </div>

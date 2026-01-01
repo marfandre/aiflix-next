@@ -34,21 +34,21 @@ export default async function Home({
 
   return (
     <>
-      {/* Логотип и табы — точно по центру экрана */}
-      <div className="w-full py-8">
+      {/* Логотип и табы */}
+      <div className="w-full pb-4">
         {/* Логотип по центру */}
-        <div className="mb-6 flex justify-center">
+        <div className="mb-1 flex justify-center" style={{ marginTop: '-8px' }}>
           <Link href="/" className="block transition-opacity hover:opacity-80">
             <img
               src="/logo.png"
               alt="Waiva"
-              style={{ width: '180px', height: 'auto', objectFit: 'contain' }}
+              style={{ width: '484px', height: 'auto', objectFit: 'contain' }}
             />
           </Link>
         </div>
 
         {/* Переключатель режимов */}
-        <div className="mb-10 flex justify-center">
+        <div className="mb-4 flex justify-center">
           <MediaTabs />
         </div>
       </div>
