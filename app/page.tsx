@@ -35,7 +35,7 @@ export default async function Home({
   return (
     <>
       {/* Логотип и табы */}
-      <div className="w-full pb-4">
+      <div className="w-full">
         {/* Логотип по центру */}
         <div className="mb-1 flex justify-center" style={{ marginTop: '-8px' }}>
           <Link href="/" className="block transition-opacity hover:opacity-80">
@@ -48,7 +48,7 @@ export default async function Home({
         </div>
 
         {/* Переключатель режимов */}
-        <div className="mb-4 flex justify-center">
+        <div className="flex justify-center" style={{ marginTop: '-40px', marginBottom: '40px' }}>
           <MediaTabs />
         </div>
       </div>
