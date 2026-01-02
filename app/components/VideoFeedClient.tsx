@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import Masonry from "react-masonry-css";
 import LikeButton from "./LikeButton";
 
 type Props = {
@@ -59,15 +60,17 @@ export default function VideoFeedClient({ userId }: Props) {
     const [selected, setSelected] = useState<VideoRow | null>(null);
     const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
 
-    // Dynamic color cycling
-    const [dynamicColors, setDynamicColors] = useState<Record<string, string[]>>({});
+    // Dynamic color cycling - накапливаем цвета в очереди
+    const [colorQueue, setColorQueue] = useState<Record<string, string[]>>({});
+    const [colorOffset, setColorOffset] = useState<Record<string, number>>({});
     const [colorTimeIndex, setColorTimeIndex] = useState<Record<string, number>>({});
     const [colorLoading, setColorLoading] = useState<Record<string, boolean>>({});
     const [cyclingVideoId, setCyclingVideoId] = useState<string | null>(null);
 
-    // Timestamps for cycling (in seconds)
-    const COLOR_TIMESTAMPS = [1, 3, 6, 10, 15, 20];
-    const CYCLE_INTERVAL_MS = 1500; // Интервал смены цветов
+    // Timestamps for cycling (in seconds) - больше точек в конце для захвата переходов
+    const COLOR_TIMESTAMPS = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9.5, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 50, 60];
+    const CYCLE_INTERVAL_MS = 600; // Быстрее для непрерывного потока
+    const MAX_QUEUE_SIZE = 25; // Максимальный размер очереди цветов
 
     const supa = createClientComponentClient();
 
@@ -166,52 +169,65 @@ export default function VideoFeedClient({ userId }: Props) {
 
     const closeModal = () => setSelected(null);
 
-    // Функция для загрузки цветов с определённого таймкода
-    const fetchColorsAtTime = useCallback(async (videoId: string, playbackId: string) => {
-        // Получаем текущий индекс времени и переходим к следующему
-        setColorTimeIndex(prev => {
-            const currentIdx = prev[videoId] ?? 0;
-            const nextIdx = (currentIdx + 1) % COLOR_TIMESTAMPS.length;
-            return { ...prev, [videoId]: nextIdx };
-        });
-
+    // Функция для ПРЕДЗАГРУЗКИ всех цветов из разных кадров видео (ПАРАЛЛЕЛЬНО)
+    const preloadAllColors = useCallback(async (videoId: string, playbackId: string, baseColors: string[]) => {
         setColorLoading(prev => ({ ...prev, [videoId]: true }));
 
-        try {
-            // Читаем актуальный индекс через функциональное обновление
-            const timeIdx = (colorTimeIndex[videoId] ?? 0) + 1;
-            const time = COLOR_TIMESTAMPS[timeIdx % COLOR_TIMESTAMPS.length];
+        // Собираем все цвета: начинаем с исходных
+        const allColors: string[] = [...baseColors];
 
-            const res = await fetch(`/api/videos/palette?playbackId=${playbackId}&time=${time}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.colors && data.colors.length > 0) {
-                    setDynamicColors(prev => ({ ...prev, [videoId]: data.colors }));
+        // Параллельно загружаем цвета со всех таймстемпов
+        const fetchPromises = COLOR_TIMESTAMPS.map(async (time) => {
+            try {
+                const res = await fetch(`/api/videos/palette?playbackId=${playbackId}&time=${time}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.colors && data.colors.length > 0) {
+                        return { time, colors: data.colors as string[] };
+                    }
                 }
+            } catch (err) {
+                console.error('Error fetching colors at', time, err);
             }
-        } catch (err) {
-            console.error('Error fetching colors:', err);
-        } finally {
-            setColorLoading(prev => ({ ...prev, [videoId]: false }));
-        }
-    }, [colorTimeIndex, COLOR_TIMESTAMPS]);
+            return { time, colors: [] as string[] };
+        });
 
-    // Автоматическая смена цветов
-    useEffect(() => {
-        if (!cyclingVideoId) return;
+        // Ждём все запросы параллельно
+        const results = await Promise.all(fetchPromises);
 
-        const video = videos.find(v => v.id === cyclingVideoId);
-        if (!video || !video.playback_id) {
-            setCyclingVideoId(null);
-            return;
-        }
+        // Сортируем по времени и добавляем цвета в правильном порядке
+        results
+            .sort((a, b) => a.time - b.time)
+            .forEach(result => {
+                if (result.colors.length > 0) {
+                    allColors.push(...result.colors);
+                }
+            });
 
-        const intervalId = setInterval(() => {
-            fetchColorsAtTime(cyclingVideoId, video.playback_id!);
-        }, CYCLE_INTERVAL_MS);
+        // Убираем дубликаты (оставляем только уникальные цвета в порядке появления)
+        const uniqueColors = allColors.filter((color, index, arr) => arr.indexOf(color) === index);
+        console.log('Loaded colors for video:', videoId, 'unique:', uniqueColors.length, 'colors:', uniqueColors);
+        setColorQueue(prev => ({ ...prev, [videoId]: uniqueColors }));
+        setColorLoading(prev => ({ ...prev, [videoId]: false }));
 
-        return () => clearInterval(intervalId);
-    }, [cyclingVideoId, videos, fetchColorsAtTime, CYCLE_INTERVAL_MS]);
+        // Теперь запускаем анимацию
+        setCyclingVideoId(videoId);
+    }, [COLOR_TIMESTAMPS]);
+
+    // Отключаем автоматическую смену цветов чтобы не прерывать CSS-анимацию
+    // (Загрузка новых цветов перезапускала бы анимацию)
+    // useEffect(() => {
+    //     if (!cyclingVideoId) return;
+    //     const video = videos.find(v => v.id === cyclingVideoId);
+    //     if (!video || !video.playback_id) {
+    //         setCyclingVideoId(null);
+    //         return;
+    //     }
+    //     const intervalId = setInterval(() => {
+    //         fetchColorsAtTime(cyclingVideoId, video.playback_id!);
+    //     }, CYCLE_INTERVAL_MS);
+    //     return () => clearInterval(intervalId);
+    // }, [cyclingVideoId, videos, fetchColorsAtTime, CYCLE_INTERVAL_MS]);
 
     if (loading) return <div className="py-6 text-gray-500">Загрузка...</div>;
     if (videos.length === 0) return <div className="py-6 text-gray-500">Нет видео</div>;
@@ -232,9 +248,19 @@ export default function VideoFeedClient({ userId }: Props) {
 
     return (
         <>
-            {/* СЕТКА ВИДЕО */}
-            <div className="overflow-hidden rounded-2xl">
-                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {/* СЕТКА ВИДЕО — Masonry стиль */}
+            <div className="overflow-hidden rounded-2xl w-full">
+                <Masonry
+                    breakpointCols={{
+                        default: 5,
+                        1100: 5,
+                        900: 4,
+                        700: 3,
+                        500: 2
+                    }}
+                    className="flex -ml-3 w-auto"
+                    columnClassName="pl-3 bg-clip-padding"
+                >
                     {videos.map((v) => {
                         const p = Array.isArray(v.profiles) ? v.profiles[0] : v.profiles;
                         const nick: string = p?.username ?? "user";
@@ -242,17 +268,24 @@ export default function VideoFeedClient({ userId }: Props) {
                         const title = (v.title ?? "").trim() || "Без названия";
 
                         return (
-                            <div key={v.id} className="group relative">
+                            <div key={v.id} className="group relative mb-3">
                                 {/* Кликабельная карточка */}
                                 <button
                                     type="button"
                                     onClick={() => setSelected(v)}
-                                    className="relative block aspect-[4/5] w-full bg-gray-100 overflow-hidden text-left"
+                                    className="relative block w-full overflow-hidden bg-gray-100"
+                                    style={{
+                                        aspectRatio: '3/4',
+                                    }}
                                 >
                                     <img
                                         src={muxPoster(v.playback_id)}
                                         alt={title}
-                                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                        className="absolute inset-0 w-full h-full transition-transform duration-300 group-hover:scale-105"
+                                        style={{
+                                            objectFit: 'cover',
+                                            objectPosition: 'center top',
+                                        }}
                                     />
 
                                     {/* Hover overlay */}
@@ -265,28 +298,21 @@ export default function VideoFeedClient({ userId }: Props) {
                                         </svg>
                                     </div>
 
-                                    {/* Круговая диаграмма цветов */}
-                                    {((v.colors && v.colors.length > 0) || (dynamicColors[v.id] && dynamicColors[v.id].length > 0)) && v.playback_id && (() => {
-                                        // Используем динамические цвета если есть, иначе — сохранённые
-                                        const colors = (dynamicColors[v.id] ?? v.colors ?? []).slice(0, 5);
-                                        const segmentAngle = 360 / colors.length;
-                                        const isExpanded = expandedChartId === v.id;
-                                        const isLoadingColors = colorLoading[v.id];
-                                        const size = isExpanded ? 64 : 20;
-                                        const radius = size / 2;
-                                        const cx = radius;
-                                        const cy = radius;
+                                    {/* Капсула с цветами — все цвета видео */}
+                                    {v.colors && v.colors.length > 0 && v.playback_id && (() => {
+                                        // Используем загруженные цвета если есть, иначе исходные
+                                        const dynamicColors = colorQueue[v.id];
+                                        const colors = (dynamicColors && dynamicColors.length > 0) ? dynamicColors : v.colors;
+                                        const isLoading = colorLoading[v.id];
 
-                                        const createSegmentPath = (startAngle: number, endAngle: number) => {
-                                            const startRad = (startAngle - 90) * Math.PI / 180;
-                                            const endRad = (endAngle - 90) * Math.PI / 180;
-                                            const x1 = cx + radius * Math.cos(startRad);
-                                            const y1 = cy + radius * Math.sin(startRad);
-                                            const x2 = cx + radius * Math.cos(endRad);
-                                            const y2 = cy + radius * Math.sin(endRad);
-                                            const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-                                            return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-                                        };
+                                        const isExpanded = expandedChartId === v.id;
+                                        const isCycling = cyclingVideoId === v.id;
+
+                                        // Размеры капсулы
+                                        const height = isExpanded ? 24 : 14;
+                                        const stripeWidth = isExpanded ? 20 : 10;
+                                        const totalWidth = 5 * stripeWidth;
+                                        const borderRadius = height / 2;
 
                                         return (
                                             <button
@@ -294,45 +320,71 @@ export default function VideoFeedClient({ userId }: Props) {
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     if (isExpanded) {
-                                                        // Если уже развёрнут — сворачиваем и останавливаем цикл
+                                                        // Сворачиваем и останавливаем
                                                         setExpandedChartId(null);
                                                         setCyclingVideoId(null);
+                                                        setColorQueue(prev => ({ ...prev, [v.id]: [] }));
                                                     } else {
-                                                        // Разворачиваем и запускаем автоматическую смену цветов
+                                                        // Разворачиваем и начинаем загрузку всех цветов
                                                         setExpandedChartId(v.id);
-                                                        setCyclingVideoId(v.id);
-                                                        // Сразу загружаем первый набор цветов
-                                                        fetchColorsAtTime(v.id, v.playback_id!);
+                                                        preloadAllColors(v.id, v.playback_id!, v.colors ?? []);
                                                     }
                                                 }}
-                                                className={`absolute bottom-2 right-2 rounded-full z-10 transition-all duration-300 cursor-pointer ${isLoadingColors ? 'animate-pulse' : ''}`}
+                                                className={`absolute bottom-2 right-2 z-10 transition-all duration-300 cursor-pointer overflow-hidden ${isCycling ? 'ring-2 ring-white/50' : ''}`}
                                                 style={{
-                                                    width: size,
-                                                    height: size,
+                                                    width: totalWidth,
+                                                    height: height,
+                                                    borderRadius: borderRadius,
                                                     boxShadow: isExpanded
                                                         ? '0 4px 12px rgba(0,0,0,0.4)'
-                                                        : '0 1px 3px rgba(0,0,0,0.3)'
+                                                        : '0 1px 4px rgba(0,0,0,0.3)',
+                                                    border: '1px solid rgba(255,255,255,0.4)',
                                                 }}
-                                                title={isExpanded ? "Клик = остановить" : "Клик = показать цвета"}
+                                                title={isExpanded ? "Клик = остановить" : "Клик = загрузить все цвета"}
                                             >
-                                                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
-                                                    {colors.map((color, i) => (
-                                                        <path
-                                                            key={i}
-                                                            d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
-                                                            fill={color}
-                                                            className="transition-all duration-500"
-                                                        />
-                                                    ))}
-                                                    <circle
-                                                        cx={radius}
-                                                        cy={radius}
-                                                        r={radius - 0.5}
-                                                        fill="none"
-                                                        stroke="rgba(255,255,255,0.5)"
-                                                        strokeWidth={1}
-                                                    />
-                                                </svg>
+                                                {/* Индикатор загрузки */}
+                                                {isLoading && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
+                                                        <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                                    </div>
+                                                )}
+
+                                                {/* Непрерывная бегущая строка со всеми цветами */}
+                                                {(() => {
+                                                    // Общая ширина ленты = все цвета * 2 (для бесшовного цикла)
+                                                    const totalColorsWidth = colors.length * stripeWidth * 2;
+                                                    // Сдвиг на половину (первые N цветов) для бесшовности
+                                                    const shiftDistance = colors.length * stripeWidth;
+                                                    // Длительность: 0.3с на цвет — медленнее чтобы видеть все
+                                                    const animationDuration = colors.length * 0.3;
+
+                                                    return (
+                                                        <div
+                                                            className="flex h-full"
+                                                            style={{
+                                                                width: totalColorsWidth,
+                                                                animation: isCycling
+                                                                    ? `colorScroll ${animationDuration}s linear infinite`
+                                                                    : 'none',
+                                                                // Используем CSS custom property для точного сдвига
+                                                                ['--shift-distance' as string]: `-${shiftDistance}px`,
+                                                            }}
+                                                        >
+                                                            {/* Показываем ВСЕ цвета + дубликат для бесшовности */}
+                                                            {[...colors, ...colors].map((color: string, i: number) => (
+                                                                <div
+                                                                    key={`${i}-${colors.length}`}
+                                                                    style={{
+                                                                        backgroundColor: color,
+                                                                        width: stripeWidth,
+                                                                        height: '100%',
+                                                                        flexShrink: 0,
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </button>
                                         );
                                     })()}
@@ -372,7 +424,7 @@ export default function VideoFeedClient({ userId }: Props) {
                             </div>
                         );
                     })}
-                </div>
+                </Masonry>
             </div>
 
             {/* МОДАЛКА С ВИДЕО */}

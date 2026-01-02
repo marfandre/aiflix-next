@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 
     // 4) Создаём запись в films
     const { error: insError } = await service.from('films').insert({
-      user_id: user.id,
+      author_id: user.id,  // ИСПРАВЛЕНО: было user_id, должно быть author_id
       title: title ?? null,
       description: description ?? null,
       prompt: prompt ?? null,

@@ -9,3 +9,74 @@
 body {
     @apply bg-white text-gray-900;
 }
+
+/* Плавное жидкое перетекание цветов */
+@keyframes liquidFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    25% {
+        background-position: 50% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    75% {
+        background-position: 50% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Пульсирующее свечение */
+@keyframes pulseGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 16px rgba(255, 255, 255, 0.7);
+    }
+}
+
+/* Жидкий поток — бесшовное движение влево */
+@keyframes liquidStream {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+/* Непрерывный поток - бесшовное бесконечное движение */
+@keyframes continuousFlow {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        /* Сдвиг влево на 50% = первые 5 цветов уходят, вторые 5 (дубликаты) заменяют их */
+        transform: translateX(-50%);
+    }
+}
+
+/* Точный скролл цветов с использованием CSS custom property */
+@keyframes colorScroll {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        /* Точный сдвиг в пикселях через custom property */
+        transform: translateX(var(--shift-distance, -50%));
+    }
+}

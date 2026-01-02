@@ -43,7 +43,7 @@ async function extractPalette(buffer: Buffer, colorCount: number = 5): Promise<s
 
     const pixels: RGB[] = [];
     const totalPixels = info.width * info.height;
-    const quality = 3; // Faster sampling
+    const quality = 1; // Каждый пиксель для лучшего захвата редких цветов
 
     for (let i = 0; i < totalPixels; i += quality) {
         const idx = i * info.channels;
@@ -53,7 +53,7 @@ async function extractPalette(buffer: Buffer, colorCount: number = 5): Promise<s
     if (pixels.length === 0) return [];
 
     const quantize = await getQuantize();
-    const result = quantize(pixels, colorCount * 2);
+    const result = quantize(pixels, colorCount * 3); // Больше цветов для разнообразия
 
     if (!result) return [];
 
