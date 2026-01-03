@@ -22,6 +22,7 @@ type VideoRow = {
     genres?: string[] | null;
     mood?: string | null;
     colors?: string[] | null;
+    colors_preview?: string[] | null;  // 15 цветов для hover анимации
     profiles:
     | { username: string | null; avatar_url: string | null }[]
     | { username: string | null; avatar_url: string | null }
@@ -59,6 +60,8 @@ export default function VideoFeedClient({ userId }: Props) {
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<VideoRow | null>(null);
     const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
+    const [hoveredVideoId, setHoveredVideoId] = useState<string | null>(null);  // Для hover-to-play
+    const [mp4FailedIds, setMp4FailedIds] = useState<Set<string>>(new Set());  // Видео без MP4 support
 
     // Dynamic color cycling - накапливаем цвета в очереди
     const [colorQueue, setColorQueue] = useState<Record<string, string[]>>({});
@@ -67,8 +70,8 @@ export default function VideoFeedClient({ userId }: Props) {
     const [colorLoading, setColorLoading] = useState<Record<string, boolean>>({});
     const [cyclingVideoId, setCyclingVideoId] = useState<string | null>(null);
 
-    // Timestamps for cycling (in seconds) - больше точек в конце для захвата переходов
-    const COLOR_TIMESTAMPS = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9.5, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 50, 60];
+    // Timestamps for cycling (in seconds) - только первые 5 секунд чтобы совпадать с GIF
+    const COLOR_TIMESTAMPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
     const CYCLE_INTERVAL_MS = 600; // Быстрее для непрерывного потока
     const MAX_QUEUE_SIZE = 25; // Максимальный размер очереди цветов
 
@@ -82,7 +85,7 @@ export default function VideoFeedClient({ userId }: Props) {
             // Получаем видео
             const { data: filmsData, error } = await supa
                 .from("films")
-                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors")
+                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview")
                 .order("created_at", { ascending: false })
                 .limit(60);
 
@@ -268,7 +271,19 @@ export default function VideoFeedClient({ userId }: Props) {
                         const title = (v.title ?? "").trim() || "Без названия";
 
                         return (
-                            <div key={v.id} className="group relative mb-3">
+                            <div
+                                key={v.id}
+                                className="group relative mb-3"
+                                onMouseEnter={() => {
+                                    setHoveredVideoId(v.id);
+                                    // Сразу запускаем анимацию с базовыми цветами (без preload для стабильной скорости)
+                                    setCyclingVideoId(v.id);
+                                }}
+                                onMouseLeave={() => {
+                                    setHoveredVideoId(null);
+                                    setCyclingVideoId(null);
+                                }}
+                            >
                                 {/* Кликабельная карточка */}
                                 <button
                                     type="button"
@@ -278,6 +293,7 @@ export default function VideoFeedClient({ userId }: Props) {
                                         aspectRatio: '3/4',
                                     }}
                                 >
+                                    {/* Статичный постер (всегда виден как fallback) */}
                                     <img
                                         src={muxPoster(v.playback_id)}
                                         alt={title}
@@ -287,6 +303,19 @@ export default function VideoFeedClient({ userId }: Props) {
                                             objectPosition: 'center top',
                                         }}
                                     />
+
+                                    {/* Анимированное превью при hover */}
+                                    {v.playback_id && hoveredVideoId === v.id && (
+                                        <img
+                                            src={`https://image.mux.com/${v.playback_id}/animated.gif?fps=15&width=320`}
+                                            alt="Preview"
+                                            className="absolute inset-0 w-full h-full z-10"
+                                            style={{
+                                                objectFit: 'cover',
+                                                objectPosition: 'center top',
+                                            }}
+                                        />
+                                    )}
 
                                     {/* Hover overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -298,65 +327,44 @@ export default function VideoFeedClient({ userId }: Props) {
                                         </svg>
                                     </div>
 
-                                    {/* Капсула с цветами — все цвета видео */}
-                                    {v.colors && v.colors.length > 0 && v.playback_id && (() => {
-                                        // Используем загруженные цвета если есть, иначе исходные
-                                        const dynamicColors = colorQueue[v.id];
-                                        const colors = (dynamicColors && dynamicColors.length > 0) ? dynamicColors : v.colors;
-                                        const isLoading = colorLoading[v.id];
+                                    {/* Капсула с цветами — 15 цветов для hover анимации */}
+                                    {(v.colors_preview || v.colors) && (v.colors_preview || v.colors)!.length > 0 && v.playback_id && (() => {
+                                        // Используем colors_preview (15 цветов) или fallback на colors (5 базовых)
+                                        const colors = v.colors_preview && v.colors_preview.length > 0
+                                            ? v.colors_preview
+                                            : (v.colors ?? []);
 
-                                        const isExpanded = expandedChartId === v.id;
+                                        // Капсула расширяется при hover на карточку
+                                        const isHovered = hoveredVideoId === v.id;
                                         const isCycling = cyclingVideoId === v.id;
 
-                                        // Размеры капсулы
-                                        const height = isExpanded ? 24 : 14;
-                                        const stripeWidth = isExpanded ? 20 : 10;
+                                        // Размеры капсулы — увеличиваются при hover
+                                        const height = isHovered ? 20 : 14;
+                                        const stripeWidth = isHovered ? 16 : 10;
                                         const totalWidth = 5 * stripeWidth;
                                         const borderRadius = height / 2;
 
                                         return (
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (isExpanded) {
-                                                        // Сворачиваем и останавливаем
-                                                        setExpandedChartId(null);
-                                                        setCyclingVideoId(null);
-                                                        setColorQueue(prev => ({ ...prev, [v.id]: [] }));
-                                                    } else {
-                                                        // Разворачиваем и начинаем загрузку всех цветов
-                                                        setExpandedChartId(v.id);
-                                                        preloadAllColors(v.id, v.playback_id!, v.colors ?? []);
-                                                    }
-                                                }}
-                                                className={`absolute bottom-2 right-2 z-10 transition-all duration-300 cursor-pointer overflow-hidden ${isCycling ? 'ring-2 ring-white/50' : ''}`}
+                                            <div
+                                                className={`absolute bottom-2 right-2 z-20 transition-all duration-300 overflow-hidden ${isCycling ? 'ring-2 ring-white/50' : ''}`}
                                                 style={{
                                                     width: totalWidth,
                                                     height: height,
                                                     borderRadius: borderRadius,
-                                                    boxShadow: isExpanded
+                                                    boxShadow: isHovered
                                                         ? '0 4px 12px rgba(0,0,0,0.4)'
                                                         : '0 1px 4px rgba(0,0,0,0.3)',
                                                     border: '1px solid rgba(255,255,255,0.4)',
                                                 }}
-                                                title={isExpanded ? "Клик = остановить" : "Клик = загрузить все цвета"}
                                             >
-                                                {/* Индикатор загрузки */}
-                                                {isLoading && (
-                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
-                                                        <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                                                    </div>
-                                                )}
-
-                                                {/* Непрерывная бегущая строка со всеми цветами */}
+                                                {/* Непрерывная бегущая строка — синхронизирована с 5-секундным GIF */}
                                                 {(() => {
                                                     // Общая ширина ленты = все цвета * 2 (для бесшовного цикла)
                                                     const totalColorsWidth = colors.length * stripeWidth * 2;
                                                     // Сдвиг на половину (первые N цветов) для бесшовности
                                                     const shiftDistance = colors.length * stripeWidth;
-                                                    // Длительность: 0.3с на цвет — медленнее чтобы видеть все
-                                                    const animationDuration = colors.length * 0.3;
+                                                    // Длительность = 5 секунд (как GIF), цикл начинается сразу
+                                                    const animationDuration = 5;
 
                                                     return (
                                                         <div
@@ -385,7 +393,7 @@ export default function VideoFeedClient({ userId }: Props) {
                                                         </div>
                                                     );
                                                 })()}
-                                            </button>
+                                            </div>
                                         );
                                     })()}
                                 </button>

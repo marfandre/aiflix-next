@@ -97,69 +97,106 @@ export async function POST(req: NextRequest) {
 
       if (error) throw error;
 
-      // Автоматическое извлечение цветов из thumbnail
+      // Извлечение цветов для hover preview: 5 кадров × 3 цвета = 15 цветов
       if (playback_id && updatedFilm?.id) {
         try {
-          const thumbnailUrl = `https://image.mux.com/${playback_id}/thumbnail.jpg?time=1`;
-          const response = await fetch(thumbnailUrl);
+          const sharp = (await import('sharp')).default;
+          const quantizeMod = await import('quantize');
+          const quantize = (quantizeMod.default || quantizeMod) as any;
 
-          if (response.ok) {
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
+          type RGB = [number, number, number];
 
-            // Извлекаем цвета с помощью sharp и quantize
-            const sharp = (await import('sharp')).default;
+          // Функция: RGB -> HEX
+          const rgbToHex = ([r, g, b]: RGB): string => {
+            const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+            const rr = clamp(r).toString(16).padStart(2, '0');
+            const gg = clamp(g).toString(16).padStart(2, '0');
+            const bb = clamp(b).toString(16).padStart(2, '0');
+            return `#${rr}${gg}${bb}`.toUpperCase();
+          };
 
-            const image = sharp(buffer).resize(300, 300, {
-              fit: 'inside',
-              withoutEnlargement: true,
-            });
+          // Функция: вычисление насыщенности (0-100)
+          const getSaturation = ([r, g, b]: RGB): number => {
+            const max = Math.max(r, g, b) / 255;
+            const min = Math.min(r, g, b) / 255;
+            const l = (max + min) / 2;
+            if (max === min) return 0;
+            const d = max - min;
+            return (l > 0.5 ? d / (2 - max - min) : d / (max + min)) * 100;
+          };
 
-            const { data: pixelData, info } = await image
+          // Функция: извлечь 3 цвета из кадра (bg, secondary, accent)
+          const extractColorsFromFrame = async (time: number): Promise<string[]> => {
+            const url = `https://image.mux.com/${playback_id}/thumbnail.jpg?time=${time}`;
+            const response = await fetch(url);
+            if (!response.ok) return [];
+
+            const buffer = Buffer.from(await response.arrayBuffer());
+            const { data: pixelData, info } = await sharp(buffer)
+              .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
               .removeAlpha()
               .raw()
               .toBuffer({ resolveWithObject: true });
 
-            // Собираем пиксели для quantize
-            type RGB = [number, number, number];
             const pixels: RGB[] = [];
             const totalPixels = info.width * info.height;
-            const quality = 5;
-
-            for (let i = 0; i < totalPixels; i += quality) {
+            for (let i = 0; i < totalPixels; i += 5) {
               const idx = i * info.channels;
               pixels.push([pixelData[idx], pixelData[idx + 1], pixelData[idx + 2]]);
             }
 
-            if (pixels.length > 0) {
-              const quantizeMod = await import('quantize');
-              const quantize = (quantizeMod.default || quantizeMod) as any;
-              const result = quantize(pixels, 10);
+            if (pixels.length === 0) return [];
 
-              if (result) {
-                const palette = result.palette() as RGB[];
+            const result = quantize(pixels, 8);
+            if (!result) return [];
 
-                // Конвертируем в HEX
-                const colors = palette.slice(0, 5).map(([r, g, b]: RGB) => {
-                  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-                  const rr = clamp(r).toString(16).padStart(2, '0');
-                  const gg = clamp(g).toString(16).padStart(2, '0');
-                  const bb = clamp(b).toString(16).padStart(2, '0');
-                  return `#${rr}${gg}${bb}`.toUpperCase();
-                });
+            const palette = result.palette() as RGB[];
+            if (palette.length < 2) return palette.map(rgbToHex);
 
-                // Сохраняем цвета
-                await supa
-                  .from('films')
-                  .update({ colors })
-                  .eq('id', updatedFilm.id);
+            // Background = самый частый (первый)
+            const bg = palette[0];
+            // Secondary = второй по частоте
+            const secondary = palette[1];
+            // Accent = самый насыщенный из топ-5
+            const accent = palette.slice(0, 5).sort((a, b) => getSaturation(b) - getSaturation(a))[0];
 
-                console.log(`Colors extracted for film ${updatedFilm.id}:`, colors);
+            return [rgbToHex(bg), rgbToHex(secondary), rgbToHex(accent)];
+          };
+
+          // Извлекаем цвета из 5 кадров (1, 2, 3, 4, 5 секунды) параллельно
+          const timestamps = [1, 2, 3, 4, 5];
+          console.log(`Starting color extraction for playback_id: ${playback_id}`);
+
+          const frameResults = await Promise.all(
+            timestamps.map(async (time) => {
+              try {
+                const frameColors = await extractColorsFromFrame(time);
+                console.log(`Frame ${time}s: extracted ${frameColors.length} colors:`, frameColors);
+                return frameColors;
+              } catch (err) {
+                console.error(`Frame ${time}s: extraction failed:`, err);
+                return [];
               }
-            }
-          }
+            })
+          );
+
+          const allColors = frameResults.flat();
+          console.log(`Total colors extracted: ${allColors.length}`, allColors);
+
+          // Базовые 5 цветов (для обратной совместимости) — первый кадр
+          const baseColors = allColors.slice(0, 5);
+
+          // Сохраняем оба массива
+          await supa
+            .from('films')
+            .update({
+              colors: baseColors.length > 0 ? baseColors : null, // обратная совместимость
+              colors_preview: allColors.length > 0 ? allColors : null // новые 15 цветов
+            })
+            .eq('id', updatedFilm.id);
+
+          console.log(`Colors extracted for film ${updatedFilm.id}: base=${baseColors.length}, preview=${allColors.length}`);
         } catch (colorErr) {
-          // Не прерываем основной flow если цвета не получилось извлечь
           console.error('Color extraction error:', colorErr);
         }
       }

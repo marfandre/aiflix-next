@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       cors_origin: process.env.NEXT_PUBLIC_SITE_URL ?? '*',
       new_asset_settings: {
         playback_policy: ['public'],
+        // mp4_support deprecated — используем animated GIF для hover preview
         passthrough: JSON.stringify({
           user_id: user.id,
           title: title ?? null,
