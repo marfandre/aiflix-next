@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Masonry from "react-masonry-css";
@@ -69,6 +69,22 @@ export default function VideoFeedClient({ userId }: Props) {
     const [colorTimeIndex, setColorTimeIndex] = useState<Record<string, number>>({});
     const [colorLoading, setColorLoading] = useState<Record<string, boolean>>({});
     const [cyclingVideoId, setCyclingVideoId] = useState<string | null>(null);
+    const [hoverKeys, setHoverKeys] = useState<Record<string, number>>({});  // Ключи для рестарта анимации по video id
+
+    // Refs для элементов анимации — для принудительного рестарта
+    const animationRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+    // Функция рестарта CSS анимации через DOM
+    const restartAnimation = useCallback((videoId: string) => {
+        const el = animationRefs.current[videoId];
+        if (el) {
+            // Сохраняем текущую анимацию
+            const currentAnimation = el.style.animation || getComputedStyle(el).animation;
+            el.style.animation = 'none';
+            el.offsetHeight; // Force reflow
+            el.style.animation = currentAnimation;
+        }
+    }, []);
 
     // Timestamps for cycling (in seconds) - только первые 5 секунд чтобы совпадать с GIF
     const COLOR_TIMESTAMPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
@@ -276,8 +292,10 @@ export default function VideoFeedClient({ userId }: Props) {
                                 className="group relative mb-3"
                                 onMouseEnter={() => {
                                     setHoveredVideoId(v.id);
-                                    // Сразу запускаем анимацию с базовыми цветами (без preload для стабильной скорости)
+                                    // Сразу запускаем анимацию с базовыми цветами
                                     setCyclingVideoId(v.id);
+                                    // Новый ключ для рестарта GIF и анимации капсулы
+                                    setHoverKeys(prev => ({ ...prev, [v.id]: Date.now() }));
                                 }}
                                 onMouseLeave={() => {
                                     setHoveredVideoId(null);
@@ -307,7 +325,7 @@ export default function VideoFeedClient({ userId }: Props) {
                                     {/* Анимированное превью при hover */}
                                     {v.playback_id && hoveredVideoId === v.id && (
                                         <img
-                                            src={`https://image.mux.com/${v.playback_id}/animated.gif?fps=15&width=320`}
+                                            src={`https://image.mux.com/${v.playback_id}/animated.gif?fps=15&width=320&t=${hoverKeys[v.id] || 0}`}
                                             alt="Preview"
                                             className="absolute inset-0 w-full h-full z-10"
                                             style={{
@@ -339,13 +357,15 @@ export default function VideoFeedClient({ userId }: Props) {
                                         const isCycling = cyclingVideoId === v.id;
 
                                         // Размеры капсулы — увеличиваются при hover
-                                        const height = isHovered ? 20 : 14;
-                                        const stripeWidth = isHovered ? 16 : 10;
-                                        const totalWidth = 5 * stripeWidth;
+                                        const height = isHovered ? 22 : 16;
+                                        const stripeWidth = isHovered ? 18 : 14;
                                         const borderRadius = height / 2;
+                                        // Ширина = ровно 3 цвета (скруглённые углы просто обрежут края)
+                                        const totalWidth = 3 * stripeWidth;
 
                                         return (
                                             <div
+                                                key={`capsule-${v.id}-${hoverKeys[v.id] || 0}`}
                                                 className={`absolute bottom-2 right-2 z-20 transition-all duration-300 overflow-hidden ${isCycling ? 'ring-2 ring-white/50' : ''}`}
                                                 style={{
                                                     width: totalWidth,
@@ -357,40 +377,31 @@ export default function VideoFeedClient({ userId }: Props) {
                                                     border: '1px solid rgba(255,255,255,0.4)',
                                                 }}
                                             >
-                                                {/* Непрерывная бегущая строка — синхронизирована с 5-секундным GIF */}
+                                                {/* Бегущая строка — синхронизирована с 5-секундным GIF */}
                                                 {(() => {
-                                                    // Общая ширина ленты = все цвета * 2 (для бесшовного цикла)
-                                                    const totalColorsWidth = colors.length * stripeWidth * 2;
-                                                    // Сдвиг на половину (первые N цветов) для бесшовности
-                                                    const shiftDistance = colors.length * stripeWidth;
-                                                    // Длительность = 5 секунд (как GIF), цикл начинается сразу
+                                                    // Ширина всех цветов
+                                                    const totalColorsWidth = colors.length * stripeWidth;
+                                                    // Сдвиг = все цвета минус видимое окно (5 полосок)
+                                                    const visibleSlots = 5;
+                                                    const shiftDistance = Math.max(0, (colors.length - visibleSlots) * stripeWidth);
+                                                    // Длительность = 5 секунд (как GIF)
                                                     const animationDuration = 5;
 
                                                     return (
                                                         <div
-                                                            className="flex h-full"
+                                                            ref={(el) => { animationRefs.current[v.id] = el; }}
+                                                            className="h-full"
                                                             style={{
-                                                                width: totalColorsWidth,
+                                                                width: totalColorsWidth * 2,
                                                                 animation: isCycling
                                                                     ? `colorScroll ${animationDuration}s linear infinite`
                                                                     : 'none',
-                                                                // Используем CSS custom property для точного сдвига
-                                                                ['--shift-distance' as string]: `-${shiftDistance}px`,
+                                                                // Сдвиг на половину (все цвета) для бесшовного цикла
+                                                                ['--shift-distance' as string]: `-${totalColorsWidth}px`,
+                                                                // Градиент с плавными переходами между цветами
+                                                                background: `linear-gradient(to right, ${[...colors, ...colors].join(', ')})`,
                                                             }}
-                                                        >
-                                                            {/* Показываем ВСЕ цвета + дубликат для бесшовности */}
-                                                            {[...colors, ...colors].map((color: string, i: number) => (
-                                                                <div
-                                                                    key={`${i}-${colors.length}`}
-                                                                    style={{
-                                                                        backgroundColor: color,
-                                                                        width: stripeWidth,
-                                                                        height: '100%',
-                                                                        flexShrink: 0,
-                                                                    }}
-                                                                />
-                                                            ))}
-                                                        </div>
+                                                        />
                                                     );
                                                 })()}
                                             </div>

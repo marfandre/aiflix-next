@@ -151,19 +151,17 @@ export async function POST(req: NextRequest) {
             if (!result) return [];
 
             const palette = result.palette() as RGB[];
-            if (palette.length < 2) return palette.map(rgbToHex);
+            if (palette.length < 3) return palette.map(rgbToHex);
 
-            // Background = самый частый (первый)
-            const bg = palette[0];
-            // Secondary = второй по частоте
-            const secondary = palette[1];
-            // Accent = самый насыщенный из топ-5
-            const accent = palette.slice(0, 5).sort((a, b) => getSaturation(b) - getSaturation(a))[0];
-
-            return [rgbToHex(bg), rgbToHex(secondary), rgbToHex(accent)];
+            // Просто берём топ-3 по частоте (без интерпретации)
+            return [
+              rgbToHex(palette[0]),  // Самый частый
+              rgbToHex(palette[1]),  // Второй
+              rgbToHex(palette[2]),  // Третий
+            ];
           };
 
-          // Извлекаем цвета из 5 кадров (1, 2, 3, 4, 5 секунды) параллельно
+          // Извлекаем цвета из 5 кадров (каждую секунду первых 5 секунд) параллельно
           const timestamps = [1, 2, 3, 4, 5];
           console.log(`Starting color extraction for playback_id: ${playback_id}`);
 
