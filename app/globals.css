@@ -80,3 +80,40 @@ body {
         transform: translateX(var(--shift-distance, -50%));
     }
 }
+
+/* Video controls скрыты по умолчанию, появляются при hover */
+.video-hover-controls::-webkit-media-controls {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-hover-controls:hover::-webkit-media-controls {
+    opacity: 0.5;
+    /* Полупрозрачные при показе */
+}
+
+/* Скрываем три точки (overflow menu) */
+video::-webkit-media-controls-overflow-button {
+    display: none !important;
+}
+
+/* Скрываем fullscreen кнопку (квадратик) */
+video::-webkit-media-controls-fullscreen-button {
+    display: none !important;
+}
+
+/* Прозрачный фон панели controls */
+video::-webkit-media-controls-panel {
+    background: transparent !important;
+}
+
+/* Прозрачный фон enclosure */
+video::-webkit-media-controls-enclosure {
+    background: transparent !important;
+}
+
+/* Тоньше timeline (полоса прогресса) */
+video::-webkit-media-controls-timeline {
+    height: 3px !important;
+    border-radius: 2px;
+}

@@ -77,6 +77,9 @@ export default function VideoFeedClient({ userId }: Props) {
     // Refs для элементов анимации — для принудительного рестарта
     const animationRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+    // Ref для видео в модалке — для умного autoplay со звуком
+    const modalVideoRef = useRef<HTMLVideoElement | null>(null);
+
     // Функция рестарта CSS анимации через DOM
     const restartAnimation = useCallback((videoId: string) => {
         const el = animationRefs.current[videoId];
@@ -193,6 +196,33 @@ export default function VideoFeedClient({ userId }: Props) {
         setSelected(null);
         setShowPrompt(false);
     };
+
+    // Умный autoplay — сначала пробуем со звуком, если блокируется — тогда muted
+    useEffect(() => {
+        const video = modalVideoRef.current;
+        if (!video || !selected) return;
+
+        const tryPlay = async () => {
+            try {
+                // Сначала пробуем воспроизвести со звуком
+                video.muted = false;
+                await video.play();
+            } catch (err) {
+                // Браузер заблокировал — пробуем muted
+                console.log('Autoplay blocked, trying muted:', err);
+                video.muted = true;
+                try {
+                    await video.play();
+                } catch (e) {
+                    console.error('Autoplay failed even muted:', e);
+                }
+            }
+        };
+
+        // Небольшая задержка чтобы video элемент успел примонтироваться
+        const timer = setTimeout(tryPlay, 100);
+        return () => clearTimeout(timer);
+    }, [selected]);
 
     // Функция для ПРЕДЗАГРУЗКИ всех цветов из разных кадров видео (ПАРАЛЛЕЛЬНО)
     const preloadAllColors = useCallback(async (videoId: string, playbackId: string, baseColors: string[]) => {
@@ -483,15 +513,18 @@ export default function VideoFeedClient({ userId }: Props) {
                             className="relative flex max-h-[90vh] w-auto flex-col overflow-hidden rounded-lg shadow-2xl bg-black"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Видеоплеер с overlay */}
-                            <div className="relative flex items-center justify-center bg-black group">
+                            {/* Видеоплеер — без overlay, controls внизу видео */}
+                            <div className="relative flex items-center justify-center bg-black">
                                 {selected.playback_id ? (
                                     <video
+                                        ref={modalVideoRef}
                                         controls
-                                        autoPlay
+                                        loop
                                         playsInline
+                                        disablePictureInPicture
+                                        controlsList="nodownload noremoteplayback noplaybackrate"
                                         poster={muxPoster(selected.playback_id)}
-                                        className="max-h-[90vh] w-auto max-w-full object-contain"
+                                        className="video-hover-controls max-h-[80vh] w-auto max-w-full object-contain"
                                     >
                                         {selected.playback_id && (
                                             <>
@@ -523,69 +556,69 @@ export default function VideoFeedClient({ userId }: Props) {
                                     isOpen={showPrompt}
                                     onClose={() => setShowPrompt(false)}
                                 />
+                            </div>
 
-                                {/* Оптическое стекло effect (внизу) */}
-                                <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-3 border-t border-white/30">
-                                    <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
+                            {/* Info-bar — отдельный блок ПОД видео (после controls) */}
+                            <div className="bg-black/90 backdrop-blur-sm p-3 border-t border-white/20">
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
 
-                                        {/* Кнопка Промт (копировать) + Дата */}
-                                        <div className="flex flex-col items-center gap-0.5">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPrompt(true)}
-                                                className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
-                                            >
-                                                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                                    <polyline points="14 2 14 8 20 8" />
-                                                    <line x1="16" y1="13" x2="8" y2="13" />
-                                                    <line x1="16" y1="17" x2="8" y2="17" />
-                                                </svg>
-                                                Промт
-                                            </button>
-                                            {selected.created_at && (
-                                                <span className="text-[10px] text-white/50">
-                                                    {new Date(selected.created_at).toLocaleDateString("en-US", { month: 'short', year: '2-digit' }).toUpperCase()}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Автор */}
-                                        <Link
-                                            href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
-                                            className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                                    {/* Кнопка Промт (копировать) + Дата */}
+                                    <div className="flex flex-col items-center gap-0.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPrompt(true)}
+                                            className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
                                         >
-                                            {selectedProfile?.avatar_url && (
-                                                <img
-                                                    src={selectedProfile.avatar_url}
-                                                    alt={selectedProfile.username ?? "user"}
-                                                    className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
-                                                />
-                                            )}
-                                            <span className="text-white">{selectedProfile?.username ?? "user"}</span>
-                                        </Link>
-
-                                        {/* Модель */}
-                                        <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
-                                            {formatModelName(selected.model)}
-                                        </span>
-
-                                        {/* Жанры/Муд inline */}
-                                        {((selected.genres && selected.genres.length > 0) || selected.mood) && (
-                                            <>
-                                                {selected.genres?.slice(0, 2).map((g) => (
-                                                    <span key={g} className="rounded-full bg-white/20 px-2 py-0.5">
-                                                        {g}
-                                                    </span>
-                                                ))}
-                                                {selected.mood && (
-                                                    <span className="rounded-full bg-white/20 px-2 py-0.5">
-                                                        {selected.mood}
-                                                    </span>
-                                                )}
-                                            </>
+                                            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                                <line x1="16" y1="13" x2="8" y2="13" />
+                                                <line x1="16" y1="17" x2="8" y2="17" />
+                                            </svg>
+                                            Промт
+                                        </button>
+                                        {selected.created_at && (
+                                            <span className="text-[10px] text-white/50">
+                                                {new Date(selected.created_at).toLocaleDateString("en-US", { month: 'short', year: '2-digit' }).toUpperCase()}
+                                            </span>
                                         )}
                                     </div>
+
+                                    {/* Автор */}
+                                    <Link
+                                        href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
+                                        className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                                    >
+                                        {selectedProfile?.avatar_url && (
+                                            <img
+                                                src={selectedProfile.avatar_url}
+                                                alt={selectedProfile.username ?? "user"}
+                                                className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                                            />
+                                        )}
+                                        <span className="text-white">{selectedProfile?.username ?? "user"}</span>
+                                    </Link>
+
+                                    {/* Модель */}
+                                    <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                                        {formatModelName(selected.model)}
+                                    </span>
+
+                                    {/* Жанры/Муд inline */}
+                                    {((selected.genres && selected.genres.length > 0) || selected.mood) && (
+                                        <>
+                                            {selected.genres?.slice(0, 2).map((g) => (
+                                                <span key={g} className="rounded-full bg-white/20 px-2 py-0.5">
+                                                    {g}
+                                                </span>
+                                            ))}
+                                            {selected.mood && (
+                                                <span className="rounded-full bg-white/20 px-2 py-0.5">
+                                                    {selected.mood}
+                                                </span>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
