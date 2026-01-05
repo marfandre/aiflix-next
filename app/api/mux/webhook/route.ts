@@ -87,15 +87,38 @@ export async function POST(req: NextRequest) {
       if (playback_id) patch.playback_id = playback_id;
       patch.status = 'ready';
 
-      // Обновляем видео
-      const { data: updatedFilm, error } = await supa
+      // Обновляем видео. Сначала пытаемся найти по asset_id (штатный случай)
+      let { data: updatedFilm, error } = await supa
         .from('films')
         .update(patch)
         .eq('asset_id', asset_id as string)
         .select('id')
         .maybeSingle();
 
+      // Если не нашли по asset_id, но у нас есть upload_id (фоллбек на случай пропуска события created)
+      if (!updatedFilm && !error && data?.upload_id) {
+        console.log(`Video not found by asset_id=${asset_id}, trying upload_id=${data.upload_id}`);
+
+        // Важно: раз уж мы нашли ассет, запишем и asset_id в базу
+        patch.asset_id = asset_id;
+
+        const res = await supa
+          .from('films')
+          .update(patch)
+          .eq('upload_id', data.upload_id)
+          .select('id')
+          .maybeSingle();
+
+        updatedFilm = res.data;
+        error = res.error;
+      }
+
       if (error) throw error;
+
+      if (!updatedFilm) {
+        console.warn(`Video not found for asset_ready event. asset_id=${asset_id}, upload_id=${data?.upload_id}`);
+        return NextResponse.json({ ok: true, skipped: 'not-found' }, { status: 200 });
+      }
 
       // Извлечение цветов для hover preview: 5 кадров × 3 цвета = 15 цветов
       if (playback_id && updatedFilm?.id) {

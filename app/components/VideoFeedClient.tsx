@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Masonry from "react-masonry-css";
 import LikeButton from "./LikeButton";
+import PromptModal from "./PromptModal";
 
 type Props = {
     userId: string | null;
@@ -23,6 +24,7 @@ type VideoRow = {
     mood?: string | null;
     colors?: string[] | null;
     colors_preview?: string[] | null;  // 15 цветов для hover анимации
+    status?: string | null;
     profiles:
     | { username: string | null; avatar_url: string | null }[]
     | { username: string | null; avatar_url: string | null }
@@ -59,6 +61,7 @@ export default function VideoFeedClient({ userId }: Props) {
     const [videos, setVideos] = useState<VideoRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<VideoRow | null>(null);
+    const [showPrompt, setShowPrompt] = useState(false);
     const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
     const [hoveredVideoId, setHoveredVideoId] = useState<string | null>(null);  // Для hover-to-play
     const [mp4FailedIds, setMp4FailedIds] = useState<Set<string>>(new Set());  // Видео без MP4 support
@@ -101,7 +104,7 @@ export default function VideoFeedClient({ userId }: Props) {
             // Получаем видео
             const { data: filmsData, error } = await supa
                 .from("films")
-                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview")
+                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, status")
                 .order("created_at", { ascending: false })
                 .limit(60);
 
@@ -186,7 +189,10 @@ export default function VideoFeedClient({ userId }: Props) {
         };
     }, [supa]);
 
-    const closeModal = () => setSelected(null);
+    const closeModal = () => {
+        setSelected(null);
+        setShowPrompt(false);
+    };
 
     // Функция для ПРЕДЗАГРУЗКИ всех цветов из разных кадров видео (ПАРАЛЛЕЛЬНО)
     const preloadAllColors = useCallback(async (videoId: string, playbackId: string, baseColors: string[]) => {
@@ -447,135 +453,139 @@ export default function VideoFeedClient({ userId }: Props) {
             </div>
 
             {/* МОДАЛКА С ВИДЕО */}
+            {/* МОДАЛКА ВИДЕО */}
             {selected && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
                     onClick={closeModal}
                 >
-                    <div
-                        className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex flex-1 flex-col gap-4 p-4 md:flex-row">
-                            {/* ЛЕВАЯ КОЛОНКА — информация */}
-                            <div className="mt-2 flex w-full flex-none flex-col justify-between gap-3 text-sm text-gray-700 md:w-[26rem]">
-                                {/* верх: ПРОМТ + МОДЕЛЬ */}
-                                <div className="space-y-3">
-                                    <div className="rounded-lg bg-gray-50 p-3">
-                                        <div className="mb-2 flex items-center justify-between gap-2">
-                                            <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                                                Промт
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    const text = selected.prompt || selected.description;
-                                                    if (text && navigator.clipboard) {
-                                                        await navigator.clipboard.writeText(text);
-                                                    }
-                                                }}
-                                                disabled={!selected.prompt && !selected.description}
-                                                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                                            >
-                                                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5">
-                                                    <rect x="9" y="9" width="11" height="11" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                                                    <rect x="4" y="4" width="11" height="11" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                                                </svg>
-                                                <span>Скопировать</span>
-                                            </button>
-                                        </div>
-
-                                        {(selected.prompt || selected.description) ? (
-                                            <p className="whitespace-pre-line text-xs text-gray-800">
-                                                {selected.prompt || selected.description}
-                                            </p>
-                                        ) : (
-                                            <p className="text-[11px] text-gray-400">
-                                                Промт не указан.
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div className="text-xs text-gray-600">
-                                        Модель:{" "}
-                                        <span className="font-medium">
-                                            {formatModelName(selected.model)}
-                                        </span>
-                                    </div>
-
-                                    {/* Жанры и атмосфера */}
-                                    {((selected.genres && selected.genres.length > 0) || selected.mood) && (
-                                        <div className="flex flex-wrap gap-1">
-                                            {selected.genres?.map((g) => (
-                                                <span
-                                                    key={g}
-                                                    className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
-                                                >
-                                                    {g}
-                                                </span>
-                                            ))}
-                                            {selected.mood && (
-                                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
-                                                    {selected.mood}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* низ: автор/дата */}
-                                <div className="space-y-3">
-                                    <div className="mt-4 border-t pt-2 text-xs text-gray-500">
-                                        {selectedProfile && (
-                                            <Link
-                                                href={`/u/${encodeURIComponent(selectedProfile.username ?? "user")}`}
-                                                className="font-medium text-gray-700 hover:underline"
-                                            >
-                                                @{selectedProfile.username ?? "user"}
-                                            </Link>
-                                        )}
-                                        {selected.created_at && (
-                                            <div className="mt-0.5">
-                                                {new Date(selected.created_at).toLocaleDateString("ru-RU")}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                    {/* Flex контейнер для кружков + модалки */}
+                    <div className="flex items-center gap-3 w-full max-w-[95vw] justify-center">
+                        {/* Цветовая палитра — слева от модалки */}
+                        {selected.colors && selected.colors.length > 0 && (
+                            <div className="flex-col gap-2 hidden lg:flex">
+                                {selected.colors.slice(0, 5).map((c, index) => (
+                                    <div
+                                        key={c + index}
+                                        className="rounded-full border-2 border-white/30 shadow-lg"
+                                        style={{
+                                            backgroundColor: c,
+                                            width: 28,
+                                            height: 28,
+                                        }}
+                                        title={c}
+                                    />
+                                ))}
                             </div>
+                        )}
 
-                            {/* ПРАВАЯ КОЛОНКА — палитра + видеоплеер */}
-                            <div className="flex flex-1 flex-col">
-                                {/* Цветовая палитра */}
-                                {selected.colors && selected.colors.length > 0 && (
-                                    <div className="mb-2 flex items-center justify-center gap-1 md:justify-start">
-                                        {selected.colors.slice(0, 5).map((c, index) => (
-                                            <div
-                                                key={c + index}
-                                                className="rounded-full border border-gray-200"
-                                                style={{
-                                                    backgroundColor: c,
-                                                    width: 32,
-                                                    height: 32,
-                                                }}
-                                                title={c}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Видеоплеер */}
-                                <div className="flex flex-1 items-center justify-center rounded-lg bg-black overflow-hidden">
+                        <div
+                            className="relative flex max-h-[90vh] w-auto flex-col overflow-hidden rounded-lg shadow-2xl bg-black"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Видеоплеер с overlay */}
+                            <div className="relative flex items-center justify-center bg-black group">
+                                {selected.playback_id ? (
                                     <video
                                         controls
                                         autoPlay
                                         playsInline
                                         poster={muxPoster(selected.playback_id)}
-                                        className="max-h-[70vh] w-full object-contain"
+                                        className="max-h-[90vh] w-auto max-w-full object-contain"
                                     >
-                                        {hlsSrc && <source src={hlsSrc} type="application/x-mpegURL" />}
-                                        {mp4Src && <source src={mp4Src} type="video/mp4" />}
+                                        {selected.playback_id && (
+                                            <>
+                                                <source src={`https://stream.mux.com/${selected.playback_id}.m3u8`} type="application/x-mpegURL" />
+                                                <source src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`} type="video/mp4" />
+                                            </>
+                                        )}
                                         Ваш браузер не поддерживает воспроизведение видео.
                                     </video>
+                                ) : (
+                                    <div className="flex h-[40vh] w-full items-center justify-center text-center text-gray-400">
+                                        {selected.status === 'processing' ? (
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                                <p>Видео обрабатывается...</p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2">
+                                                <p>Видео недоступно</p>
+                                                <p className="text-xs opacity-50">Попробуйте загрузить заново</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <PromptModal
+                                    prompt={selected.prompt}
+                                    description={selected.description}
+                                    isOpen={showPrompt}
+                                    onClose={() => setShowPrompt(false)}
+                                />
+
+                                {/* Оптическое стекло effect (внизу) */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-3 border-t border-white/30">
+                                    <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
+
+                                        {/* Кнопка Промт (копировать) + Дата */}
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPrompt(true)}
+                                                className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
+                                            >
+                                                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                    <polyline points="14 2 14 8 20 8" />
+                                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                                </svg>
+                                                Промт
+                                            </button>
+                                            {selected.created_at && (
+                                                <span className="text-[10px] text-white/50">
+                                                    {new Date(selected.created_at).toLocaleDateString("en-US", { month: 'short', year: '2-digit' }).toUpperCase()}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Автор */}
+                                        <Link
+                                            href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
+                                            className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                                        >
+                                            {selectedProfile?.avatar_url && (
+                                                <img
+                                                    src={selectedProfile.avatar_url}
+                                                    alt={selectedProfile.username ?? "user"}
+                                                    className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                                                />
+                                            )}
+                                            <span className="text-white">{selectedProfile?.username ?? "user"}</span>
+                                        </Link>
+
+                                        {/* Модель */}
+                                        <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                                            {formatModelName(selected.model)}
+                                        </span>
+
+                                        {/* Жанры/Муд inline */}
+                                        {((selected.genres && selected.genres.length > 0) || selected.mood) && (
+                                            <>
+                                                {selected.genres?.slice(0, 2).map((g) => (
+                                                    <span key={g} className="rounded-full bg-white/20 px-2 py-0.5">
+                                                        {g}
+                                                    </span>
+                                                ))}
+                                                {selected.mood && (
+                                                    <span className="rounded-full bg-white/20 px-2 py-0.5">
+                                                        {selected.mood}
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

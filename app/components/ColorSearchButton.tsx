@@ -23,16 +23,14 @@ export default function ColorSearchButton() {
     });
   };
 
-  // Быстрый запуск поиска: просто меняем URL и открываем вкладку "Картинки"
+  // Быстрый запуск поиска
   const runSearch = () => {
-    const colors = slots
-      .filter((c) => c && c !== EMPTY_COLOR); // ВАЖНО: НЕ меняем регистр
-
+    const colors = slots.filter((c) => c && c !== EMPTY_COLOR);
     if (!colors.length) return;
 
     const params = new URLSearchParams();
-    params.set("t", "images");                 // сразу на вкладку "Картинки"
-    params.set("colors", colors.join(","));    // те же #HEX, что и в БД
+    params.set("t", "images");
+    params.set("colors", colors.join(","));
 
     router.push(`/?${params.toString()}`);
     setOpen(false);
@@ -40,30 +38,36 @@ export default function ColorSearchButton() {
 
   return (
     <div className="relative flex items-center">
-      {/* Кнопка с маленьким 6-цветным мини-кругом */}
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex h-10 w-10 items-center justify-center rounded-full transition hover:scale-105"
-        title="Быстрый поиск по цвету"
+      {/* Кнопка — цветовой круг в стеклянной оправке */}
+      <div
+        className="relative flex items-center justify-center rounded-full"
+        style={{
+          padding: 6,
+          background: 'rgba(200,200,210,0.15)',
+          boxShadow: `
+            inset 0 0 0 1px rgba(255,255,255,0.35),
+            0 0 0 1px rgba(255,255,255,0.2),
+            0 2px 8px rgba(0,0,0,0.1)
+          `,
+        }}
       >
-        <svg viewBox="0 0 24 24" className="h-6 w-6">
-          {["#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF"].map(
-            (color, index) => {
-              const angle = (index / 6) * Math.PI * 2;
-              const radius = 7;
-              const cx = 12 + radius * Math.cos(angle);
-              const cy = 12 + radius * Math.sin(angle);
-              return <circle key={index} cx={cx} cy={cy} r={2.3} fill={color} />;
-            }
-          )}
-        </svg>
-      </button>
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="relative h-6 w-6 flex-shrink-0 rounded-full transition hover:scale-105"
+          style={{
+            background: 'conic-gradient(from 180deg, #FF6B6B, #FFE066, #6BCB77, #4D96FF, #9B59B6, #FF6B6B)',
+          }}
+          title="Быстрый поиск по цвету"
+        />
+      </div>
 
-      {/* Цветовой круг + слоты справа */}
+      {/* Попап: Цветовой круг + 5 слотов справа */}
       {open && (
         <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 flex items-center gap-3">
-          <ColorWheel size={104} onClick={(c) => handleWheelPick(c.hex)} />
+          <div className="flex-shrink-0" style={{ width: 104, height: 104 }}>
+            <ColorWheel size={104} onClick={(c) => handleWheelPick(c.hex)} />
+          </div>
 
           <div className="flex flex-col items-center gap-2">
             {slots.map((color, index) => {
@@ -76,8 +80,7 @@ export default function ColorSearchButton() {
                   key={index}
                   type="button"
                   onClick={() => setSelectedSlot(index)}
-                  className={`rounded-full border-2 transition ${isSelected ? "border-gray-900" : "border-transparent"
-                    }`}
+                  className={`rounded-full border-2 transition ${isSelected ? "border-gray-900" : "border-transparent"}`}
                   style={{
                     width: size,
                     height: size,
