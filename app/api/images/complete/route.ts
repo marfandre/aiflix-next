@@ -10,24 +10,26 @@ import { createClient as createService } from "@supabase/supabase-js";
 type IncomingImage = {
   path?: string;
   colors?: string[] | null;
+  colorNames?: string[] | null;  // NTC названия цветов для поиска
 };
 
-// ---- ТЕ ЖЕ КОРЗИНЫ, ЧТО И В media-search ----
+// ---- ТЕ ЖЕ КОРЗИНЫ, ЧТО И В media-search (AI-оптимизированные) ----
 
 const BUCKET_BASE_COLORS: { id: string; hex: string; r: number; g: number; b: number }[] =
   [
-    { id: "yellow", hex: "#ffd60a", r: 0, g: 0, b: 0 },
-    { id: "orange", hex: "#ff9500", r: 0, g: 0, b: 0 },
-    { id: "red", hex: "#ff3b30", r: 0, g: 0, b: 0 },
-    { id: "green", hex: "#34c759", r: 0, g: 0, b: 0 },
-    { id: "teal", hex: "#00c7be", r: 0, g: 0, b: 0 },
-    { id: "cyan", hex: "#32ade6", r: 0, g: 0, b: 0 },
-    { id: "blue", hex: "#007aff", r: 0, g: 0, b: 0 },
-    { id: "indigo", hex: "#5856d6", r: 0, g: 0, b: 0 },
-    { id: "purple", hex: "#af52de", r: 0, g: 0, b: 0 },
-    { id: "pink", hex: "#ff2d55", r: 0, g: 0, b: 0 },
-    { id: "brown", hex: "#a2845e", r: 0, g: 0, b: 0 },
-    { id: "gray", hex: "#8e8e93", r: 0, g: 0, b: 0 },
+    { id: "red", hex: "#FF1744", r: 0, g: 0, b: 0 },      // Неоновый красный
+    { id: "orange", hex: "#FF6D00", r: 0, g: 0, b: 0 },   // Насыщенный оранжевый
+    { id: "yellow", hex: "#FFEA00", r: 0, g: 0, b: 0 },   // Яркий жёлтый
+    { id: "green", hex: "#00E676", r: 0, g: 0, b: 0 },    // Неоновый зелёный
+    { id: "teal", hex: "#1DE9B6", r: 0, g: 0, b: 0 },     // Яркий бирюзовый
+    { id: "cyan", hex: "#00E5FF", r: 0, g: 0, b: 0 },     // Неоновый голубой
+    { id: "blue", hex: "#2979FF", r: 0, g: 0, b: 0 },     // Насыщенный синий
+    { id: "indigo", hex: "#651FFF", r: 0, g: 0, b: 0 },   // Электрический индиго
+    { id: "purple", hex: "#D500F9", r: 0, g: 0, b: 0 },   // Неоновый фиолетовый
+    { id: "pink", hex: "#FF4081", r: 0, g: 0, b: 0 },     // Яркий розовый
+    { id: "brown", hex: "#8D6E63", r: 0, g: 0, b: 0 },    // Тёплый коричневый
+    { id: "black", hex: "#121212", r: 0, g: 0, b: 0 },    // Глубокий чёрный
+    { id: "white", hex: "#FAFAFA", r: 0, g: 0, b: 0 },    // Мягкий белый
   ];
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -82,6 +84,7 @@ export async function POST(req: Request) {
       images, // основной вариант: массив
       path,
       colors,
+      colorNames,  // NTC названия цветов
       title,
       description,
       prompt,
@@ -158,6 +161,20 @@ export async function POST(req: Request) {
       const bucket3 = mapHexToBucket(normalizedColors[3]);
       const bucket4 = mapHexToBucket(normalizedColors[4]);
 
+      // NTC названия цветов для поиска
+      const rawColorNames: string[] =
+        (Array.isArray(img.colorNames) && img.colorNames.length
+          ? img.colorNames
+          : Array.isArray(colorNames) && colorNames.length
+            ? colorNames
+            : []) as string[];
+
+      const normalizedColorNames = rawColorNames
+        .filter((n) => typeof n === "string")
+        .map((n) => n.trim())
+        .filter(Boolean)
+        .slice(0, 5);
+
       return {
         user_id: user.id,
         path: img.path,
@@ -168,7 +185,10 @@ export async function POST(req: Request) {
         // сырые HEX — для отображения палитры
         colors: normalizedColors.length ? normalizedColors : null,
 
-        // корзины — для поиска
+        // NTC названия — для точного поиска по категориям
+        color_names: normalizedColorNames.length ? normalizedColorNames : null,
+
+        // корзины — для обратной совместимости
         dominant_color: bucket0 ?? null,
         secondary_color: bucket1 ?? null,
         third_color: bucket2 ?? null,

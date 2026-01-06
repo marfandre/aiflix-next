@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import namer from 'color-namer';
 
 export const runtime = "nodejs";
 
@@ -48,6 +49,199 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const g = (num >> 8) & 0xff;
   const b = num & 0xff;
   return { r, g, b };
+}
+
+// Преобразование HEX в HSL
+function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+
+  const r = rgb.r / 255;
+  const g = rgb.g / 255;
+  const b = rgb.b / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+
+  if (max === min) {
+    return { h: 0, s: 0, l }; // Ахроматический (серый)
+  }
+
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+  let h = 0;
+  switch (max) {
+    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+    case g: h = ((b - r) / d + 2) / 6; break;
+    case b: h = ((r - g) / d + 4) / 6; break;
+  }
+
+  return { h: h * 360, s, l }; // h: 0-360, s: 0-1, l: 0-1
+}
+
+// =====================================================
+// CIE Lab + CIEDE2000 - Самый точный алгоритм сравнения цветов
+// =====================================================
+
+type LabColor = { L: number; a: number; b: number };
+
+/**
+ * Линейное преобразование sRGB
+ */
+function srgbToLinear(c: number): number {
+  const cn = c / 255;
+  return cn <= 0.04045 ? cn / 12.92 : Math.pow((cn + 0.055) / 1.055, 2.4);
+}
+
+/**
+ * Преобразование RGB → XYZ (D65)
+ */
+function rgbToXyz(r: number, g: number, b: number): { x: number; y: number; z: number } {
+  const lr = srgbToLinear(r);
+  const lg = srgbToLinear(g);
+  const lb = srgbToLinear(b);
+
+  return {
+    x: lr * 0.4124564 + lg * 0.3575761 + lb * 0.1804375,
+    y: lr * 0.2126729 + lg * 0.7151522 + lb * 0.0721750,
+    z: lr * 0.0193339 + lg * 0.1191920 + lb * 0.9503041,
+  };
+}
+
+/**
+ * Преобразование XYZ → CIE Lab (D65)
+ */
+function xyzToLab(x: number, y: number, z: number): LabColor {
+  const Xn = 0.95047, Yn = 1.0, Zn = 1.08883;
+  const epsilon = 0.008856, kappa = 903.3;
+
+  const xr = x / Xn, yr = y / Yn, zr = z / Zn;
+
+  const fx = xr > epsilon ? Math.cbrt(xr) : (kappa * xr + 16) / 116;
+  const fy = yr > epsilon ? Math.cbrt(yr) : (kappa * yr + 16) / 116;
+  const fz = zr > epsilon ? Math.cbrt(zr) : (kappa * zr + 16) / 116;
+
+  return {
+    L: 116 * fy - 16,    // 0-100
+    a: 500 * (fx - fy),  // примерно -128 до +128
+    b: 200 * (fy - fz),  // примерно -128 до +128
+  };
+}
+
+/**
+ * Преобразование HEX → CIE Lab
+ */
+function hexToLab(hex: string): LabColor | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const xyz = rgbToXyz(rgb.r, rgb.g, rgb.b);
+  return xyzToLab(xyz.x, xyz.y, xyz.z);
+}
+
+/**
+ * CIEDE2000 - Самый точный алгоритм сравнения цветов
+ * Учитывает нелинейности человеческого восприятия
+ * 
+ * Интерпретация:
+ * 0-1:  Неразличимы
+ * 1-2:  Едва заметная разница
+ * 2-5:  Заметная разница при сравнении
+ * 5-10: Очевидно разные оттенки
+ * 10+:  Разные цвета
+ */
+function deltaE2000(lab1: LabColor, lab2: LabColor): number {
+  const { L: L1, a: a1, b: b1 } = lab1;
+  const { L: L2, a: a2, b: b2 } = lab2;
+
+  // Весовые коэффициенты (стандартные значения)
+  const kL = 1, kC = 1, kH = 1;
+
+  // Вычисляем C' (модифицированная хрома)
+  const C1 = Math.sqrt(a1 * a1 + b1 * b1);
+  const C2 = Math.sqrt(a2 * a2 + b2 * b2);
+  const Cab = (C1 + C2) / 2;
+
+  const G = 0.5 * (1 - Math.sqrt(Math.pow(Cab, 7) / (Math.pow(Cab, 7) + Math.pow(25, 7))));
+
+  const a1p = a1 * (1 + G);
+  const a2p = a2 * (1 + G);
+
+  const C1p = Math.sqrt(a1p * a1p + b1 * b1);
+  const C2p = Math.sqrt(a2p * a2p + b2 * b2);
+
+  // Вычисляем h' (модифицированный оттенок)
+  const h1p = Math.atan2(b1, a1p) * 180 / Math.PI + (b1 < 0 ? 360 : 0);
+  const h2p = Math.atan2(b2, a2p) * 180 / Math.PI + (b2 < 0 ? 360 : 0);
+
+  // Разницы
+  const dLp = L2 - L1;
+  const dCp = C2p - C1p;
+
+  let dhp: number;
+  if (C1p * C2p === 0) {
+    dhp = 0;
+  } else {
+    const dh = h2p - h1p;
+    if (Math.abs(dh) <= 180) {
+      dhp = dh;
+    } else if (dh > 180) {
+      dhp = dh - 360;
+    } else {
+      dhp = dh + 360;
+    }
+  }
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * Math.PI / 360);
+
+  // Средние значения
+  const Lp = (L1 + L2) / 2;
+  const Cp = (C1p + C2p) / 2;
+
+  let Hp: number;
+  if (C1p * C2p === 0) {
+    Hp = h1p + h2p;
+  } else {
+    const hpSum = h1p + h2p;
+    if (Math.abs(h1p - h2p) <= 180) {
+      Hp = hpSum / 2;
+    } else if (hpSum < 360) {
+      Hp = (hpSum + 360) / 2;
+    } else {
+      Hp = (hpSum - 360) / 2;
+    }
+  }
+
+  // Коэффициенты коррекции
+  const T = 1
+    - 0.17 * Math.cos((Hp - 30) * Math.PI / 180)
+    + 0.24 * Math.cos(2 * Hp * Math.PI / 180)
+    + 0.32 * Math.cos((3 * Hp + 6) * Math.PI / 180)
+    - 0.20 * Math.cos((4 * Hp - 63) * Math.PI / 180);
+
+  const dTheta = 30 * Math.exp(-Math.pow((Hp - 275) / 25, 2));
+  const RC = 2 * Math.sqrt(Math.pow(Cp, 7) / (Math.pow(Cp, 7) + Math.pow(25, 7)));
+  const SL = 1 + (0.015 * Math.pow(Lp - 50, 2)) / Math.sqrt(20 + Math.pow(Lp - 50, 2));
+  const SC = 1 + 0.045 * Cp;
+  const SH = 1 + 0.015 * Cp * T;
+  const RT = -Math.sin(2 * dTheta * Math.PI / 180) * RC;
+
+  // Финальная формула
+  const dE = Math.sqrt(
+    Math.pow(dLp / (kL * SL), 2) +
+    Math.pow(dCp / (kC * SC), 2) +
+    Math.pow(dHp / (kH * SH), 2) +
+    RT * (dCp / (kC * SC)) * (dHp / (kH * SH))
+  );
+
+  return dE;
+}
+
+/**
+ * Chroma (насыщенность) в Lab пространстве
+ */
+function labChroma(lab: LabColor): number {
+  return Math.sqrt(lab.a * lab.a + lab.b * lab.b);
 }
 
 // заполняем r/g/b у базовых цветов
@@ -192,102 +386,28 @@ export async function GET(req: NextRequest) {
 
   // ---------- IMAGES ----------
   if (includeImages) {
+    // Новый алгоритм: прямое сравнение HEX-кодов с порогом расстояния
+    const searchHexColors: string[] = hexColorsParam
+      ? hexColorsParam.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean)
+      : [];
+
+    const useDirectColorSearch = colorMode === "simple" && searchHexColors.length > 0;
+
+    // Если ищем по цвету — загружаем все картинки и фильтруем в JS
+    // Если нет — используем обычные SQL-фильтры
     let q: any = supabase
       .from("images_meta")
       .select(
         "id, title, colors, tags, model, path, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
       )
-      .order("created_at", { ascending: false })
-      .limit(120);
+      .order("created_at", { ascending: false });
 
-    // === ЦВЕТОВОЙ ПОИСК ===
-
-    if (colorMode === "simple" && (colorsParam || hexColorsParam)) {
-      // ПРОСТОЙ РЕЖИМ: ищем картинки где ВСЕ выбранные цвета есть (каждый в любом слоте)
-      let buckets: string[] = [];
-
-      if (hexColorsParam) {
-        // Новый формат: hex-коды -> мапим в bucketы
-        const hexColors = hexColorsParam.split(",").map((c) => c.trim()).filter(Boolean);
-        buckets = hexColors.map((hex) => mapHexToBucket(hex)).filter(Boolean) as string[];
-      } else if (colorsParam) {
-        // Старый формат: bucket ID
-        buckets = colorsParam
-          .split(",")
-          .map((c) => c.trim().toLowerCase())
-          .filter(Boolean);
-      }
-
-      if (buckets.length) {
-        // AND логика: для КАЖДОГО цвета — он должен быть хотя бы в одном слоте
-        for (const bucket of buckets) {
-          const orParts = [
-            `dominant_color.eq.${bucket}`,
-            `secondary_color.eq.${bucket}`,
-            `third_color.eq.${bucket}`,
-            `fourth_color.eq.${bucket}`,
-            `fifth_color.eq.${bucket}`,
-          ];
-          q = q.or(orParts.join(","));
-        }
-      }
-    } else if (colorMode === "dominant") {
-      // РЕЖИМ ПО ДОМИНАНТНОСТИ: каждый заполненный слот должен совпадать
-      const slotFilters: { column: string; value: string }[] = [];
-
-      if (slot0) {
-        const col = getSlotColumn(0);
-        if (col) slotFilters.push({ column: col, value: slot0.toLowerCase() });
-      }
-      if (slot1) {
-        const col = getSlotColumn(1);
-        if (col) slotFilters.push({ column: col, value: slot1.toLowerCase() });
-      }
-      if (slot2) {
-        const col = getSlotColumn(2);
-        if (col) slotFilters.push({ column: col, value: slot2.toLowerCase() });
-      }
-      if (slot3) {
-        const col = getSlotColumn(3);
-        if (col) slotFilters.push({ column: col, value: slot3.toLowerCase() });
-      }
-      if (slot4) {
-        const col = getSlotColumn(4);
-        if (col) slotFilters.push({ column: col, value: slot4.toLowerCase() });
-      }
-
-      // Применяем ВСЕ фильтры (AND логика)
-      for (const filter of slotFilters) {
-        q = q.eq(filter.column, filter.value);
-      }
-    } else if (slotColorParam && slotIndexParam) {
-      // Старый формат (обратная совместимость)
-      const bucket = mapHexToBucket(slotColorParam);
-      const idx = parseInt(slotIndexParam, 10);
-      const slotColumn = getSlotColumn(idx);
-
-      if (slotColumn && bucket) {
-        q = q.eq(slotColumn, bucket);
-      }
-    } else if (colorsParam && !colorMode) {
-      // Старый формат без colorMode (обратная совместимость)
-      const buckets = colorsParam
-        .split(",")
-        .map((c) => mapHexToBucket(c.trim()))
-        .filter((b): b is string => Boolean(b));
-
-      const uniqueBuckets = Array.from(new Set(buckets));
-      if (uniqueBuckets.length) {
-        const orParts: string[] = [];
-        for (const b of uniqueBuckets) {
-          orParts.push(`dominant_color.eq.${b}`);
-          orParts.push(`secondary_color.eq.${b}`);
-          orParts.push(`third_color.eq.${b}`);
-          orParts.push(`fourth_color.eq.${b}`);
-          orParts.push(`fifth_color.eq.${b}`);
-        }
-        q = q.or(orParts.join(","));
-      }
+    // Если НЕ цветовой поиск — ограничиваем количество
+    if (!useDirectColorSearch) {
+      q = q.limit(120);
+    } else {
+      // Для цветового поиска загружаем больше и фильтруем в JS
+      q = q.not("colors", "is", null).limit(500);
     }
 
     // Теги (новая система)
@@ -308,7 +428,6 @@ export async function GET(req: NextRequest) {
     }
 
     // === Старые параметры (обратная совместимость) ===
-    // Если пришли старые параметры — конвертируем в поиск по tags
     if (genresParam && !tagsParam) {
       const genres = genresParam.split(",").map((g) => g.trim().toLowerCase()).filter(Boolean);
       if (genres.length) {
@@ -333,7 +452,221 @@ export async function GET(req: NextRequest) {
       console.error("media-search images error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    images.push(...((data as ImageRow[]) ?? []));
+
+    let resultImages = (data as ImageRow[]) ?? [];
+
+    // === ПРИОРИТЕТНЫЙ МЕТОД: NTC-based поиск по названиям цветов ===
+    // Получаем NTC названия + соседние цвета (distance < 2.0) для расширенного поиска
+    if (useDirectColorSearch && resultImages.length > 0) {
+      // Получаем NTC названия и соседей для искомых цветов
+      const searchColorNamesSet = new Set<string>();
+
+      searchHexColors.forEach((hex) => {
+        try {
+          const result = namer(hex);
+          // Берём все NTC цвета с distance < 2.0 (визуально почти одинаковые)
+          result.ntc.forEach((color) => {
+            if (color.distance < 2.0) {
+              searchColorNamesSet.add(color.name.toLowerCase());
+            }
+          });
+        } catch {
+          // ignore
+        }
+      });
+
+      const searchColorNames = Array.from(searchColorNamesSet);
+      console.log(`NTC search: looking for colors: ${searchColorNames.join(', ')}`);
+
+      if (searchColorNames.length > 0) {
+        // Фильтруем картинки по NTC названиям (включая соседей)
+        const ntcFilteredImages = resultImages.filter((img) => {
+          const imgColorNames = (img as any).color_names || [];
+          if (!Array.isArray(imgColorNames) || imgColorNames.length === 0) {
+            return false;
+          }
+
+          // Хотя бы один из искомых цветов должен быть в палитре картинки
+          return searchColorNames.some((searchName) =>
+            imgColorNames.some((imgName: string) =>
+              imgName.toLowerCase() === searchName
+            )
+          );
+        });
+
+        // Если нашли результаты по NTC — используем их
+        if (ntcFilteredImages.length > 0) {
+          resultImages = ntcFilteredImages;
+          console.log(`NTC search found ${ntcFilteredImages.length} results`);
+          // Пропускаем CIEDE2000 поиск — NTC дал результаты
+        } else {
+          // NTC не дал результатов — используем CIEDE2000 как fallback
+          console.log(`NTC search found no results. Falling back to CIEDE2000.`);
+        }
+      }
+    }
+
+    // === FALLBACK: CIE Lab + CIEDE2000 СРАВНЕНИЕ ЦВЕТОВ ===
+    // Используется когда NTC не дал результатов (старые картинки без color_names)
+    if (useDirectColorSearch && resultImages.length > 0) {
+      /**
+       * CIEDE2000 - самый точный алгоритм сравнения цветов
+       * CIE Lab масштаб: L = 0-100, Chroma = 0-130, Delta E = 0-100
+       */
+
+      // Пороги насыщенности (Chroma) в масштабе CIE Lab
+      const CHROMA_SATURATED = 50;  // Выше = насыщенный цвет
+      const CHROMA_MUTED = 25;      // Ниже = приглушённый цвет
+
+      /**
+       * Сравнивает два цвета используя CIEDE2000
+       */
+      function compareColors(searchHex: string, imageHex: string): { match: boolean; score: number } {
+        const lab1 = hexToLab(searchHex);
+        const lab2 = hexToLab(imageHex);
+        if (!lab1 || !lab2) return { match: false, score: Infinity };
+
+        const chroma1 = labChroma(lab1);
+        const chroma2 = labChroma(lab2);
+
+        // === ПРОВЕРКА ПО LIGHTNESS (L) ===
+        // CIE Lab: L от 0 до 100
+        // Тёмный цвет (L < 35) НЕ матчится со светлым (L > 75)
+        const L_DARK = 35;
+        const L_LIGHT = 75;
+
+        if (lab1.L < L_DARK && lab2.L > L_LIGHT) {
+          return { match: false, score: Infinity };
+        }
+        if (lab1.L > L_LIGHT && lab2.L < L_DARK) {
+          return { match: false, score: Infinity };
+        }
+
+        // Большая разница в яркости (> 30) = не матч
+        const lDiff = Math.abs(lab1.L - lab2.L);
+        if (lDiff > 30) {
+          return { match: false, score: Infinity };
+        }
+
+        // === ПРОВЕРКА ПО CHROMA (насыщенность) ===
+        // Адаптивный порог CIEDE2000 (УЖЕСТОЧЁННЫЙ):
+        // - Насыщенный цвет (C > 50): порог 7 — очень строго
+        // - Средний (25-50): порог 10 — строго
+        // - Приглушённый (C < 25): порог 15 — умеренно
+        let deltaEThreshold: number;
+        if (chroma1 > CHROMA_SATURATED) {
+          deltaEThreshold = 7;
+        } else if (chroma1 > CHROMA_MUTED) {
+          deltaEThreshold = 10;
+        } else {
+          deltaEThreshold = 15;
+        }
+
+        // === КЛЮЧЕВАЯ ПРОВЕРКА 1: Hue angle (оттенок) ===
+        // Если оттенок отличается больше чем на 25° — это разные цвета
+        // Оранжевый Hue ≈ 50-60°, Бежевый Hue ≈ 70-90°
+        const hue1 = Math.atan2(lab1.b, lab1.a) * 180 / Math.PI;
+        const hue2 = Math.atan2(lab2.b, lab2.a) * 180 / Math.PI;
+        let hueDiff = Math.abs(hue1 - hue2);
+        if (hueDiff > 180) hueDiff = 360 - hueDiff; // Учитываем цикличность
+
+        // Для насыщенных цветов — строгая проверка Hue
+        if (chroma1 > 30 && chroma2 > 15 && hueDiff > 25) {
+          return { match: false, score: Infinity };
+        }
+
+        // === КЛЮЧЕВАЯ ПРОВЕРКА 2: относительная разница в Chroma ===
+        // Если Chroma отличается больше чем на 30% — это разные "типы" цвета
+        const maxChroma = Math.max(chroma1, chroma2);
+        const chromaRatio = Math.abs(chroma1 - chroma2) / maxChroma;
+        if (chromaRatio > 0.3) {
+          return { match: false, score: Infinity };
+        }
+
+        // Насыщенный цвет НЕ матчится с очень приглушённым
+        if (chroma1 > CHROMA_SATURATED && chroma2 < CHROMA_MUTED * 0.5) {
+          return { match: false, score: Infinity };
+        }
+
+        // Приглушённый не матчится с очень насыщенным
+        if (chroma1 < CHROMA_MUTED * 0.7 && chroma2 > CHROMA_SATURATED * 1.5) {
+          return { match: false, score: Infinity };
+        }
+
+        // Вычисляем CIEDE2000
+        const dE = deltaE2000(lab1, lab2);
+
+        if (dE > deltaEThreshold) {
+          return { match: false, score: Infinity };
+        }
+
+        // Score: Delta E + штраф за разницу в Chroma и L
+        const chromaDiff = Math.abs(chroma1 - chroma2);
+        const score = dE + chromaDiff * 0.1 + lDiff * 0.05;
+
+        return { match: true, score };
+      }
+
+      /**
+       * Находит лучшее совпадение для искомого цвета среди палитры картинки
+       * Учитывает позицию цвета (первые цвета = доминантные = важнее)
+       */
+      function findBestMatch(searchHex: string, imageColors: string[]): { match: boolean; score: number } {
+        let bestScore = Infinity;
+        let hasMatch = false;
+
+        for (let i = 0; i < imageColors.length; i++) {
+          const result = compareColors(searchHex, imageColors[i]);
+          if (result.match) {
+            // Бонус для доминантных цветов (первые в палитре)
+            // Позиция 0 = бонус 0, позиция 4 = штраф 2
+            const positionPenalty = i * 0.5;
+            const adjustedScore = result.score + positionPenalty;
+
+            if (adjustedScore < bestScore) {
+              bestScore = adjustedScore;
+              hasMatch = true;
+            }
+          }
+        }
+
+        return { match: hasMatch, score: bestScore };
+      }
+
+      // Фильтруем и считаем score для каждой картинки
+      const scoredImages: { img: ImageRow; score: number }[] = [];
+
+      for (const img of resultImages) {
+        const imgColors = (img.colors || []).map((c: string) => c.toLowerCase());
+        if (imgColors.length === 0) continue;
+
+        // Для каждого искомого цвета — проверяем есть ли похожий в картинке
+        let allColorsMatch = true;
+        let totalScore = 0;
+
+        for (const searchHex of searchHexColors) {
+          const result = findBestMatch(searchHex, imgColors);
+          if (!result.match) {
+            allColorsMatch = false;
+            break;
+          }
+          totalScore += result.score;
+        }
+
+        if (allColorsMatch) {
+          const avgScore = totalScore / searchHexColors.length;
+          scoredImages.push({ img, score: avgScore });
+        }
+      }
+
+      // Сортируем по близости (лучшие совпадения первыми)
+      scoredImages.sort((a, b) => a.score - b.score);
+
+      // Берём топ-50 результатов
+      resultImages = scoredImages.slice(0, 50).map((s) => s.img);
+    }
+
+    images.push(...resultImages);
   }
 
   return NextResponse.json({ films, images });

@@ -1,8 +1,10 @@
 // app/api/palette/route.ts
 // Улучшенный алгоритм определения цветов на основе MMCQ (Modified Median Cut Quantization)
+// + NTC (Name That Color) для получения человеческих названий цветов
 
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
+import namer from 'color-namer';
 
 export const runtime = 'nodejs';
 
@@ -180,9 +182,20 @@ export async function POST(req: NextRequest) {
       ignoreBlack,
     });
 
+    // Получаем NTC названия для каждого цвета
+    const colorNames = colors.map((hex) => {
+      try {
+        const result = namer(hex);
+        return result.ntc[0]?.name ?? 'Unknown';
+      } catch {
+        return 'Unknown';
+      }
+    });
+
     return NextResponse.json({
       algorithm: 'mmcq',
       colors,
+      colorNames,  // NTC названия для поиска по категориям
       count: colors.length,
     });
   } catch (e: any) {

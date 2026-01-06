@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ColorWheel } from "./ColorWheel";
+import HorizontalHueSlider from "./HorizontalHueSlider";
 
-const SLOT_SIZES = [32, 26, 22, 18, 14];
 const EMPTY_COLOR = "#f3f4f6";
 
 export default function ColorSearchButton() {
@@ -14,8 +13,8 @@ export default function ColorSearchButton() {
 
   const router = useRouter();
 
-  // Клик по цветовому кругу -> записать цвет в активный слот
-  const handleWheelPick = (hex: string) => {
+  // Клик по слайдеру -> записать цвет в активный слот
+  const handleSliderChange = (hex: string) => {
     setSlots((prev) => {
       const next = [...prev];
       next[selectedSlot] = hex;
@@ -62,16 +61,13 @@ export default function ColorSearchButton() {
         />
       </div>
 
-      {/* Попап: Цветовой круг + 5 слотов справа */}
+      {/* Попап: Горизонтальное расположение */}
       {open && (
-        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 flex items-center gap-3">
-          <div className="flex-shrink-0" style={{ width: 104, height: 104 }}>
-            <ColorWheel size={104} onClick={(c) => handleWheelPick(c.hex)} />
-          </div>
-
-          <div className="flex flex-col items-center gap-2">
+        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 flex flex-col gap-2">
+          {/* Кружочки в ряд сверху */}
+          <div className="flex items-center gap-1.5">
             {slots.map((color, index) => {
-              const size = SLOT_SIZES[index];
+              const size = 18;
               const isSelected = index === selectedSlot;
               const isEmpty = color === EMPTY_COLOR;
 
@@ -80,11 +76,13 @@ export default function ColorSearchButton() {
                   key={index}
                   type="button"
                   onClick={() => setSelectedSlot(index)}
-                  className={`rounded-full border-2 transition ${isSelected ? "border-gray-900" : "border-transparent"}`}
+                  className="rounded-full transition"
                   style={{
                     width: size,
                     height: size,
                     backgroundColor: isEmpty ? EMPTY_COLOR : color,
+                    border: isSelected ? '2px solid #1f2937' : '1px solid rgba(0,0,0,0.15)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                   }}
                 />
               );
@@ -94,11 +92,14 @@ export default function ColorSearchButton() {
             <button
               type="button"
               onClick={runSearch}
-              className="mt-1 rounded-full bg-gray-900 px-4 py-1 text-xs font-medium text-white shadow-sm hover:bg-black transition"
+              className="ml-2 rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-black transition"
             >
               Найти
             </button>
           </div>
+
+          {/* Горизонтальные слайдеры снизу */}
+          <HorizontalHueSlider width={120} onChange={handleSliderChange} />
         </div>
       )}
     </div>
