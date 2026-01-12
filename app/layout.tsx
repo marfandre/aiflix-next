@@ -21,9 +21,9 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="text-gray-900" style={{ backgroundColor: '#e5e7eb' }}>
+      <body className="text-gray-900" style={{ backgroundColor: '#e5e7eb', fontFamily: 'Inter, sans-serif' }}>
         {/* Header / Navbar */}
         <header className="sticky top-0 z-40 backdrop-blur" style={{ backgroundColor: '#F8F9FB', borderBottom: '1px solid #9CA3AF' }}>
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-2">

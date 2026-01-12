@@ -4,10 +4,22 @@
 
 :root {
     color-scheme: light;
+    --font-heading: 'Manrope', sans-serif;
+    --font-ui: 'Inter', sans-serif;
 }
 
 body {
     @apply bg-white text-gray-900;
+    font-family: var(--font-ui);
+}
+
+/* Утилитарные классы для шрифтов */
+.font-heading {
+    font-family: var(--font-heading);
+}
+
+.font-ui {
+    font-family: var(--font-ui);
 }
 
 /* Плавное жидкое перетекание цветов */

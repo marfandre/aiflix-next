@@ -17,6 +17,9 @@ type SearchParams = {
 type Props = {
   userId: string | null;
   searchParams?: SearchParams;
+  initialImages?: ImageRow[];  // Для использования в профиле (пропускает загрузку из БД)
+  showAuthor?: boolean;        // Показывать ли аватар автора (по умолчанию true)
+  isOwnerView?: boolean;       // Труе если это профиль владельца (показывает редактирование/удаление)
 };
 
 type ImageRow = {
@@ -75,10 +78,11 @@ function formatDate(dateStr: string): string {
   return `${month} ${year}`;
 }
 
-export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
-  const [images, setImages] = useState<ImageRow[]>([]);
+export default function ImageFeedClient({ userId, searchParams = {}, initialImages, showAuthor = true, isOwnerView = false }: Props) {
+  const [images, setImages] = useState<ImageRow[]>(initialImages ?? []);
   const [loading, setLoading] = useState(true);
   const [tagsMap, setTagsMap] = useState<Record<string, { ru: string; en: string }>>({}); // id -> {ru, en}
+  const [deletingId, setDeletingId] = useState<string | null>(null); // Для анимации удаления
 
   const [selected, setSelected] = useState<ImageRow | null>(null);
   const [variants, setVariants] = useState<ImageVariant[]>([]);
@@ -105,8 +109,15 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
       .catch(() => { });
   }, []);
 
-  // ---------- ЗАГРУЗКА ЛЕНТЫ С ФИЛЬТРАМИ ----------
+  // ---------- ЗАГРУЗКА ЛЕНТЫ С ФИЛЬТРАМИ (пропускается если передан initialImages) ----------
   useEffect(() => {
+    // Если переданы начальные картинки — пропускаем загрузку из БД
+    if (initialImages && initialImages.length > 0) {
+      setImages(initialImages);
+      setLoading(false);
+      return;
+    }
+
     (async () => {
       setLoading(true);
 
@@ -162,6 +173,7 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
     supa,
     searchParams.colors,
     searchParams.models,
+    initialImages,
   ]);
 
   // ---------- ПОДПИСКА НА НОВЫЕ КАРТИНКИ (без фильтров) ----------
@@ -271,6 +283,32 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
     setSlideIndex(0);
     setVariantsLoading(false);
     setShowPrompt(false);
+  };
+
+  // Удаление картинки
+  const deleteImage = async (imageId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!confirm('Удалить эту картинку?')) return;
+
+    setDeletingId(imageId);
+
+    try {
+      const { error } = await supa
+        .from('images_meta')
+        .delete()
+        .eq('id', imageId);
+
+      if (error) {
+        console.error('Delete error:', error);
+        alert('Ошибка при удалении');
+      } else {
+        // Удаляем из локального состояния
+        setImages(prev => prev.filter(im => im.id !== imageId));
+      }
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) return <div className="py-6 text-gray-500">Загрузка...</div>;
@@ -446,22 +484,24 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                   })()}
 
                   {/* Инфо при наведении */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <Link
-                      href={`/u/${encodeURIComponent(nick)}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
-                    >
-                      {avatar && (
-                        <img
-                          src={avatar}
-                          alt={nick}
-                          className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
-                        />
-                      )}
-                      <span className="truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
-                    </Link>
-                  </div>
+                  {showAuthor && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <Link
+                        href={`/u/${encodeURIComponent(nick)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
+                      >
+                        {avatar && (
+                          <img
+                            src={avatar}
+                            alt={nick}
+                            className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
+                          />
+                        )}
+                        <span className="font-ui truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
+                      </Link>
+                    </div>
+                  )}
 
                   {/* Кнопка лайка при наведении (по центру сверху) */}
                   <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -475,6 +515,43 @@ export default function ImageFeedClient({ userId, searchParams = {} }: Props) {
                       />
                     </div>
                   </div>
+
+                  {/* Иконки редактирования и удаления (только для владельца) */}
+                  {isOwnerView && (
+                    <div className="pointer-events-none absolute top-2 right-2 flex gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      {/* Кнопка редактирования */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `/images/${im.id}/edit`;
+                        }}
+                        className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+                        title="Редактировать"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                        </svg>
+                      </button>
+
+                      {/* Кнопка удаления */}
+                      <button
+                        type="button"
+                        onClick={(e) => deleteImage(im.id, e)}
+                        disabled={deletingId === im.id}
+                        className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-600 disabled:opacity-50"
+                        title="Удалить"
+                      >
+                        {deletingId === im.id ? (
+                          <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        ) : (
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </button>
               </div>
             );

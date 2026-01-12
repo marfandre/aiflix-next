@@ -9,8 +9,8 @@ import Link from 'next/link';
 import ProfileTabs from './ProfileTabs';
 import MessageButtons from '@/app/components/MessageButtons';
 import EditProfileModal from '@/app/components/EditProfileModal';
-import LikeButton from '@/app/components/LikeButton';
-import ProfileImagesClient from './ProfileImagesClient';
+import VideoFeedClient from '@/app/components/VideoFeedClient';
+import ImageFeedClient from '@/app/components/ImageFeedClient';
 
 type PageProps = { params: { username: string }; searchParams?: { t?: string } };
 type Tab = 'video' | 'images';
@@ -34,18 +34,6 @@ async function selectSafe<T = any>(
     return [];
   }
 }
-
-const muxPoster = (playback_id?: string | null) =>
-  playback_id
-    ? `https://image.mux.com/${playback_id}/thumbnail.jpg?time=1&fit_mode=preserve`
-    : '/placeholder.png';
-
-const normVideo = (v: any) => ({
-  id: v?.id as string,
-  title: (v?.title ?? '').toString().trim() || 'Без названия',
-  playback_id: v?.playback_id ?? null,
-  created_at: v?.created_at ?? null,
-});
 
 const normImage = (im: any) => {
   const path = im?.path ?? im?.url ?? null;
@@ -93,15 +81,21 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
   const avatar = profile.avatar_url || '/placeholder.png';
 
+  // Загружаем полные данные видео для VideoFeedClient
   const films = await selectSafe(
     supa,
     'films',
-    'id, title, playback_id, created_at',
-    [(q: any) => q.eq('user_id', profile.id)],
+    'id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, status',
+    [(q: any) => q.eq('author_id', profile.id)],
     { column: 'created_at', ascending: false },
     120
   );
-  const videos = films.map(normVideo);
+
+  // Добавляем profiles для совместимости с VideoFeedClient
+  const videosForFeed = films.map((f: any) => ({
+    ...f,
+    profiles: { username: profile.username, avatar_url: profile.avatar_url }
+  }));
 
   let images: any[] = [];
   if (tab === 'images') {
@@ -124,7 +118,13 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
     );
 
     const imgsRaw = img_meta.length ? img_meta : img_images;
-    images = imgsRaw.map(normImage);
+
+    // Добавляем profiles для совместимости с ImageFeedClient
+    images = imgsRaw.map((im: any) => ({
+      ...normImage(im),
+      user_id: im.user_id,
+      profiles: { username: profile.username, avatar_url: profile.avatar_url }
+    }));
   }
 
   return (
@@ -189,52 +189,25 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
 
       {/* ----- ВИДЕО ----- */}
       {tab === 'video' ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {videos.map((v) => {
-            const href = `/film/${v.id}?from=profile&u=${encodeURIComponent(nick)}`;
-
-            return (
-              <div
-                key={v.id}
-                className="overflow-hidden rounded-xl border bg-white shadow-sm ring-1 ring-gray-100"
-              >
-                <Link href={href} className="block relative aspect-video bg-black">
-                  <img
-                    src={muxPoster(v.playback_id)}
-                    alt={v.title}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                </Link>
-
-                <div className="p-3">
-                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                    <span className="truncate">@{nick}</span>
-
-                    <LikeButton
-                      target="film"
-                      id={v.id}
-                      userId={currentUserId}
-                      className="ml-auto shrink-0"
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {videos.length === 0 && (
-            <div className="text-sm text-gray-500">Здесь пока нет видео.</div>
-          )}
-        </div>
+        videosForFeed.length > 0 ? (
+          <VideoFeedClient
+            userId={currentUserId}
+            initialVideos={videosForFeed}
+          />
+        ) : (
+          <div className="text-sm text-gray-500">Здесь пока нет видео.</div>
+        )
       ) : (
         /* ----- КАРТИНКИ ----- */
-        <ProfileImagesClient
-          images={images}
-          nick={nick}
-          avatarUrl={avatar}
-          currentUserId={currentUserId}
-        />
+        images.length > 0 ? (
+          <ImageFeedClient
+            userId={currentUserId}
+            initialImages={images}
+            isOwnerView={isOwn}
+          />
+        ) : (
+          <div className="text-sm text-gray-500">Здесь пока нет картинок.</div>
+        )
       )}
     </div>
   );

@@ -9,6 +9,8 @@ import PromptModal from "./PromptModal";
 
 type Props = {
     userId: string | null;
+    initialVideos?: VideoRow[];  // Для использования в профиле (пропускает загрузку из БД)
+    showAuthor?: boolean;        // Показывать ли аватар автора (по умолчанию true)
 };
 
 type VideoRow = {
@@ -57,8 +59,8 @@ function muxPoster(playback_id: string | null) {
         : "/placeholder.png";
 }
 
-export default function VideoFeedClient({ userId }: Props) {
-    const [videos, setVideos] = useState<VideoRow[]>([]);
+export default function VideoFeedClient({ userId, initialVideos, showAuthor = true }: Props) {
+    const [videos, setVideos] = useState<VideoRow[]>(initialVideos ?? []);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<VideoRow | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
@@ -99,8 +101,15 @@ export default function VideoFeedClient({ userId }: Props) {
 
     const supa = createClientComponentClient();
 
-    // Загрузка видео
+    // Загрузка видео (пропускается если передан initialVideos)
     useEffect(() => {
+        // Если переданы начальные видео — пропускаем загрузку из БД
+        if (initialVideos && initialVideos.length > 0) {
+            setVideos(initialVideos);
+            setLoading(false);
+            return;
+        }
+
         (async () => {
             setLoading(true);
 
@@ -149,7 +158,7 @@ export default function VideoFeedClient({ userId }: Props) {
             setVideos(enrichedVideos);
             setLoading(false);
         })();
-    }, [supa]);
+    }, [supa, initialVideos]);
 
     // Realtime подписка
     useEffect(() => {
@@ -374,13 +383,6 @@ export default function VideoFeedClient({ userId }: Props) {
                                     {/* Hover overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                                    {/* Иконка видео */}
-                                    <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white flex items-center gap-1">
-                                        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M8 5v14l11-7z" />
-                                        </svg>
-                                    </div>
-
                                     {/* Капсула с цветами — 15 цветов для hover анимации */}
                                     {(v.colors_preview || v.colors) && (v.colors_preview || v.colors)!.length > 0 && v.playback_id && (() => {
                                         // Используем colors_preview (15 цветов) или fallback на colors (5 базовых)
@@ -446,23 +448,25 @@ export default function VideoFeedClient({ userId }: Props) {
                                 </button>
 
                                 {/* Overlay с автором */}
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                                    <Link
-                                        href={`/u/${encodeURIComponent(nick)}`}
-                                        className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
-                                    >
-                                        {avatar && (
-                                            <img
-                                                src={avatar}
-                                                alt={nick}
-                                                className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
-                                            />
-                                        )}
-                                        <span className="truncate text-[11px] font-medium drop-shadow-md">
-                                            {nick}
-                                        </span>
-                                    </Link>
-                                </div>
+                                {showAuthor && (
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                        <Link
+                                            href={`/u/${encodeURIComponent(nick)}`}
+                                            className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
+                                        >
+                                            {avatar && (
+                                                <img
+                                                    src={avatar}
+                                                    alt={nick}
+                                                    className="h-[18px] w-[18px] shrink-0 rounded-full object-cover ring-1 ring-white/40"
+                                                />
+                                            )}
+                                            <span className="font-ui truncate text-[11px] font-medium drop-shadow-md">
+                                                {nick}
+                                            </span>
+                                        </Link>
+                                    </div>
+                                )}
 
                                 {/* Кнопка лайка */}
                                 <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
