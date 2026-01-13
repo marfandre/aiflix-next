@@ -51,17 +51,24 @@ const MODEL_LABELS: Record<string, string> = {
   sora: "Sora",
   midjourney: "MidJourney",
   "stable diffusion xl": "Stable Diffusion XL",
+  "stable-diffusion-xl": "Stable Diffusion XL",
   "stable diffusion 3": "Stable Diffusion 3",
+  "stable-diffusion-3": "Stable Diffusion 3",
   sdxl: "SDXL",
   pika: "Pika",
   runway: "Runway",
   flux: "Flux",
   dalle: "DALL·E",
   "dalle 3": "DALL·E 3",
+  "dalle-3": "DALL·E 3",
   "dall-e": "DALL·E",
   "dall-e 3": "DALL·E 3",
+  "dall-e-3": "DALL·E 3",
   kandinsky: "Kandinsky",
   leonardo: "Leonardo",
+  ideogram: "Ideogram",
+  playground: "Playground",
+  krea: "KREA",
 };
 
 function formatModelName(raw?: string | null): string {
@@ -245,6 +252,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       order_index: 0,
     };
 
+    // Сначала показываем модалку с текущими данными
     setSelected(im);
     setSlideIndex(0);
     setVariants([fallbackVariant]);
@@ -252,6 +260,21 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     setImageWidth(null);
 
     try {
+      // Подгружаем свежие данные изображения из БД
+      const { data: freshData, error: freshError } = await supa
+        .from("images_meta")
+        .select("id, user_id, path, title, description, prompt, created_at, colors, model, tags, images_count, profiles(username, avatar_url)")
+        .eq("id", im.id)
+        .single();
+
+      if (!freshError && freshData) {
+        // Обновляем selected с свежими данными
+        setSelected(freshData as ImageRow);
+        // Также обновляем в общем списке для консистентности
+        setImages(prev => prev.map(img => img.id === im.id ? (freshData as ImageRow) : img));
+      }
+
+      // Загружаем варианты
       const { data, error } = await supa
         .from("image_variants")
         .select("path, colors, order_index")

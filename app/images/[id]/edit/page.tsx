@@ -8,7 +8,7 @@ import Link from 'next/link';
 
 // Модели для картинок
 const IMAGE_MODELS = [
-    { value: '', label: 'Не указано' },
+    { value: '', label: 'Выбрать' },
     { value: 'dalle', label: 'DALL·E' },
     { value: 'dalle-3', label: 'DALL·E 3' },
     { value: 'midjourney', label: 'MidJourney' },
@@ -63,6 +63,7 @@ export default function EditImagePage({ params }: PageProps) {
     const [model, setModel] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [colors, setColors] = useState<string[]>([]);
+    const [activeSlot, setActiveSlot] = useState<number | null>(null); // Активный слот для добавления цвета
 
     // Загрузка данных картинки
     useEffect(() => {
@@ -118,20 +119,23 @@ export default function EditImagePage({ params }: PageProps) {
         setSaving(true);
 
         try {
-            const { error: updateError } = await supabase
-                .from('images_meta')
-                .update({
+            const res = await fetch('/api/images/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: params.id,
                     title: title || null,
                     description: description || null,
                     prompt: prompt || null,
                     model: model || null,
                     tags: selectedTags.length ? selectedTags : null,
                     colors: colors.length ? colors : null,
-                })
-                .eq('id', params.id);
+                }),
+            });
 
-            if (updateError) {
-                throw new Error(updateError.message);
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Ошибка при сохранении');
             }
 
             setSuccess('Изменения сохранены!');
@@ -148,17 +152,18 @@ export default function EditImagePage({ params }: PageProps) {
         }
     }
 
-    // Добавление/удаление цвета
-    function toggleColor(colorHex: string) {
-        setColors(prev => {
-            if (prev.includes(colorHex)) {
-                return prev.filter(c => c !== colorHex);
-            }
-            if (prev.length >= 5) {
-                return prev; // Максимум 5 цветов
-            }
-            return [...prev, colorHex];
-        });
+    // Добавление цвета (через активный слот или в конец)
+    function addColor(colorHex: string) {
+        if (colors.includes(colorHex)) return; // Уже есть такой цвет
+        if (colors.length >= 5) return; // Максимум 5
+
+        setColors(prev => [...prev, colorHex]);
+        setActiveSlot(null); // Сбрасываем активный слот
+    }
+
+    // Удаление цвета по индексу
+    function removeColor(index: number) {
+        setColors(prev => prev.filter((_, i) => i !== index));
     }
 
     // Получение публичного URL картинки
@@ -206,34 +211,11 @@ export default function EditImagePage({ params }: PageProps) {
 
     return (
         <div className="mx-auto max-w-6xl p-6">
-            <div className="mb-6 flex items-center gap-4">
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
-                >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Назад
-                </button>
-                <h1 className="text-2xl font-bold">Редактирование картинки</h1>
-            </div>
+            <h1 className="mb-6 text-2xl font-bold">Редактирование картинки</h1>
 
-            <div className="grid gap-16 md:grid-cols-[minmax(300px,400px)_1fr]">
+            <div className="grid gap-10 md:grid-cols-[minmax(250px,320px)_1fr]">
                 {/* Левая колонка — форма */}
                 <form onSubmit={handleSubmit} className="space-y-5 pr-4">
-
-                    {/* Описание */}
-                    <div>
-                        <label className="mb-1 block text-sm font-medium">Описание</label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2"
-                            rows={3}
-                            placeholder="Краткое описание"
-                        />
-                    </div>
 
                     {/* Промт */}
                     <div>
@@ -253,10 +235,14 @@ export default function EditImagePage({ params }: PageProps) {
                         <select
                             value={model}
                             onChange={(e) => setModel(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2"
+                            className={`w-full rounded-lg border px-3 py-2 ${!model ? 'text-gray-400' : ''}`}
                         >
                             {IMAGE_MODELS.map((m) => (
-                                <option key={m.value} value={m.value}>
+                                <option
+                                    key={m.value}
+                                    value={m.value}
+                                    className={m.value === '' ? 'text-gray-400' : 'text-gray-900'}
+                                >
                                     {m.label}
                                 </option>
                             ))}
@@ -306,70 +292,81 @@ export default function EditImagePage({ params }: PageProps) {
                 </form>
 
                 {/* Правая колонка — картинка и цвета */}
-                <div className="space-y-4">
-                    <div>
+                <div className="flex flex-col items-center">
+                    {/* Картинка */}
+                    <div className="flex items-center justify-center">
                         {imageData?.path ? (
                             <img
                                 src={getImageUrl(imageData.path)}
                                 alt={title || 'Картинка'}
-                                className="w-full object-contain max-h-[400px]"
+                                className="max-h-[60vh] w-auto max-w-full object-contain"
                             />
                         ) : (
-                            <div className="flex h-48 items-center justify-center bg-gray-100 text-gray-400">
+                            <div className="flex h-48 w-full items-center justify-center bg-gray-100 text-gray-400">
                                 Нет изображения
                             </div>
                         )}
+                    </div>
 
-                        {/* Цвета под картинкой */}
-                        <div className="mt-4 flex flex-col items-center">
-                            <label className="mb-2 block text-sm font-medium">
-                                Цвета ({colors.length}/5)
-                            </label>
+                    {/* Цвета под картинкой */}
+                    <div className="mt-4 flex flex-col items-center">
+                        <label className="mb-2 block text-sm font-medium">
+                            Цвета ({colors.length}/5)
+                        </label>
 
-                            {/* Текущие выбранные цвета + кнопка добавления */}
-                            <div className="mb-3 flex flex-wrap justify-center gap-2">
-                                {colors.map((c, i) => (
+                        {/* Текущие выбранные цвета + кнопка добавления */}
+                        <div className="mb-3 flex flex-wrap justify-center gap-2">
+                            {colors.map((c, i) => (
+                                <button
+                                    key={c + i}
+                                    type="button"
+                                    onClick={() => removeColor(i)}
+                                    className="group flex h-8 w-8 items-center justify-center rounded-full border-2 border-white shadow-md ring-2 ring-gray-300"
+                                    style={{ backgroundColor: c }}
+                                    title="Удалить цвет"
+                                >
+                                    <span className="text-xs text-white drop-shadow-md opacity-0 transition-opacity group-hover:opacity-100">×</span>
+                                </button>
+                            ))}
+                            {/* Пустые кружочки для добавления цветов */}
+                            {Array.from({ length: 5 - colors.length }).map((_, i) => (
+                                <button
+                                    key={`empty-${i}`}
+                                    type="button"
+                                    onClick={() => setActiveSlot(colors.length + i)}
+                                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed transition ${activeSlot === colors.length + i
+                                        ? 'border-blue-500 bg-blue-50 text-blue-500'
+                                        : 'border-gray-400 text-gray-400 hover:border-gray-500'
+                                        }`}
+                                    title="Нажмите, затем выберите цвет из палитры"
+                                >
+                                    <span className="text-sm">+</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Палитра для выбора */}
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {COLOR_PALETTE.map((color) => {
+                                const isSelected = colors.includes(color.hex);
+                                const isDisabled = isSelected || colors.length >= 5;
+                                return (
                                     <button
-                                        key={c + i}
+                                        key={color.id}
                                         type="button"
-                                        onClick={() => toggleColor(c)}
-                                        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white shadow-md ring-2 ring-gray-300"
-                                        style={{ backgroundColor: c }}
-                                        title="Удалить цвет"
-                                    >
-                                        <span className="text-xs text-white drop-shadow-md">×</span>
-                                    </button>
-                                ))}
-                                {/* Пустой кружочек для добавления цвета */}
-                                {colors.length < 5 && (
-                                    <div
-                                        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400"
-                                        title="Выберите цвет из палитры ниже"
-                                    >
-                                        <span className="text-sm">+</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Палитра для выбора */}
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {COLOR_PALETTE.map((color) => {
-                                    const isSelected = colors.includes(color.hex);
-                                    return (
-                                        <button
-                                            key={color.id}
-                                            type="button"
-                                            onClick={() => toggleColor(color.hex)}
-                                            className={`h-7 w-7 rounded-full border-2 transition ${isSelected
-                                                ? 'border-gray-900 ring-2 ring-gray-400'
-                                                : 'border-gray-200 hover:border-gray-400'
-                                                }`}
-                                            style={{ backgroundColor: color.hex }}
-                                            title={color.label}
-                                        />
-                                    );
-                                })}
-                            </div>
+                                        onClick={() => !isDisabled && addColor(color.hex)}
+                                        disabled={isDisabled}
+                                        className={`h-7 w-7 rounded-full border-2 transition ${isSelected
+                                            ? 'border-gray-900 ring-2 ring-gray-400 opacity-50'
+                                            : isDisabled
+                                                ? 'opacity-30 cursor-not-allowed'
+                                                : 'border-gray-200 hover:border-gray-400 hover:scale-110'
+                                            }`}
+                                        style={{ backgroundColor: color.hex }}
+                                        title={isSelected ? `${color.label} (уже выбран)` : color.label}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
