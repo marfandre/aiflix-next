@@ -31,6 +31,7 @@ type ImageRow = {
   prompt?: string | null;
   created_at: string | null;
   colors: string[] | null;
+  accent_colors?: string[] | null;  // Акцентные цвета
   model?: string | null;
   tags?: string[] | null;
   images_count?: number | null;
@@ -131,7 +132,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       let query = supa
         .from("images_meta")
         .select(
-          "id, user_id, path, title, description, prompt, created_at, colors, model, tags, images_count, profiles(username, avatar_url)"
+          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, model, tags, images_count, profiles(username, avatar_url)"
         )
         .order("created_at", { ascending: false })
         .limit(60);
@@ -263,7 +264,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       // Подгружаем свежие данные изображения из БД
       const { data: freshData, error: freshError } = await supa
         .from("images_meta")
-        .select("id, user_id, path, title, description, prompt, created_at, colors, model, tags, images_count, profiles(username, avatar_url)")
+        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, model, tags, images_count, profiles(username, avatar_url)")
         .eq("id", im.id)
         .single();
 
@@ -590,8 +591,25 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
           {/* Flex контейнер для кружков + модалки */}
           <div className="flex items-center gap-3">
             {/* Цветовая палитра — слева от модалки */}
-            {Array.isArray(currentColors) && currentColors.length > 0 && (
-              <div className="flex-col gap-2 hidden sm:flex">
+            {(Array.isArray(currentColors) && currentColors.length > 0) && (
+              <div className="flex-col gap-2 hidden sm:flex items-center">
+                {/* Акцентные цвета сверху */}
+                {selected.accent_colors && selected.accent_colors.length > 0 && (
+                  selected.accent_colors.map((c, index) => (
+                    <div
+                      key={`accent-${c}-${index}`}
+                      className="rounded-full border-2 border-white/30 shadow-lg"
+                      style={{
+                        backgroundColor: c,
+                        width: 18,
+                        height: 18,
+                      }}
+                      title={`Акцент: ${c}`}
+                    />
+                  ))
+                )}
+
+                {/* Основные цвета */}
                 {currentColors.map((c, index) => {
                   if (!c) return null;
                   return (

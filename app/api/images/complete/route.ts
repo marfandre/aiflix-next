@@ -11,6 +11,7 @@ type IncomingImage = {
   path?: string;
   colors?: string[] | null;
   colorNames?: string[] | null;  // NTC названия цветов для поиска
+  accentColors?: string[] | null; // Акцентные цвета
 };
 
 // ---- ТЕ ЖЕ КОРЗИНЫ, ЧТО И В media-search (AI-оптимизированные) ----
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
       path,
       colors,
       colorNames,  // NTC названия цветов
+      accentColors, // Акцентные цвета
       title,
       description,
       prompt,
@@ -175,6 +177,20 @@ export async function POST(req: Request) {
         .filter(Boolean)
         .slice(0, 5);
 
+      // Акцентные цвета
+      const rawAccentColors: string[] =
+        (Array.isArray(img.accentColors) && img.accentColors.length
+          ? img.accentColors
+          : Array.isArray(accentColors) && accentColors.length
+            ? accentColors
+            : []) as string[];
+
+      const normalizedAccentColors = rawAccentColors
+        .filter((c) => typeof c === "string")
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 3);
+
       return {
         user_id: user.id,
         path: img.path,
@@ -184,6 +200,9 @@ export async function POST(req: Request) {
 
         // сырые HEX — для отображения палитры
         colors: normalizedColors.length ? normalizedColors : null,
+
+        // Акцентные цвета (до 3)
+        accent_colors: normalizedAccentColors.length ? normalizedAccentColors : null,
 
         // NTC названия — для точного поиска по категориям
         color_names: normalizedColorNames.length ? normalizedColorNames : null,

@@ -17,6 +17,7 @@ export async function POST(req: Request) {
             model,
             tags,
             colors,
+            accent_colors,
         } = await req.json();
 
         if (!id) {
@@ -77,6 +78,11 @@ export async function POST(req: Request) {
         if (colors !== undefined) {
             updateData.colors = Array.isArray(colors) && colors.length
                 ? colors.slice(0, 5)
+                : null;
+        }
+        if (accent_colors !== undefined) {
+            updateData.accent_colors = Array.isArray(accent_colors) && accent_colors.length
+                ? accent_colors.slice(0, 3)
                 : null;
         }
 

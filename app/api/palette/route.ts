@@ -1,6 +1,7 @@
 // app/api/palette/route.ts
 // Улучшенный алгоритм определения цветов на основе MMCQ (Modified Median Cut Quantization)
 // + NTC (Name That Color) для получения человеческих названий цветов
+// + Акцентные цвета (яркие цвета с малой площадью)
 
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
@@ -37,6 +38,38 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${rr}${gg}${bb}`.toUpperCase();
 }
 
+// Конвертация RGB в HSL
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
+    }
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
 // Расстояние между цветами в RGB (для дедупликации)
 function colorDistance(a: RGB, b: RGB): number {
   const dr = a[0] - b[0];
@@ -60,23 +93,43 @@ function removeSimilarColors(colors: RGB[], threshold: number = 25): RGB[] {
 }
 
 // =====================
-// MMCQ Palette Extraction
+// Тип для цвета с метаданными
+// =====================
+
+interface ColorWithMeta {
+  rgb: RGB;
+  hex: string;
+  count: number;       // Количество пикселей
+  percentage: number;  // Процент от общей площади
+  saturation: number;  // Насыщенность (0-100)
+  lightness: number;   // Яркость (0-100)
+}
+
+// =====================
+// MMCQ Palette Extraction с подсчётом площади
 // =====================
 
 interface PaletteOptions {
-  colorCount?: number;      // Количество цветов (по умолчанию 5)
-  quality?: number;         // 1 = каждый пиксель, 10 = каждый 10-й (по умолчанию 5)
-  ignoreWhite?: boolean;    // Игнорировать белый (по умолчанию false)
-  ignoreBlack?: boolean;    // Игнорировать чёрный (по умолчанию false)
+  colorCount?: number;
+  quality?: number;
+  ignoreWhite?: boolean;
+  ignoreBlack?: boolean;
 }
 
-async function getMMCQPalette(
+interface ExtractedColors {
+  dominant: string[];      // Основные цвета (по площади)
+  accent: string[];        // Акцентные цвета (яркие, но малая площадь)
+  dominantNames: string[]; // NTC названия основных
+  accentNames: string[];   // NTC названия акцентных
+}
+
+async function extractColorsWithAccents(
   buffer: Buffer,
   options: PaletteOptions = {}
-): Promise<string[]> {
+): Promise<ExtractedColors> {
   const {
     colorCount = 5,
-    quality = 5,
+    quality = 3,
     ignoreWhite = false,
     ignoreBlack = false,
   } = options;
@@ -100,8 +153,9 @@ async function getMMCQPalette(
     throw new Error('Ожидается как минимум 3 канала (RGB)');
   }
 
-  // Собираем пиксели
+  // Собираем все пиксели для подсчёта
   const pixels: RGB[] = [];
+  const colorCounts = new Map<string, { rgb: RGB; count: number }>();
   const totalPixels = width * height;
 
   for (let i = 0; i < totalPixels; i += quality) {
@@ -115,36 +169,147 @@ async function getMMCQPalette(
     if (ignoreBlack && r < 5 && g < 5 && b < 5) continue;
 
     pixels.push([r, g, b]);
+
+    // Округляем для группировки (упрощённый подсчёт)
+    const key = `${Math.round(r / 10) * 10},${Math.round(g / 10) * 10},${Math.round(b / 10) * 10}`;
+    const existing = colorCounts.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      colorCounts.set(key, { rgb: [r, g, b], count: 1 });
+    }
   }
 
   if (pixels.length === 0) {
-    return [];
+    return { dominant: [], accent: [], dominantNames: [], accentNames: [] };
   }
 
-  // Запускаем MMCQ
-  const quantize = await getQuantize();
+  const sampledPixels = pixels.length;
 
-  // Запрашиваем больше цветов чтобы потом отфильтровать похожие
-  const result = quantize(pixels, colorCount * 2);
+  // Запускаем MMCQ для получения палитры
+  const quantize = await getQuantize();
+  const result = quantize(pixels, 20); // Берём больше для анализа
 
   if (!result) {
-    return [];
+    return { dominant: [], accent: [], dominantNames: [], accentNames: [] };
   }
 
   const palette = result.palette();
 
   if (!palette || palette.length === 0) {
-    return [];
+    return { dominant: [], accent: [], dominantNames: [], accentNames: [] };
   }
 
-  // Убираем слишком похожие цвета
-  const uniqueColors = removeSimilarColors(palette, 30);
+  // Подсчитываем метаданные для каждого цвета палитры
+  const colorsWithMeta: ColorWithMeta[] = palette.map(rgb => {
+    // Считаем приблизительную площадь этого цвета
+    let count = 0;
+    const threshold = 40; // Расстояние для считания похожими
 
-  // Берём нужное количество
-  const finalColors = uniqueColors.slice(0, colorCount);
+    for (const [, data] of colorCounts) {
+      if (colorDistance(rgb, data.rgb) < threshold) {
+        count += data.count;
+      }
+    }
 
-  // Конвертируем в HEX
-  return finalColors.map(([r, g, b]) => rgbToHex(r, g, b));
+    const hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+
+    return {
+      rgb,
+      hex: rgbToHex(rgb[0], rgb[1], rgb[2]),
+      count,
+      percentage: (count / sampledPixels) * 100,
+      saturation: hsl.s,
+      lightness: hsl.l,
+    };
+  });
+
+  // Сортируем по площади (для доминантных)
+  const byArea = [...colorsWithMeta].sort((a, b) => b.percentage - a.percentage);
+
+  // Доминантные: топ по площади, убираем похожие
+  const dominantColors: ColorWithMeta[] = [];
+  for (const color of byArea) {
+    if (dominantColors.length >= colorCount) break;
+    const isSimilar = dominantColors.some(
+      existing => colorDistance(existing.rgb, color.rgb) < 30
+    );
+    if (!isSimilar) {
+      dominantColors.push(color);
+    }
+  }
+
+  // Вычисляем среднюю яркость доминантных цветов для контраста
+  const avgDominantLightness = dominantColors.length > 0
+    ? dominantColors.reduce((sum, c) => sum + c.lightness, 0) / dominantColors.length
+    : 50;
+
+  // Акцентные: яркие свечения, насыщенные малые элементы, контрастные
+  const accentColors: ColorWithMeta[] = [];
+  const accentCandidates = colorsWithMeta
+    .filter(c => {
+      // Малая площадь (<25% - увеличили порог для мелких деталей)
+      const isSmallArea = c.percentage < 25;
+      if (!isSmallArea) return false;
+
+      // Высокая яркость (свечение типа солнца, неона) - lightness > 60%
+      const isGlowing = c.lightness > 60 && c.lightness < 98;
+
+      // Насыщенность (>25% - понизили порог для голубого/оранжевого)
+      const isSaturated = c.saturation > 25;
+
+      // Контраст с фоном (разница яркости > 20%)
+      const hasContrast = Math.abs(c.lightness - avgDominantLightness) > 20;
+
+      // Не слишком тёмный (lightness > 12)
+      const notTooDark = c.lightness > 12;
+
+      // Любой из критериев: свечение ИЛИ насыщенность ИЛИ контраст
+      return (isGlowing || isSaturated || hasContrast) && notTooDark;
+    })
+    .map(c => {
+      // Вычисляем "акцентный скор" - приоритет насыщенным ярким цветам
+      const contrastBonus = Math.abs(c.lightness - avgDominantLightness);
+      const glowBonus = c.lightness > 60 ? (c.lightness - 60) * 1.5 : 0;
+      const saturationBonus = c.saturation > 30 ? c.saturation * 1.2 : c.saturation;
+      const score = saturationBonus + contrastBonus + glowBonus;
+      return { ...c, score };
+    })
+    .sort((a, b) => b.score - a.score); // Сортируем по комбинированному скору
+
+  for (const color of accentCandidates) {
+    if (accentColors.length >= 3) break;
+
+    // Не должен быть похож на доминантные
+    const similarToDominant = dominantColors.some(
+      d => colorDistance(d.rgb, color.rgb) < 50
+    );
+    // Не должен быть похож на уже добавленные акцентные
+    const similarToAccent = accentColors.some(
+      a => colorDistance(a.rgb, color.rgb) < 40
+    );
+
+    if (!similarToDominant && !similarToAccent) {
+      accentColors.push(color);
+    }
+  }
+
+  // Получаем NTC названия
+  const getName = (hex: string): string => {
+    try {
+      const result = namer(hex);
+      return result.ntc[0]?.name ?? 'Unknown';
+    } catch {
+      return 'Unknown';
+    }
+  };
+
+  return {
+    dominant: dominantColors.map(c => c.hex),
+    accent: accentColors.map(c => c.hex),
+    dominantNames: dominantColors.map(c => getName(c.hex)),
+    accentNames: accentColors.map(c => getName(c.hex)),
+  };
 }
 
 // =====================
@@ -158,7 +323,7 @@ export async function POST(req: NextRequest) {
 
     // Параметры
     const colorCount = parseInt(searchParams.get('count') ?? '5', 10) || 5;
-    const quality = parseInt(searchParams.get('quality') ?? '5', 10) || 5;
+    const quality = parseInt(searchParams.get('quality') ?? '3', 10) || 3;
     const ignoreWhite = searchParams.get('ignoreWhite') === 'true';
     const ignoreBlack = searchParams.get('ignoreBlack') === 'true';
 
@@ -175,28 +340,21 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await (file as any).arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const colors = await getMMCQPalette(buffer, {
+    const result = await extractColorsWithAccents(buffer, {
       colorCount,
       quality,
       ignoreWhite,
       ignoreBlack,
     });
 
-    // Получаем NTC названия для каждого цвета
-    const colorNames = colors.map((hex) => {
-      try {
-        const result = namer(hex);
-        return result.ntc[0]?.name ?? 'Unknown';
-      } catch {
-        return 'Unknown';
-      }
-    });
-
     return NextResponse.json({
-      algorithm: 'mmcq',
-      colors,
-      colorNames,  // NTC названия для поиска по категориям
-      count: colors.length,
+      algorithm: 'mmcq-accent',
+      colors: result.dominant,
+      colorNames: result.dominantNames,
+      accentColors: result.accent,
+      accentColorNames: result.accentNames,
+      count: result.dominant.length,
+      accentCount: result.accent.length,
     });
   } catch (e: any) {
     console.error('MMCQ palette API error:', e?.message, e?.stack);
