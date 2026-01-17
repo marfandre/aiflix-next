@@ -692,13 +692,48 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 sm:hidden"
                   title="Закрыть"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+
+                {/* Цветовая палитра для мобильных — горизонтально по центру сверху */}
+                {(Array.isArray(currentColors) && currentColors.length > 0) && (
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 sm:hidden">
+                    {/* Акцентные цвета */}
+                    {selected.accent_colors && selected.accent_colors.length > 0 && (
+                      selected.accent_colors.map((c, index) => (
+                        <div
+                          key={`mob-accent-${c}-${index}`}
+                          className="rounded-full border border-white/40 shadow-md"
+                          style={{
+                            backgroundColor: c,
+                            width: 16,
+                            height: 16,
+                          }}
+                        />
+                      ))
+                    )}
+                    {/* Основные цвета */}
+                    {currentColors.map((c, index) => {
+                      if (!c) return null;
+                      return (
+                        <div
+                          key={`mob-${c}-${index}`}
+                          className="rounded-full border border-white/40 shadow-md"
+                          style={{
+                            backgroundColor: c,
+                            width: 20,
+                            height: 20,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Картинка с overlay */}
                 <div className="relative flex items-center justify-center bg-black flex-1">
