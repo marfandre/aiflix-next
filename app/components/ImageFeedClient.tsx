@@ -702,22 +702,8 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
                 {/* Цветовая палитра для мобильных — горизонтально по центру сверху */}
                 {(Array.isArray(currentColors) && currentColors.length > 0) && (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 sm:hidden">
-                    {/* Акцентные цвета */}
-                    {selected.accent_colors && selected.accent_colors.length > 0 && (
-                      selected.accent_colors.map((c, index) => (
-                        <div
-                          key={`mob-accent-${c}-${index}`}
-                          className="rounded-full border border-white/40 shadow-md"
-                          style={{
-                            backgroundColor: c,
-                            width: 16,
-                            height: 16,
-                          }}
-                        />
-                      ))
-                    )}
-                    {/* Основные цвета */}
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:hidden">
+                    {/* Основные цвета (слева) */}
                     {currentColors.map((c, index) => {
                       if (!c) return null;
                       return (
@@ -732,6 +718,20 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                         />
                       );
                     })}
+                    {/* Акцентные цвета (справа) */}
+                    {selected.accent_colors && selected.accent_colors.length > 0 && (
+                      selected.accent_colors.map((c, index) => (
+                        <div
+                          key={`mob-accent-${c}-${index}`}
+                          className="rounded-full border border-white/40 shadow-md"
+                          style={{
+                            backgroundColor: c,
+                            width: 16,
+                            height: 16,
+                          }}
+                        />
+                      ))
+                    )}
                   </div>
                 )}
 
