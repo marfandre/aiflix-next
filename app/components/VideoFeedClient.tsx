@@ -356,6 +356,16 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         aspectRatio: '3/4',
                                     }}
                                 >
+
+                                    {/* Preload WebP в кэш браузера для мгновенного hover */}
+                                    {v.playback_id && (
+                                        <link
+                                            rel="preload"
+                                            as="image"
+                                            href={`https://image.mux.com/${v.playback_id}/animated.webp?fps=15&width=640`}
+                                        />
+                                    )}
+
                                     {/* Статичный постер (всегда виден как fallback) */}
                                     <img
                                         src={muxPoster(v.playback_id)}
@@ -367,10 +377,10 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         }}
                                     />
 
-                                    {/* Анимированное превью при hover */}
+                                    {/* WebP превью при hover — мгновенный старт из кэша */}
                                     {v.playback_id && hoveredVideoId === v.id && (
                                         <img
-                                            src={`https://image.mux.com/${v.playback_id}/animated.gif?fps=15&width=320&t=${hoverKeys[v.id] || 0}`}
+                                            src={`https://image.mux.com/${v.playback_id}/animated.webp?fps=15&width=640`}
                                             alt="Preview"
                                             className="absolute inset-0 w-full h-full z-10"
                                             style={{
