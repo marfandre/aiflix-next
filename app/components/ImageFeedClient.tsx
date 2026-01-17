@@ -685,18 +685,18 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
               )}
 
               <div
-                className="relative flex max-h-[90vh] w-auto max-w-[95vw] flex-col overflow-hidden rounded-lg shadow-2xl"
+                className="relative flex w-screen h-screen sm:w-auto sm:h-auto sm:max-h-[90vh] sm:max-w-[95vw] flex-col overflow-hidden rounded-none sm:rounded-lg shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Картинка с overlay */}
-                <div className="relative flex items-center justify-center bg-black">
+                <div className="relative flex items-center justify-center bg-black flex-1">
                   {currentVariant ? (
                     <>
                       <img
                         ref={imageRef}
                         src={publicImageUrl(currentVariant.path)}
                         alt={(selected.title ?? "").trim() || "Картинка"}
-                        className="max-h-[90vh] w-auto max-w-full object-contain"
+                        className="w-full h-full sm:max-h-[90vh] sm:w-auto sm:max-w-full object-contain"
                         onLoad={() => {
                           if (imageRef.current) {
                             setImageWidth(imageRef.current.offsetWidth);
