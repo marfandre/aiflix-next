@@ -685,9 +685,21 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
               )}
 
               <div
-                className="relative flex w-screen h-screen sm:w-auto sm:h-auto sm:max-h-[90vh] sm:max-w-[95vw] flex-col overflow-hidden rounded-none sm:rounded-lg shadow-2xl"
+                className="group relative flex w-screen h-screen sm:w-auto sm:h-auto sm:max-h-[90vh] sm:max-w-[95vw] flex-col overflow-hidden rounded-none sm:rounded-lg shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* Кнопка закрытия */}
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 sm:opacity-0 sm:group-hover:opacity-100"
+                  title="Закрыть"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
                 {/* Картинка с overlay */}
                 <div className="relative flex items-center justify-center bg-black flex-1">
                   {currentVariant ? (
