@@ -759,7 +759,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                       />
 
                       {/* Оптическое стекло effect */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-3 border-t border-white/30">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md py-1.5 px-3 border-t border-white/20">
                         <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
 
                           {/* Кнопка Промт + Дата */}
