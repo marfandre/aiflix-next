@@ -271,7 +271,11 @@ export default function UploadPage() {
   );
 
   const mainColors: string[] =
-    (isEditingPalette ? draftColors : currentImage?.mainColors) ?? [];
+    isEditingPalette && draftColors
+      ? draftColors
+      : (type === 'video'
+        ? videoColors
+        : (currentImage?.mainColors ?? []));
   const displayMainColors = mainColors.slice(0, 5);
   const displayAccentColors = currentImage?.accentColors ?? [];
 
@@ -513,7 +517,9 @@ export default function UploadPage() {
     }
   }
 
-  if (!sessionReady) return <div className="py-10 text-gray-500">Загрузка…</div>;
+  if (!sessionReady) {
+    return <div className="py-10 text-gray-500">Загрузка…</div>;
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-6">
@@ -584,7 +590,7 @@ export default function UploadPage() {
           )}
 
           <form onSubmit={onSubmit}>
-            <div className="mt-2 flex flex-col md:flex-row gap-10 items-start justify-between">
+            <div className="mt-2 flex flex-col md:flex-row gap-10 items-start">
               {/* Левая колонка — поля формы (вторичная) */}
               <div className="space-y-4" style={{ width: 380, flexShrink: 0 }}>
                 {/* Переключатель Видео / Картинка */}
@@ -685,6 +691,15 @@ export default function UploadPage() {
                   </select>
                 </div>
 
+                {/* Кнопка загрузки */}
+                <button
+                  type="submit"
+                  className="mt-4 w-full rounded-2xl bg-black px-6 py-3 text-white font-medium transition hover:bg-gray-800 disabled:opacity-50"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Загрузка…' : 'Загрузить'}
+                </button>
+
                 {/* Сообщения об ошибках/успехе */}
                 {error && (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -699,139 +714,556 @@ export default function UploadPage() {
               </div>
 
               {/* Правая колонка — главная карточка превью */}
-              <div className="flex flex-col items-center" style={{ width: 340, flexShrink: 0 }}>
-                {/* Большая карточка превью */}
-                <div
-                  className="relative w-full rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden cursor-pointer hover:border-gray-300 hover:shadow-md transition-all"
-                  style={{ aspectRatio: type === 'video' ? '9/16' : '4/5' }}
-                  onClick={() => {
-                    if (type === 'video') {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'video/mp4,video/webm';
-                      input.onchange = async (e: any) => {
-                        const newFile = e.target.files?.[0] ?? null;
-                        setFile(newFile);
-                        setError(null);
-                        setSuccess(null);
-                        setVideoPreviewUrl(null);
-                        setVideoColors([]);
-                        if (newFile) {
-                          setIsVideoColorsLoading(true);
-                          try {
-                            const { previewUrl, colors } = await extractColorsFromVideo(newFile);
-                            setVideoPreviewUrl(previewUrl);
-                            setVideoColors(colors);
-                          } catch (err) {
-                            console.error('Error extracting video colors:', err);
-                          } finally {
-                            setIsVideoColorsLoading(false);
+              {type === 'video' && (
+                <div className="flex-1 flex flex-col items-center">
+                  <div
+                    className="relative w-full max-w-[340px] rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden cursor-pointer hover:border-gray-300 hover:shadow-md transition-all"
+                    style={{ aspectRatio: '9/16' }}
+                    onClick={() => {
+                      if (type === 'video') {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'video/mp4,video/webm';
+                        input.onchange = async (e: any) => {
+                          const newFile = e.target.files?.[0] ?? null;
+                          setFile(newFile);
+                          setError(null);
+                          setSuccess(null);
+                          setVideoPreviewUrl(null);
+                          setVideoColors([]);
+                          if (newFile) {
+                            setIsVideoColorsLoading(true);
+                            try {
+                              const { previewUrl, colors } = await extractColorsFromVideo(newFile);
+                              setVideoPreviewUrl(previewUrl);
+                              setVideoColors(colors);
+                            } catch (err) {
+                              console.error('Error extracting video colors:', err);
+                            } finally {
+                              setIsVideoColorsLoading(false);
+                            }
                           }
-                        }
-                      };
-                      input.click();
-                    } else {
-                      fileInputRef.current?.click();
-                    }
-                  }}
-                >
-                  {/* Контент внутри карточки */}
-                  {type === 'video' ? (
-                    videoPreviewUrl ? (
-                      <img
-                        src={videoPreviewUrl}
-                        alt="Превью видео"
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                        {isVideoColorsLoading ? (
-                          <p className="text-sm">Загрузка...</p>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16 mb-3 text-gray-300">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
-                            </svg>
-                            <p className="text-sm font-medium">Нажмите, чтобы выбрать видео</p>
-                            <p className="text-xs text-gray-300 mt-1">MP4 или WEBM</p>
-                          </>
-                        )}
-                      </div>
-                    )
-                  ) : (
-                    images.length > 0 && currentImage ? (
-                      <>
+                        };
+                        input.click();
+                      } else {
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                  >
+                    {/* Контент внутри карточки */}
+                    {
+                      videoPreviewUrl ? (
                         <img
-                          src={currentImage.previewUrl}
-                          alt="Превью"
+                          src={videoPreviewUrl}
+                          alt="Превью видео"
                           className="absolute inset-0 w-full h-full object-cover"
                         />
-                        {/* Навигация по карусели */}
-                        {images.length > 1 && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => (i - 1 + images.length) % images.length); }}
-                              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white hover:bg-black/80"
-                            >◀</button>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => (i + 1) % images.length); }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white hover:bg-black/80"
-                            >▶</button>
-                          </>
-                        )}
-                        {/* Индикатор количества */}
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
-                          {currentIndex + 1} / {images.length}
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                          {isVideoColorsLoading ? (
+                            <p className="text-sm">Загрузка...</p>
+                          ) : (
+                            <>
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16 mb-3 text-gray-300">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                              </svg>
+                              <p className="text-sm font-medium">Нажмите, чтобы выбрать видео</p>
+                              <p className="text-xs text-gray-300 mt-1">MP4 или WEBM</p>
+                            </>
+                          )}
                         </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                        {isPaletteLoading ? (
-                          <p className="text-sm">Загрузка...</p>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16 mb-3 text-gray-300">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                      )}
+                  </div>
+                </div>
+              )}
+
+              {/* IMAGE MODE */}
+              {type === 'image' && (
+                <>
+
+                  <div className="flex flex-col items-center" style={{ width: 340, flexShrink: 0 }}>
+                    <div className="mb-3 flex w-full items-center justify-between">
+                      <h2 className="text-sm font-semibold text-gray-700">
+                        Предпросмотр картинок
+                      </h2>
+                    </div>
+
+                    {/* Область превью + стрелки + плюс */}
+                    <div className="relative mb-3 flex items-center justify-center">
+                      {images.length > 0 ? (
+                        <div className="relative">
+                          {images.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCurrentIndex((i) =>
+                                  (i - 1 + images.length) % images.length,
+                                )
+                              }
+                              className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"
+                            >
+                              ◀
+                            </button>
+                          )}
+
+                          <div
+                            className="relative w-full rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden cursor-pointer hover:border-gray-300 hover:shadow-md transition-all"
+                            style={{
+                              width: 340,
+                              aspectRatio: '340/420',
+                            }}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <img
+                              src={currentImage?.previewUrl}
+                              alt="Предпросмотр"
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+
+                          {images.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCurrentIndex((i) => (i + 1) % images.length)
+                              }
+                              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"
+                            >
+                              ▶
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="relative flex w-full flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-gray-400 hover:bg-gray-100"
+                          style={{
+                            width: 340,
+                            aspectRatio: '340/420',
+                          }}
+                        >
+                          <div className="mb-2 rounded-full bg-white p-4 shadow-sm">
+                            <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                          </div>
+                          <p className="text-center text-sm font-medium">
+                            Загрузить картинку
+                          </p>
+                          <p className="text-center text-xs text-gray-400 mt-1">
+                            PNG, JPG up to 10MB
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {isPaletteLoading && (
+                      <p className="text-xs text-gray-500">Считаем палитру…</p>
+                    )}
+
+                    {/* Палитра цветов */}
+                    {displayMainColors.length > 0 && (
+                      <div className="relative mt-4 flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm border border-gray-100">
+                          {displayMainColors.map((c, index) => {
+                            const isSelected = isEditingPalette && selectedIndex === index;
+                            return (
+                              <button
+                                key={c + index}
+                                type="button"
+                                onClick={() => {
+                                  if (!isEditingPalette) return;
+                                  setSelectedIndex(index);
+                                  setSelectedAccentIndex(null);
+                                }}
+                                className={`flex items-center justify-center rounded-full transition-all ${isSelected
+                                  ? 'ring-2 ring-black ring-offset-2 scale-110'
+                                  : 'border border-gray-200 hover:scale-105'
+                                  }`}
+                                style={{ width: 32, height: 32 }}
+                                title={isEditingPalette ? 'Выбрать этот цвет для замены' : c}
+                              >
+                                <span
+                                  className="block rounded-full"
+                                  style={{
+                                    backgroundColor: c,
+                                    width: isSelected ? 32 : 30,
+                                    height: isSelected ? 32 : 30,
+                                  }}
+                                />
+                              </button>
+                            );
+                          })}
+
+                          {/* Акцентные цвета (3 маленьких кружка) */}
+                          {showAccentSlots && (
+                            <>
+                              <span className="mx-1 h-4 w-px bg-gray-200" />
+                              {[0, 1, 2].map((slotIdx) => {
+                                const accentColor = displayAccentColors[slotIdx];
+                                const isAccentSelected = isEditingPalette && selectedAccentIndex === slotIdx;
+                                return (
+                                  <button
+                                    key={`accent-${slotIdx}`}
+                                    type="button"
+                                    onClick={() => {
+                                      if (!isEditingPalette) return;
+
+                                      // Если слот уже выбран и есть цвет — удаляем
+                                      if (isAccentSelected && accentColor) {
+                                        setImages((prev) =>
+                                          prev.map((img, idx) => {
+                                            if (idx !== currentIndex) return img;
+                                            const newAccents = img.accentColors.filter((_, i) => i !== slotIdx);
+                                            return { ...img, accentColors: newAccents };
+                                          })
+                                        );
+                                        setSelectedAccentIndex(null);
+                                      } else {
+                                        setSelectedAccentIndex(slotIdx);
+                                        setSelectedIndex(null);
+                                      }
+                                    }}
+                                    className={`flex items-center justify-center rounded-full transition-all ${isAccentSelected
+                                      ? 'ring-2 ring-blue-500 ring-offset-1 scale-110'
+                                      : accentColor
+                                        ? 'border border-gray-200 hover:scale-105'
+                                        : 'border-2 border-dashed border-gray-300 hover:border-gray-400'
+                                      }`}
+                                    style={{ width: 22, height: 22 }}
+                                    title={
+                                      !isEditingPalette
+                                        ? accentColor || 'Акцент'
+                                        : accentColor
+                                          ? 'Выбрать для замены'
+                                          : 'Добавить акцентный цвет'
+                                    }
+                                  >
+                                    {accentColor ? (
+                                      <span
+                                        className="block rounded-full"
+                                        style={{
+                                          backgroundColor: accentColor,
+                                          width: isAccentSelected ? 22 : 18,
+                                          height: isAccentSelected ? 22 : 18,
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">+</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Кнопка редактирования (карандаш) */}
+                        {!isEditingPalette && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (!currentImage || !currentImage.mainColors) return;
+                              setIsEditingPalette(true);
+                              setDraftColors([...currentImage.mainColors.slice(0, 5)]);
+                              setSelectedIndex(0);
+                            }}
+                            className="absolute -right-12 top-1/2 -translate-y-1/2 rounded-full bg-white p-2 text-gray-500 shadow border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition"
+                            title="Редактировать цвета"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                              <path d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
                             </svg>
-                            <p className="text-sm font-medium">Нажмите или Ctrl+V</p>
-                            <p className="text-xs text-gray-300 mt-1">PNG, JPG</p>
-                          </>
+                          </button>
                         )}
                       </div>
-                    )
-                  )}
-                </div>
-
-                {/* Палитра цветов под карточкой */}
-                {((type === 'video' && videoColors.length > 0) || (type === 'image' && currentImage?.mainColors?.length)) && (
-                  <div className="mt-4 flex items-center justify-center gap-2">
-                    {(type === 'video' ? videoColors : currentImage?.mainColors ?? []).slice(0, 5).map((c, idx) => (
-                      <div
-                        key={c + idx}
-                        className="w-8 h-8 rounded-full border border-gray-200 shadow-sm"
-                        style={{ backgroundColor: c }}
-                        title={c}
-                      />
-                    ))}
+                    )}
                   </div>
-                )}
 
-                {/* Кнопка загрузки */}
-                <button
-                  type="submit"
-                  className="mt-6 w-full rounded-2xl bg-black px-6 py-3 text-white font-medium transition hover:bg-gray-800 disabled:opacity-50"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Загрузка…' : 'Загрузить'}
-                </button>
-              </div>
+                  {/* UI Редактирования (3-я колонка) */}
+                  {isEditingPalette && (
+                    <div className="flex-1 min-w-[300px] animate-in slide-in-from-right-4 fade-in duration-300">
+                      <div className="sticky top-6 w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between border-b pb-3">
+                          <span className="text-sm font-semibold text-gray-700">
+                            Палитра для замены
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                // Удаление основного цвета
+                                if (selectedIndex != null && draftColors) {
+                                  const next = [...draftColors];
+                                  next.splice(selectedIndex, 1);
+                                  setDraftColors(next.length ? next : []);
+                                  if (!next.length) {
+                                    setSelectedIndex(null);
+                                  } else {
+                                    setSelectedIndex(
+                                      Math.min(selectedIndex, next.length - 1),
+                                    );
+                                  }
+                                }
+                                // Удаление акцентного цвета
+                                else if (selectedAccentIndex != null) {
+                                  setImages((prev) =>
+                                    prev.map((img, idx) => {
+                                      if (idx !== currentIndex) return img;
+                                      const newAccents = img.accentColors.filter((_, i) => i !== selectedAccentIndex);
+                                      return { ...img, accentColors: newAccents };
+                                    })
+                                  );
+                                  setSelectedAccentIndex(null);
+                                }
+                              }}
+                              className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
+                              title="Удалить выбранный цвет"
+                            >
+                              Удалить
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (draftColors && currentImage) {
+                                  const updated = draftColors.slice(0, 5);
+                                  setImages((prev) =>
+                                    prev.map((img, idx) =>
+                                      idx === currentIndex
+                                        ? { ...img, mainColors: updated }
+                                        : img,
+                                    ),
+                                  );
+                                }
+                                setIsEditingPalette(false);
+                                setDraftColors(null);
+                                setSelectedIndex(null);
+                                setSelectedAccentIndex(null);
+                                // Скрываем акцентные слоты если нет добавленных акцентов
+                                if (!displayAccentColors.length) {
+                                  setShowAccentSlots(false);
+                                }
+                              }}
+                              className="flex items-center gap-1 rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition"
+                              title="Применить изменения"
+                            >
+                              ✓ Применить
+                            </button>
+                          </div>
+                        </div>
+
+
+                        {/* Цвета из картинки + Пипетка + Accent */}
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-500">Из картинки:</span>
+                            <div className="flex items-center gap-3">
+                              {'EyeDropper' in window && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    // Работаем с основным или акцентным цветом в зависимости от выбора
+                                    if (selectedIndex == null && selectedAccentIndex == null) return;
+                                    try {
+                                      // @ts-ignore
+                                      const eyeDropper = new window.EyeDropper();
+                                      const result = await eyeDropper.open();
+                                      if (result?.sRGBHex) {
+                                        const hex = result.sRGBHex.toUpperCase();
+                                        if (selectedIndex != null) {
+                                          setDraftColors((prev) => {
+                                            if (!prev) return prev;
+                                            const next = [...prev];
+                                            next[selectedIndex] = hex;
+                                            return next;
+                                          });
+                                        } else if (selectedAccentIndex != null) {
+                                          // Добавляем/заменяем акцентный цвет
+                                          setImages((prev) =>
+                                            prev.map((img, idx) => {
+                                              if (idx !== currentIndex) return img;
+                                              const newAccents = [...img.accentColors];
+                                              newAccents[selectedAccentIndex] = hex;
+                                              return { ...img, accentColors: newAccents.slice(0, 3) };
+                                            })
+                                          );
+                                        }
+                                      }
+                                    } catch (e) { }
+                                  }}
+                                  disabled={selectedIndex == null && selectedAccentIndex == null}
+                                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                                    <path d="m2 22 1-1h3l9-9" />
+                                    <path d="M3 21v-3l9-9" />
+                                    <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z" />
+                                  </svg>
+                                  Пипетка
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setShowAccentSlots(!showAccentSlots)}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition ${showAccentSlots
+                                  ? 'bg-purple-50 border-purple-300 text-purple-700'
+                                  : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50'
+                                  }`}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clipRule="evenodd" />
+                                </svg>
+                                Accent
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {currentBasePalette.map((c, index) => (
+                              <button
+                                key={c + index}
+                                type="button"
+                                onClick={() => {
+                                  if (selectedIndex != null) {
+                                    setDraftColors((prev) => {
+                                      if (!prev) return prev;
+                                      const next = [...prev];
+                                      next[selectedIndex] = c;
+                                      return next;
+                                    });
+                                  } else if (selectedAccentIndex != null) {
+                                    // Добавляем цвет в акцентный слот
+                                    setImages((prev) =>
+                                      prev.map((img, idx) => {
+                                        if (idx !== currentIndex) return img;
+                                        const newAccents = [...img.accentColors];
+                                        newAccents[selectedAccentIndex] = c;
+                                        return { ...img, accentColors: newAccents.slice(0, 3) };
+                                      })
+                                    );
+                                  }
+                                }}
+                                title={c}
+                                className="h-6 w-6 rounded-full border border-gray-200 hover:border-gray-400 hover:scale-110 transition shadow-sm"
+                                style={{ backgroundColor: c }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* AI Палитра */}
+                        <div className="border-t pt-3">
+                          <span className="mb-2 block text-xs text-gray-500">Базовые цвета:</span>
+                          <div className="flex flex-wrap gap-2">
+                            {COLOR_PALETTE.map((color) => {
+                              const isSelected = selectedPaletteColor === color.id;
+                              return (
+                                <button
+                                  key={color.id}
+                                  type="button"
+                                  className={`h-7 w-7 rounded-full transition-all border border-gray-200 flex items-center justify-center ${isSelected ? 'ring-2 ring-gray-900 ring-offset-1 scale-110' : 'hover:scale-110'}`}
+                                  style={{ backgroundColor: color.hex }}
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setSelectedPaletteColor(null);
+                                    } else {
+                                      setSelectedPaletteColor(color.id);
+                                    }
+                                    if (selectedIndex != null) {
+                                      setDraftColors((prev) => {
+                                        if (!prev) return prev;
+                                        const next = [...prev];
+                                        next[selectedIndex] = color.hex;
+                                        return next;
+                                      });
+                                    } else if (selectedAccentIndex != null) {
+                                      // Добавляем цвет в акцентный слот
+                                      setImages((prev) =>
+                                        prev.map((img, idx) => {
+                                          if (idx !== currentIndex) return img;
+                                          const newAccents = [...img.accentColors];
+                                          newAccents[selectedAccentIndex] = color.hex;
+                                          return { ...img, accentColors: newAccents.slice(0, 3) };
+                                        })
+                                      );
+                                    }
+                                  }}
+                                  title={color.label}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Оттенки */}
+                        {selectedPaletteColor && showShades && COLOR_SHADES[selectedPaletteColor] && (
+                          <div className="mt-3 animate-in fade-in slide-in-from-top-1">
+                            <span className="mb-2 block text-xs text-gray-500">Оттенки {COLOR_PALETTE.find(c => c.id === selectedPaletteColor)?.label}:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {COLOR_SHADES[selectedPaletteColor].map((shadeHex, idx) => (
+                                <button
+                                  key={shadeHex}
+                                  type="button"
+                                  className="h-6 w-6 rounded-full border border-gray-100 hover:scale-110 transition-transform shadow-sm"
+                                  style={{ backgroundColor: shadeHex }}
+                                  onClick={() => {
+                                    if (selectedIndex != null) {
+                                      setDraftColors((prev) => {
+                                        if (!prev) return prev;
+                                        const next = [...prev];
+                                        next[selectedIndex] = shadeHex;
+                                        return next;
+                                      });
+                                    } else if (selectedAccentIndex != null) {
+                                      // Добавляем оттенок в акцентный слот
+                                      setImages((prev) =>
+                                        prev.map((img, idx) => {
+                                          if (idx !== currentIndex) return img;
+                                          const newAccents = [...img.accentColors];
+                                          newAccents[selectedAccentIndex] = shadeHex;
+                                          return { ...img, accentColors: newAccents.slice(0, 3) };
+                                        })
+                                      );
+                                    }
+                                  }}
+                                  title={shadeHex}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Кнопка Оттенки (если выбрана база, но не открыты оттенки) */}
+                        {selectedPaletteColor && !showShades && COLOR_SHADES[selectedPaletteColor] && (
+                          <button
+                            type="button"
+                            onClick={() => setShowShades(true)}
+                            className="mt-3 w-full rounded border border-gray-200 bg-gray-50 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                          >
+                            Показать оттенки
+                          </button>
+                        )}
+                        {selectedPaletteColor && showShades && (
+                          <button
+                            type="button"
+                            onClick={() => setShowShades(false)}
+                            className="mt-3 w-full rounded border border-gray-200 bg-gray-50 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                          >
+                            Скрыть оттенки
+                          </button>
+                        )}
+
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </form>
         </>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 

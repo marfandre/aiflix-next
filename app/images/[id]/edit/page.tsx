@@ -63,6 +63,7 @@ export default function EditImagePage({ params }: PageProps) {
     const [model, setModel] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [colors, setColors] = useState<string[]>([]);
+    const [accentColors, setAccentColors] = useState<string[]>([]);
     const [activeSlot, setActiveSlot] = useState<number | null>(null); // Активный слот для добавления цвета
 
     // Загрузка данных картинки
@@ -106,6 +107,7 @@ export default function EditImagePage({ params }: PageProps) {
             setModel(image.model || '');
             setSelectedTags(image.tags || []);
             setColors(image.colors || []);
+            setAccentColors((image.accent_colors || []).filter((c: string) => c && c.trim() !== ''));
 
             setLoading(false);
         })();
@@ -130,6 +132,7 @@ export default function EditImagePage({ params }: PageProps) {
                     model: model || null,
                     tags: selectedTags.length ? selectedTags : null,
                     colors: colors.length ? colors : null,
+                    accent_colors: accentColors.length ? accentColors : null,
                 }),
             });
 
@@ -154,6 +157,17 @@ export default function EditImagePage({ params }: PageProps) {
 
     // Добавление цвета (через активный слот или в конец)
     function addColor(colorHex: string) {
+        // Если активный слот - для акцентов (100+)
+        if (activeSlot !== null && activeSlot >= 100) {
+            if (accentColors.includes(colorHex)) return; // Уже есть такой акцент
+            if (accentColors.length >= 3) return; // Максимум 3 акцента
+
+            setAccentColors(prev => [...prev, colorHex]);
+            setActiveSlot(null);
+            return;
+        }
+
+        // Иначе для основных цветов
         if (colors.includes(colorHex)) return; // Уже есть такой цвет
         if (colors.length >= 5) return; // Максимум 5
 
@@ -309,65 +323,104 @@ export default function EditImagePage({ params }: PageProps) {
                     </div>
 
                     {/* Цвета под картинкой */}
-                    <div className="mt-4 flex flex-col items-center">
-                        <label className="mb-2 block text-sm font-medium">
-                            Цвета ({colors.length}/5)
-                        </label>
-
-                        {/* Текущие выбранные цвета + кнопка добавления */}
-                        <div className="mb-3 flex flex-wrap justify-center gap-2">
-                            {colors.map((c, i) => (
-                                <button
-                                    key={c + i}
-                                    type="button"
-                                    onClick={() => removeColor(i)}
-                                    className="group flex h-8 w-8 items-center justify-center rounded-full border-2 border-white shadow-md ring-2 ring-gray-300"
-                                    style={{ backgroundColor: c }}
-                                    title="Удалить цвет"
-                                >
-                                    <span className="text-xs text-white drop-shadow-md opacity-0 transition-opacity group-hover:opacity-100">×</span>
-                                </button>
-                            ))}
-                            {/* Пустые кружочки для добавления цветов */}
-                            {Array.from({ length: 5 - colors.length }).map((_, i) => (
-                                <button
-                                    key={`empty-${i}`}
-                                    type="button"
-                                    onClick={() => setActiveSlot(colors.length + i)}
-                                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed transition ${activeSlot === colors.length + i
-                                        ? 'border-blue-500 bg-blue-50 text-blue-500'
-                                        : 'border-gray-400 text-gray-400 hover:border-gray-500'
-                                        }`}
-                                    title="Нажмите, затем выберите цвет из палитры"
-                                >
-                                    <span className="text-sm">+</span>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Палитра для выбора */}
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {COLOR_PALETTE.map((color) => {
-                                const isSelected = colors.includes(color.hex);
-                                const isDisabled = isSelected || colors.length >= 5;
-                                return (
+                    <div className="mt-4 flex justify-center items-start gap-6">
+                        {/* Основные цвета */}
+                        <div className="flex flex-col items-center">
+                            <label className="mb-2 block text-xs font-medium text-gray-600">
+                                Цвета ({colors.length}/5)
+                            </label>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {colors.map((c, i) => (
                                     <button
-                                        key={color.id}
+                                        key={c + i}
                                         type="button"
-                                        onClick={() => !isDisabled && addColor(color.hex)}
-                                        disabled={isDisabled}
-                                        className={`h-7 w-7 rounded-full border-2 transition ${isSelected
-                                            ? 'border-gray-900 ring-2 ring-gray-400 opacity-50'
-                                            : isDisabled
-                                                ? 'opacity-30 cursor-not-allowed'
-                                                : 'border-gray-200 hover:border-gray-400 hover:scale-110'
+                                        onClick={() => removeColor(i)}
+                                        className="group flex h-8 w-8 items-center justify-center rounded-full border-2 border-white shadow-md ring-2 ring-gray-300"
+                                        style={{ backgroundColor: c }}
+                                        title="Удалить цвет"
+                                    >
+                                        <span className="text-xs text-white drop-shadow-md opacity-0 transition-opacity group-hover:opacity-100">×</span>
+                                    </button>
+                                ))}
+                                {/* Пустые слоты для основных */}
+                                {Array.from({ length: 5 - colors.length }).map((_, i) => (
+                                    <button
+                                        key={`empty-${i}`}
+                                        type="button"
+                                        onClick={() => setActiveSlot(colors.length + i)}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed transition ${activeSlot === colors.length + i
+                                            ? 'border-blue-500 bg-blue-50 text-blue-500'
+                                            : 'border-gray-400 text-gray-400 hover:border-gray-500'
                                             }`}
-                                        style={{ backgroundColor: color.hex }}
-                                        title={isSelected ? `${color.label} (уже выбран)` : color.label}
-                                    />
-                                );
-                            })}
+                                        title="Нажмите, затем выберите цвет из палитры"
+                                    >
+                                        <span className="text-sm">+</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+
+                        {/* Акцентные цвета */}
+                        <div className="flex flex-col items-center">
+                            <label className="mb-2 block text-xs font-medium text-gray-600">
+                                Акценты ({accentColors.length}/3)
+                            </label>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {accentColors.map((c, i) => (
+                                    <button
+                                        key={`accent-${c}-${i}`}
+                                        type="button"
+                                        onClick={() => {
+                                            setAccentColors(prev => prev.filter((_, idx) => idx !== i));
+                                        }}
+                                        className="group flex h-6 w-6 items-center justify-center rounded-full border-2 border-white shadow-md ring-2 ring-purple-300"
+                                        style={{ backgroundColor: c }}
+                                        title="Удалить акцент"
+                                    >
+                                        <span className="text-xs text-white drop-shadow-md opacity-0 transition-opacity group-hover:opacity-100">×</span>
+                                    </button>
+                                ))}
+                                {/* Пустые слоты для акцентов */}
+                                {Array.from({ length: 3 - accentColors.length }).map((_, i) => (
+                                    <button
+                                        key={`empty-accent-${i}`}
+                                        type="button"
+                                        onClick={() => setActiveSlot(100 + accentColors.length + i)}
+                                        className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed transition ${activeSlot === 100 + accentColors.length + i
+                                            ? 'border-purple-500 bg-purple-50 text-purple-500'
+                                            : 'border-gray-400 text-gray-400 hover:border-purple-400'
+                                            }`}
+                                        title="Нажмите, затем выберите цвет для акцента"
+                                    >
+                                        <span className="text-xs">+</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Палитра для выбора */}
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {COLOR_PALETTE.map((color) => {
+                            const isSelected = colors.includes(color.hex);
+                            const isDisabled = isSelected || colors.length >= 5;
+                            return (
+                                <button
+                                    key={color.id}
+                                    type="button"
+                                    onClick={() => !isDisabled && addColor(color.hex)}
+                                    disabled={isDisabled}
+                                    className={`h-7 w-7 rounded-full border-2 transition ${isSelected
+                                        ? 'border-gray-900 ring-2 ring-gray-400 opacity-50'
+                                        : isDisabled
+                                            ? 'opacity-30 cursor-not-allowed'
+                                            : 'border-gray-200 hover:border-gray-400 hover:scale-110'
+                                        }`}
+                                    style={{ backgroundColor: color.hex }}
+                                    title={isSelected ? `${color.label} (уже выбран)` : color.label}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
             </div>

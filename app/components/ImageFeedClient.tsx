@@ -310,7 +310,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
   };
 
   // Удаление картинки
-  const deleteImage = async (imageId: string, e: React.MouseEvent) => {
+  const deleteImage = async (imageId: string, imagePath: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (!confirm('Удалить эту картинку?')) return;
@@ -318,14 +318,16 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     setDeletingId(imageId);
 
     try {
-      const { error } = await supa
-        .from('images_meta')
-        .delete()
-        .eq('id', imageId);
+      const res = await fetch('/api/images/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: imagePath }),
+      });
 
-      if (error) {
-        console.error('Delete error:', error);
-        alert('Ошибка при удалении');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error('Delete error:', data.error);
+        alert('Ошибка при удалении: ' + (data.error || 'Неизвестная ошибка'));
       } else {
         // Удаляем из локального состояния
         setImages(prev => prev.filter(im => im.id !== imageId));
@@ -416,24 +418,51 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                   {/* Круговая диаграмма цветов (всегда видна, кликабельна) */}
                   {im.colors && im.colors.length > 0 && (() => {
                     const colors = im.colors.slice(0, 5);
+                    const accentColors = (im.accent_colors ?? []).filter(c => c && c.trim() !== '').slice(0, 3);
+                    const hasAccents = accentColors.length > 0;
                     const segmentAngle = 360 / colors.length;
                     const isExpanded = expandedChartId === im.id;
-                    const size = isExpanded ? 64 : 20;
-                    const radius = size / 2;
-                    const cx = radius;
-                    const cy = radius;
 
-                    // Функция для создания пути сегмента
-                    const createSegmentPath = (startAngle: number, endAngle: number) => {
+                    // Размеры с учётом акцентного кольца и зазора
+                    const ringWidth = isExpanded ? 3.4 : 1.7; // толщина акцентного кольца
+                    const gap = isExpanded ? 2 : 1; // зазор между кругом и кольцом
+                    const baseSize = isExpanded ? 64 : 20;
+                    const size = hasAccents ? baseSize + (ringWidth + gap) * 2 : baseSize;
+                    const outerRadius = size / 2;
+                    const accentInnerRadius = hasAccents ? outerRadius - ringWidth : outerRadius; // внутренний радиус акцентного кольца
+                    const innerRadius = hasAccents ? accentInnerRadius - gap : outerRadius; // радиус основного круга
+                    const cx = outerRadius;
+                    const cy = outerRadius;
+
+                    // Функция для создания пути сегмента (для основных цветов)
+                    const createSegmentPath = (startAngle: number, endAngle: number, r: number) => {
                       const startRad = (startAngle - 90) * Math.PI / 180;
                       const endRad = (endAngle - 90) * Math.PI / 180;
-                      const x1 = cx + radius * Math.cos(startRad);
-                      const y1 = cy + radius * Math.sin(startRad);
-                      const x2 = cx + radius * Math.cos(endRad);
-                      const y2 = cy + radius * Math.sin(endRad);
+                      const x1 = cx + r * Math.cos(startRad);
+                      const y1 = cy + r * Math.sin(startRad);
+                      const x2 = cx + r * Math.cos(endRad);
+                      const y2 = cy + r * Math.sin(endRad);
                       const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-                      return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                      return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
                     };
+
+                    // Функция для создания пути кольцевого сегмента (для акцентов)
+                    const createRingSegmentPath = (startAngle: number, endAngle: number, rOuter: number, rInner: number) => {
+                      const startRad = (startAngle - 90) * Math.PI / 180;
+                      const endRad = (endAngle - 90) * Math.PI / 180;
+                      const x1Outer = cx + rOuter * Math.cos(startRad);
+                      const y1Outer = cy + rOuter * Math.sin(startRad);
+                      const x2Outer = cx + rOuter * Math.cos(endRad);
+                      const y2Outer = cy + rOuter * Math.sin(endRad);
+                      const x1Inner = cx + rInner * Math.cos(startRad);
+                      const y1Inner = cy + rInner * Math.sin(startRad);
+                      const x2Inner = cx + rInner * Math.cos(endRad);
+                      const y2Inner = cy + rInner * Math.sin(endRad);
+                      const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+                      return `M ${x1Outer} ${y1Outer} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2Outer} ${y2Outer} L ${x2Inner} ${y2Inner} A ${rInner} ${rInner} 0 ${largeArc} 0 ${x1Inner} ${y1Inner} Z`;
+                    };
+
+                    const accentSegmentAngle = accentColors.length > 0 ? 360 / accentColors.length : 360;
 
                     return (
                       <button
@@ -462,42 +491,68 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                                 <stop offset="60%" stopColor="rgba(0,0,0,0)" />
                                 <stop offset="100%" stopColor="rgba(0,0,0,0.15)" />
                               </linearGradient>
-                              {/* Маска для круга */}
-                              <clipPath id={`clip-${im.id}`}>
-                                <circle cx={radius} cy={radius} r={radius} />
+                              {/* Маска для внутреннего круга */}
+                              <clipPath id={`clip-inner-${im.id}`}>
+                                <circle cx={cx} cy={cy} r={innerRadius} />
                               </clipPath>
                             </defs>
                           )}
 
-                          {/* Сегменты */}
+                          {/* Акцентное кольцо (внешнее) */}
+                          {hasAccents && accentColors.map((color, i) => (
+                            <path
+                              key={`accent-${i}`}
+                              d={createRingSegmentPath(
+                                i * accentSegmentAngle,
+                                (i + 1) * accentSegmentAngle,
+                                outerRadius - 0.5,
+                                accentInnerRadius
+                              )}
+                              fill={color}
+                            />
+                          ))}
+
+                          {/* Основные цвета (внутренний круг) */}
                           {isExpanded ? (
-                            <g clipPath={`url(#clip-${im.id})`}>
+                            <g clipPath={`url(#clip-inner-${im.id})`}>
                               {colors.map((color, i) => (
                                 <path
                                   key={i}
-                                  d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
+                                  d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle, innerRadius)}
                                   fill={color}
                                 />
                               ))}
                               {/* Глянцевый оверлей */}
-                              <circle cx={radius} cy={radius} r={radius} fill={`url(#gloss-${im.id})`} />
+                              <circle cx={cx} cy={cy} r={innerRadius} fill={`url(#gloss-${im.id})`} />
                             </g>
                           ) : (
                             // Плоский стиль для маленькой кнопки
                             colors.map((color, i) => (
                               <path
                                 key={i}
-                                d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
+                                d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle, innerRadius)}
                                 fill={color}
                               />
                             ))
                           )}
 
-                          {/* Обводка */}
+                          {/* Внутренняя обводка (между основными и акцентами) */}
+                          {hasAccents && (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={innerRadius}
+                              fill="none"
+                              stroke="rgba(255,255,255,0.6)"
+                              strokeWidth={0.5}
+                            />
+                          )}
+
+                          {/* Внешняя обводка */}
                           <circle
-                            cx={radius}
-                            cy={radius}
-                            r={radius - 0.5}
+                            cx={cx}
+                            cy={cy}
+                            r={outerRadius - 0.5}
                             fill="none"
                             stroke={isExpanded ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)"}
                             strokeWidth={1}
@@ -561,7 +616,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                       {/* Кнопка удаления */}
                       <button
                         type="button"
-                        onClick={(e) => deleteImage(im.id, e)}
+                        onClick={(e) => deleteImage(im.id, im.path, e)}
                         disabled={deletingId === im.id}
                         className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-600 disabled:opacity-50"
                         title="Удалить"
@@ -580,233 +635,234 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
               </div>
             );
           })}
-        </Masonry>
-      </div>
+        </Masonry >
+      </div >
       {/* МОДАЛКА С КАРТИНКОЙ */}
-      {selected && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={closeModal}
-        >
-          {/* Flex контейнер для кружков + модалки */}
-          <div className="flex items-center gap-3">
-            {/* Цветовая палитра — слева от модалки */}
-            {(Array.isArray(currentColors) && currentColors.length > 0) && (
-              <div className="flex-col gap-2 hidden sm:flex items-center">
-                {/* Акцентные цвета сверху */}
-                {selected.accent_colors && selected.accent_colors.length > 0 && (
-                  selected.accent_colors.map((c, index) => (
-                    <div
-                      key={`accent-${c}-${index}`}
-                      className="rounded-full border-2 border-white/30 shadow-lg"
-                      style={{
-                        backgroundColor: c,
-                        width: 18,
-                        height: 18,
-                      }}
-                      title={`Акцент: ${c}`}
-                    />
-                  ))
-                )}
+      {
+        selected && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+            onClick={closeModal}
+          >
+            {/* Flex контейнер для кружков + модалки */}
+            <div className="flex items-center gap-3">
+              {/* Цветовая палитра — слева от модалки */}
+              {(Array.isArray(currentColors) && currentColors.length > 0) && (
+                <div className="flex-col gap-2 hidden sm:flex items-center">
+                  {/* Акцентные цвета сверху */}
+                  {selected.accent_colors && selected.accent_colors.length > 0 && (
+                    selected.accent_colors.map((c, index) => (
+                      <div
+                        key={`accent-${c}-${index}`}
+                        className="rounded-full border-2 border-white/30 shadow-lg"
+                        style={{
+                          backgroundColor: c,
+                          width: 18,
+                          height: 18,
+                        }}
+                        title={`Акцент: ${c}`}
+                      />
+                    ))
+                  )}
 
-                {/* Основные цвета */}
-                {currentColors.map((c, index) => {
-                  if (!c) return null;
-                  return (
-                    <div
-                      key={c + index}
-                      className="rounded-full border-2 border-white/30 shadow-lg"
-                      style={{
-                        backgroundColor: c,
-                        width: 28,
-                        height: 28,
-                      }}
-                      title={c}
-                    />
-                  );
-                })}
-              </div>
-            )}
+                  {/* Основные цвета */}
+                  {currentColors.map((c, index) => {
+                    if (!c) return null;
+                    return (
+                      <div
+                        key={c + index}
+                        className="rounded-full border-2 border-white/30 shadow-lg"
+                        style={{
+                          backgroundColor: c,
+                          width: 28,
+                          height: 28,
+                        }}
+                        title={c}
+                      />
+                    );
+                  })}
+                </div>
+              )}
 
-            <div
-              className="relative flex max-h-[90vh] w-auto max-w-[95vw] flex-col overflow-hidden rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Картинка с overlay */}
-              <div className="relative flex items-center justify-center bg-black">
-                {currentVariant ? (
-                  <>
-                    <img
-                      ref={imageRef}
-                      src={publicImageUrl(currentVariant.path)}
-                      alt={(selected.title ?? "").trim() || "Картинка"}
-                      className="max-h-[90vh] w-auto max-w-full object-contain"
-                      onLoad={() => {
-                        if (imageRef.current) {
-                          setImageWidth(imageRef.current.offsetWidth);
-                        }
-                      }}
-                    />
-
-                    {hasCarousel && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSlideIndex(
-                              (i) =>
-                                (i - 1 + variants.length) % variants.length
-                            )
+              <div
+                className="relative flex max-h-[90vh] w-auto max-w-[95vw] flex-col overflow-hidden rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Картинка с overlay */}
+                <div className="relative flex items-center justify-center bg-black">
+                  {currentVariant ? (
+                    <>
+                      <img
+                        ref={imageRef}
+                        src={publicImageUrl(currentVariant.path)}
+                        alt={(selected.title ?? "").trim() || "Картинка"}
+                        className="max-h-[90vh] w-auto max-w-full object-contain"
+                        onLoad={() => {
+                          if (imageRef.current) {
+                            setImageWidth(imageRef.current.offsetWidth);
                           }
-                          className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                          title="Предыдущее изображение"
-                        >
-                          <span className="block text-lg leading-none text-white transition-transform group-hover:-translate-x-0.5">
-                            ‹
-                          </span>
-                        </button>
+                        }}
+                      />
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSlideIndex((i) => (i + 1) % variants.length)
-                          }
-                          className="group absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                        >
-                          <span className="block text-lg leading-none text-white transition-transform group-hover:translate-x-0.5">
-                            ›
-                          </span>
-                        </button>
-
-                        <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 gap-1">
-                          {variants.map((v, idx) => (
-                            <button
-                              key={v.path + idx}
-                              type="button"
-                              onClick={() => setSlideIndex(idx)}
-                              className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
-                                ? "bg-white"
-                                : "bg-white/40"
-                                }`}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    {/* Всплывающее окно с промтом */}
-                    <PromptModal
-                      prompt={selected.prompt}
-                      description={selected.description}
-                      isOpen={showPrompt}
-                      onClose={() => setShowPrompt(false)}
-                    />
-
-                    {/* Оптическое стекло effect */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-3 border-t border-white/30">
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
-
-                        {/* Кнопка Промт + Дата */}
-                        <div className="flex flex-col items-center gap-0.5">
+                      {hasCarousel && (
+                        <>
                           <button
                             type="button"
-                            onClick={() => setShowPrompt(true)}
-                            className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
+                            onClick={() =>
+                              setSlideIndex(
+                                (i) =>
+                                  (i - 1 + variants.length) % variants.length
+                              )
+                            }
+                            className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
+                            title="Предыдущее изображение"
                           >
-                            <svg
-                              aria-hidden="true"
-                              viewBox="0 0 24 24"
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                            >
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <polyline points="14 2 14 8 20 8" />
-                              <line x1="16" y1="13" x2="8" y2="13" />
-                              <line x1="16" y1="17" x2="8" y2="17" />
-                            </svg>
-                            Промт
-                          </button>
-                          {selected.created_at && (
-                            <span className="text-[10px] text-white/50">
-                              {formatDate(selected.created_at)}
+                            <span className="block text-lg leading-none text-white transition-transform group-hover:-translate-x-0.5">
+                              ‹
                             </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSlideIndex((i) => (i + 1) % variants.length)
+                            }
+                            className="group absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
+                          >
+                            <span className="block text-lg leading-none text-white transition-transform group-hover:translate-x-0.5">
+                              ›
+                            </span>
+                          </button>
+
+                          <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 gap-1">
+                            {variants.map((v, idx) => (
+                              <button
+                                key={v.path + idx}
+                                type="button"
+                                onClick={() => setSlideIndex(idx)}
+                                className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
+                                  ? "bg-white"
+                                  : "bg-white/40"
+                                  }`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Всплывающее окно с промтом */}
+                      <PromptModal
+                        prompt={selected.prompt}
+                        description={selected.description}
+                        isOpen={showPrompt}
+                        onClose={() => setShowPrompt(false)}
+                      />
+
+                      {/* Оптическое стекло effect */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-white/15 backdrop-blur-sm backdrop-brightness-110 backdrop-contrast-125 p-3 border-t border-white/30">
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
+
+                          {/* Кнопка Промт + Дата */}
+                          <div className="flex flex-col items-center gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setShowPrompt(true)}
+                              className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                className="h-3.5 w-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="16" y1="13" x2="8" y2="13" />
+                                <line x1="16" y1="17" x2="8" y2="17" />
+                              </svg>
+                              Промт
+                            </button>
+                            {selected.created_at && (
+                              <span className="text-[10px] text-white/50">
+                                {formatDate(selected.created_at)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Автор */}
+                          {(() => {
+                            const p = Array.isArray(selected.profiles)
+                              ? selected.profiles[0]
+                              : selected.profiles;
+                            const nick: string = p?.username ?? "user";
+                            const avatar: string | null = p?.avatar_url ?? null;
+                            return (
+                              <Link
+                                href={`/u/${encodeURIComponent(nick)}`}
+                                className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                              >
+                                {avatar && (
+                                  <img
+                                    src={avatar}
+                                    alt={nick}
+                                    className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                                  />
+                                )}
+                                <span className="text-white">{nick}</span>
+                              </Link>
+                            );
+                          })()}
+
+                          {/* Модель */}
+                          <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                            {formatModelName(selected.model)}
+                          </span>
+
+                          {/* Теги inline */}
+                          {selected.tags && selected.tags.length > 0 && (
+                            <>
+                              {selected.tags.slice(0, 3).map((tagWithLang) => {
+                                let tagId = tagWithLang;
+                                let lang: 'ru' | 'en' = 'ru';
+                                if (tagWithLang.endsWith(':en')) {
+                                  tagId = tagWithLang.slice(0, -3);
+                                  lang = 'en';
+                                } else if (tagWithLang.endsWith(':ru')) {
+                                  tagId = tagWithLang.slice(0, -3);
+                                  lang = 'ru';
+                                }
+                                const tagNames = tagsMap[tagId];
+                                const displayName = tagNames ? tagNames[lang] : tagId;
+
+                                return (
+                                  <span
+                                    key={tagWithLang}
+                                    className="rounded-full bg-white/20 px-2 py-0.5"
+                                  >
+                                    {displayName}
+                                  </span>
+                                );
+                              })}
+                              {selected.tags.length > 3 && (
+                                <span className="text-white/60">+{selected.tags.length - 3}</span>
+                              )}
+                            </>
                           )}
                         </div>
-
-                        {/* Автор */}
-                        {(() => {
-                          const p = Array.isArray(selected.profiles)
-                            ? selected.profiles[0]
-                            : selected.profiles;
-                          const nick: string = p?.username ?? "user";
-                          const avatar: string | null = p?.avatar_url ?? null;
-                          return (
-                            <Link
-                              href={`/u/${encodeURIComponent(nick)}`}
-                              className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
-                            >
-                              {avatar && (
-                                <img
-                                  src={avatar}
-                                  alt={nick}
-                                  className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
-                                />
-                              )}
-                              <span className="text-white">{nick}</span>
-                            </Link>
-                          );
-                        })()}
-
-                        {/* Модель */}
-                        <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
-                          {formatModelName(selected.model)}
-                        </span>
-
-                        {/* Теги inline */}
-                        {selected.tags && selected.tags.length > 0 && (
-                          <>
-                            {selected.tags.slice(0, 3).map((tagWithLang) => {
-                              let tagId = tagWithLang;
-                              let lang: 'ru' | 'en' = 'ru';
-                              if (tagWithLang.endsWith(':en')) {
-                                tagId = tagWithLang.slice(0, -3);
-                                lang = 'en';
-                              } else if (tagWithLang.endsWith(':ru')) {
-                                tagId = tagWithLang.slice(0, -3);
-                                lang = 'ru';
-                              }
-                              const tagNames = tagsMap[tagId];
-                              const displayName = tagNames ? tagNames[lang] : tagId;
-
-                              return (
-                                <span
-                                  key={tagWithLang}
-                                  className="rounded-full bg-white/20 px-2 py-0.5"
-                                >
-                                  {displayName}
-                                </span>
-                              );
-                            })}
-                            {selected.tags.length > 3 && (
-                              <span className="text-white/60">+{selected.tags.length - 3}</span>
-                            )}
-                          </>
-                        )}
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-white/60 p-8">
-                    Не удалось загрузить изображение.
-                  </p>
-                )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-white/60 p-8">
+                      Не удалось загрузить изображение.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )
+        )
       }
     </>
   );
