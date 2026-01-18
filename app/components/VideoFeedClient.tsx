@@ -11,6 +11,7 @@ type Props = {
     userId: string | null;
     initialVideos?: VideoRow[];  // Для использования в профиле (пропускает загрузку из БД)
     showAuthor?: boolean;        // Показывать ли аватар автора (по умолчанию true)
+    isOwnerView?: boolean;       // True если это профиль владельца (показывает удаление)
 };
 
 type VideoRow = {
@@ -59,7 +60,7 @@ function muxPoster(playback_id: string | null) {
         : "/placeholder.png";
 }
 
-export default function VideoFeedClient({ userId, initialVideos, showAuthor = true }: Props) {
+export default function VideoFeedClient({ userId, initialVideos, showAuthor = true, isOwnerView = false }: Props) {
     const [videos, setVideos] = useState<VideoRow[]>(initialVideos ?? []);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<VideoRow | null>(null);
@@ -67,6 +68,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
     const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
     const [hoveredVideoId, setHoveredVideoId] = useState<string | null>(null);  // Для hover-to-play
     const [mp4FailedIds, setMp4FailedIds] = useState<Set<string>>(new Set());  // Видео без MP4 support
+    const [deletingId, setDeletingId] = useState<string | null>(null);  // Для анимации удаления
 
     // Dynamic color cycling - накапливаем цвета в очереди
     const [colorQueue, setColorQueue] = useState<Record<string, string[]>>({});
@@ -81,6 +83,9 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
     // Ref для видео в модалке — для умного autoplay со звуком
     const modalVideoRef = useRef<HTMLVideoElement | null>(null);
+
+    // Refs для preview видео на карточках — для сброса времени на 0
+    const previewVideoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
     // Функция рестарта CSS анимации через DOM
     const restartAnimation = useCallback((videoId: string) => {
@@ -201,9 +206,56 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
         };
     }, [supa]);
 
+    // Таймер для циклической смены цветов синхронно с видео
+    useEffect(() => {
+        if (!cyclingVideoId) return;
+
+        // Сбрасываем индекс на 0 при старте
+        setColorTimeIndex(prev => ({ ...prev, [cyclingVideoId]: 0 }));
+
+        // Каждую секунду увеличиваем индекс (0 -> 1 -> 2 -> 3 -> 4 -> 0...)
+        const interval = setInterval(() => {
+            setColorTimeIndex(prev => {
+                const current = prev[cyclingVideoId!] ?? 0;
+                const next = (current + 1) % 5; // 5 кадров = 5 секунд
+                return { ...prev, [cyclingVideoId!]: next };
+            });
+        }, 1000); // каждую секунду
+
+        return () => clearInterval(interval);
+    }, [cyclingVideoId]);
+
     const closeModal = () => {
         setSelected(null);
         setShowPrompt(false);
+    };
+
+    // Удаление видео
+    const deleteVideo = async (videoId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (!confirm('Удалить это видео?')) return;
+
+        setDeletingId(videoId);
+
+        try {
+            const res = await fetch('/api/videos/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videoId }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                console.error('Delete error:', data.error);
+                alert('Ошибка при удалении: ' + (data.error || 'Неизвестная ошибка'));
+            } else {
+                // Удаляем из локального состояния
+                setVideos(prev => prev.filter(v => v.id !== videoId));
+            }
+        } finally {
+            setDeletingId(null);
+        }
     };
 
     // Умный autoplay — сначала пробуем со звуком, если блокируется — тогда muted
@@ -337,9 +389,9 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 className="group relative mb-3"
                                 onMouseEnter={() => {
                                     setHoveredVideoId(v.id);
-                                    // Сразу запускаем анимацию с базовыми цветами
+                                    // Запускаем анимацию капсулы сразу вместе с WebP
                                     setCyclingVideoId(v.id);
-                                    // Новый ключ для рестарта GIF и анимации капсулы
+                                    // Новый ключ для рестарта анимации капсулы
                                     setHoverKeys(prev => ({ ...prev, [v.id]: Date.now() }));
                                 }}
                                 onMouseLeave={() => {
@@ -357,15 +409,6 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     }}
                                 >
 
-                                    {/* Preload WebP в кэш браузера для мгновенного hover */}
-                                    {v.playback_id && (
-                                        <link
-                                            rel="preload"
-                                            as="image"
-                                            href={`https://image.mux.com/${v.playback_id}/animated.webp?fps=15&width=640`}
-                                        />
-                                    )}
-
                                     {/* Статичный постер (всегда виден как fallback) */}
                                     <img
                                         src={muxPoster(v.playback_id)}
@@ -377,10 +420,11 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         }}
                                     />
 
-                                    {/* WebP превью при hover — мгновенный старт из кэша */}
+                                    {/* WebP превью при hover — с cache buster для старта сначала */}
                                     {v.playback_id && hoveredVideoId === v.id && (
                                         <img
-                                            src={`https://image.mux.com/${v.playback_id}/animated.webp?fps=15&width=640`}
+                                            key={`webp-${v.id}-${hoverKeys[v.id] || 0}`}
+                                            src={`https://image.mux.com/${v.playback_id}/animated.webp?fps=15&width=640&t=${hoverKeys[v.id] || 0}`}
                                             alt="Preview"
                                             className="absolute inset-0 w-full h-full z-10"
                                             style={{
@@ -425,31 +469,35 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                                     border: '1px solid rgba(255,255,255,0.4)',
                                                 }}
                                             >
-                                                {/* Бегущая строка — синхронизирована с 5-секундным GIF */}
+                                                {/* 3 цвета текущего кадра — меняются каждую секунду */}
                                                 {(() => {
-                                                    // Ширина всех цветов
-                                                    const totalColorsWidth = colors.length * stripeWidth;
-                                                    // Сдвиг = все цвета минус видимое окно (5 полосок)
-                                                    const visibleSlots = 5;
-                                                    const shiftDistance = Math.max(0, (colors.length - visibleSlots) * stripeWidth);
-                                                    // Длительность = 5 секунд (как GIF)
-                                                    const animationDuration = 5;
+                                                    // Текущий индекс кадра (0-4)
+                                                    const frameIndex = colorTimeIndex[v.id] ?? 0;
+                                                    // 3 цвета для текущего кадра (индексы: 0-2, 3-5, 6-8, 9-11, 12-14)
+                                                    const startIdx = frameIndex * 3;
+                                                    const frameColors = colors.slice(startIdx, startIdx + 3);
+
+                                                    // Если цветов меньше 3, дублируем последний
+                                                    while (frameColors.length < 3 && frameColors.length > 0) {
+                                                        frameColors.push(frameColors[frameColors.length - 1]);
+                                                    }
 
                                                     return (
                                                         <div
-                                                            ref={(el) => { animationRefs.current[v.id] = el; }}
-                                                            className="h-full"
-                                                            style={{
-                                                                width: totalColorsWidth * 2,
-                                                                animation: isCycling
-                                                                    ? `colorScroll ${animationDuration}s linear infinite`
-                                                                    : 'none',
-                                                                // Сдвиг на половину (все цвета) для бесшовного цикла
-                                                                ['--shift-distance' as string]: `-${totalColorsWidth}px`,
-                                                                // Градиент с плавными переходами между цветами
-                                                                background: `linear-gradient(to right, ${[...colors, ...colors].join(', ')})`,
-                                                            }}
-                                                        />
+                                                            className="h-full flex transition-all duration-300"
+                                                            style={{ width: '100%' }}
+                                                        >
+                                                            {frameColors.map((color, idx) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="h-full transition-all duration-300"
+                                                                    style={{
+                                                                        width: stripeWidth,
+                                                                        backgroundColor: color,
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                        </div>
                                                     );
                                                 })()}
                                             </div>
@@ -490,6 +538,27 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         />
                                     </div>
                                 </div>
+
+                                {/* Кнопка удаления (только для владельца) */}
+                                {isOwnerView && (
+                                    <div className="pointer-events-none absolute top-2 right-2 z-30 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => deleteVideo(v.id, e)}
+                                            disabled={deletingId === v.id}
+                                            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-600 disabled:opacity-50"
+                                            title="Удалить видео"
+                                        >
+                                            {deletingId === v.id ? (
+                                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                            ) : (
+                                                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

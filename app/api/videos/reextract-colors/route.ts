@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         };
 
         // Извлекаем цвета из 5 кадров (каждую секунду первых 5 сек)
-        const timestamps = [1, 2, 3, 4, 5];
+        const timestamps = [0, 1, 2, 3, 4];
         console.log(`Starting color extraction for playback_id: ${playback_id}`);
         console.log(`Timestamps: ${timestamps.join(', ')}`);
 

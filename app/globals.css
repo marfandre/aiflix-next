@@ -93,6 +93,18 @@ body {
     }
 }
 
+/* Однократный скролл цветов — без зацикливания */
+@keyframes colorScrollOnce {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        /* Сдвигаемся до конца и останавливаемся */
+        transform: translateX(var(--shift-distance, 0));
+    }
+}
+
 /* Video controls скрыты по умолчанию, появляются при hover */
 .video-hover-controls::-webkit-media-controls {
     opacity: 0;

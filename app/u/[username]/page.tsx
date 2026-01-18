@@ -193,6 +193,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
           <VideoFeedClient
             userId={currentUserId}
             initialVideos={videosForFeed}
+            isOwnerView={isOwn}
           />
         ) : (
           <div className="text-sm text-gray-500">Здесь пока нет видео.</div>

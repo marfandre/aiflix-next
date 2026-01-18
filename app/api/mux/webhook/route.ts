@@ -184,8 +184,8 @@ export async function POST(req: NextRequest) {
             ];
           };
 
-          // Извлекаем цвета из 5 кадров (каждую секунду первых 5 секунд) параллельно
-          const timestamps = [1, 2, 3, 4, 5];
+          // Извлекаем цвета из 5 кадров (начиная с 0 секунды, как WebP)
+          const timestamps = [0, 1, 2, 3, 4];
           console.log(`Starting color extraction for playback_id: ${playback_id}`);
 
           const frameResults = await Promise.all(
