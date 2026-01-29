@@ -448,6 +448,19 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
                     // Функция для создания пути кольцевого сегмента (для акцентов)
                     const createRingSegmentPath = (startAngle: number, endAngle: number, rOuter: number, rInner: number) => {
+                      const angleDiff = endAngle - startAngle;
+
+                      // Для полного круга (360°) нужен особый путь — два полукруга
+                      if (angleDiff >= 359.9) {
+                        // Полное кольцо: внешний круг по часовой, внутренний против часовой
+                        return `M ${cx} ${cy - rOuter} 
+                                A ${rOuter} ${rOuter} 0 1 1 ${cx} ${cy + rOuter} 
+                                A ${rOuter} ${rOuter} 0 1 1 ${cx} ${cy - rOuter} 
+                                M ${cx} ${cy - rInner} 
+                                A ${rInner} ${rInner} 0 1 0 ${cx} ${cy + rInner} 
+                                A ${rInner} ${rInner} 0 1 0 ${cx} ${cy - rInner} Z`;
+                      }
+
                       const startRad = (startAngle - 90) * Math.PI / 180;
                       const endRad = (endAngle - 90) * Math.PI / 180;
                       const x1Outer = cx + rOuter * Math.cos(startRad);
@@ -458,7 +471,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                       const y1Inner = cy + rInner * Math.sin(startRad);
                       const x2Inner = cx + rInner * Math.cos(endRad);
                       const y2Inner = cy + rInner * Math.sin(endRad);
-                      const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+                      const largeArc = angleDiff > 180 ? 1 : 0;
                       return `M ${x1Outer} ${y1Outer} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2Outer} ${y2Outer} L ${x2Inner} ${y2Inner} A ${rInner} ${rInner} 0 ${largeArc} 0 ${x1Inner} ${y1Inner} Z`;
                     };
 

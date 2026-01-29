@@ -51,6 +51,8 @@ const EXTRA_REPLACEMENT_COLORS: string[] = [
 
 type ExtractedPalette = {
   colors: string[];
+  colorWeights: number[];  // Веса цветов (процент площади)
+  colorNames: string[];    // NTC названия цветов
   accentColors: string[];
 };
 
@@ -72,6 +74,8 @@ async function extractColorsFromFile(file: File): Promise<ExtractedPalette | nul
     const data = await res.json();
     return {
       colors: data.colors ?? [],
+      colorWeights: data.colorWeights ?? [],
+      colorNames: data.colorNames ?? [],
       accentColors: data.accentColors ?? [],
     };
   } catch (err) {
@@ -165,6 +169,8 @@ type LocalImage = {
   file: File;
   previewUrl: string;
   mainColors: string[];
+  colorWeights: number[];  // Веса цветов
+  colorNames: string[];    // NTC названия
   accentColors: string[];  // Акцентные цвета
   basePalette: string[];
 };
@@ -298,6 +304,8 @@ export default function UploadPage() {
         const paletteResult = await extractColorsFromFile(f);
         const fullPalette = paletteResult?.colors ?? [];
         const main = fullPalette.slice(0, 5);
+        const weights = paletteResult?.colorWeights?.slice(0, 5) ?? [];
+        const names = paletteResult?.colorNames?.slice(0, 5) ?? [];
         // Акценты не определяем автоматически — пользователь добавит сам через кнопку Accent
 
         newLocalImages.push({
@@ -305,6 +313,8 @@ export default function UploadPage() {
           previewUrl: url,
           basePalette: fullPalette,
           mainColors: main,
+          colorWeights: weights,
+          colorNames: names,
           accentColors: [], // Пустой — пользователь добавит сам
         });
       } catch (err) {
@@ -314,6 +324,8 @@ export default function UploadPage() {
           previewUrl: url,
           basePalette: [],
           mainColors: [],
+          colorWeights: [],
+          colorNames: [],
           accentColors: [],
         });
       }
@@ -430,7 +442,7 @@ export default function UploadPage() {
       } else {
         // ---------- IMAGE (карусель) ----------
         // 1) Заливаем каждый файл в storage
-        const uploaded: { path: string; colors: string[]; accentColors: string[] }[] = [];
+        const uploaded: { path: string; colors: string[]; colorWeights: number[]; colorNames: string[]; accentColors: string[] }[] = [];
 
         for (const img of images) {
           const startRes = await fetch('/api/images/start', {
@@ -461,6 +473,16 @@ export default function UploadPage() {
               ? img.mainColors.slice(0, 5)
               : [];
 
+          const colorWeightsToSave =
+            img.colorWeights && img.colorWeights.length
+              ? img.colorWeights.slice(0, 5)
+              : [];
+
+          const colorNamesToSave =
+            img.colorNames && img.colorNames.length
+              ? img.colorNames.slice(0, 5)
+              : [];
+
           const accentColorsToSave =
             img.accentColors && img.accentColors.length
               ? img.accentColors.slice(0, 3)
@@ -469,6 +491,8 @@ export default function UploadPage() {
           uploaded.push({
             path: startData.path,
             colors: colorsToSave,
+            colorWeights: colorWeightsToSave,
+            colorNames: colorNamesToSave,
             accentColors: accentColorsToSave,
           });
         }

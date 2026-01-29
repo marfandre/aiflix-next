@@ -340,6 +340,7 @@ export async function GET(req: NextRequest) {
     id: string;
     title: string | null;
     colors: string[] | null;
+    color_weights: number[] | null; // Веса цветов (процент площади)
     tags: string[] | null;
     model: string | null;
     path: string | null;
@@ -398,7 +399,7 @@ export async function GET(req: NextRequest) {
     let q: any = supabase
       .from("images_meta")
       .select(
-        "id, title, colors, tags, model, path, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
+        "id, title, colors, color_weights, tags, model, path, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
       )
       .order("created_at", { ascending: false });
 
@@ -634,28 +635,53 @@ export async function GET(req: NextRequest) {
       }
 
       // Фильтруем и считаем score для каждой картинки
+      // Score учитывает вес цвета — больший вес = лучший результат
       const scoredImages: { img: ImageRow; score: number }[] = [];
 
       for (const img of resultImages) {
         const imgColors = (img.colors || []).map((c: string) => c.toLowerCase());
+        const imgWeights = img.color_weights || [];
         if (imgColors.length === 0) continue;
 
         // Для каждого искомого цвета — проверяем есть ли похожий в картинке
         let allColorsMatch = true;
         let totalScore = 0;
+        let totalWeight = 0;
 
         for (const searchHex of searchHexColors) {
-          const result = findBestMatch(searchHex, imgColors);
-          if (!result.match) {
+          // Найти индекс совпадающего цвета для получения веса
+          let bestMatchIndex = -1;
+          let bestMatchScore = Infinity;
+
+          for (let i = 0; i < imgColors.length; i++) {
+            const result = compareColors(searchHex, imgColors[i]);
+            if (result.match && result.score < bestMatchScore) {
+              bestMatchScore = result.score;
+              bestMatchIndex = i;
+            }
+          }
+
+          if (bestMatchIndex === -1) {
             allColorsMatch = false;
             break;
           }
-          totalScore += result.score;
+
+          // Вес цвета (если есть) или fallback по позиции
+          const weight = imgWeights[bestMatchIndex] ?? (100 - bestMatchIndex * 20);
+          totalWeight += weight;
+          totalScore += bestMatchScore;
         }
 
         if (allColorsMatch) {
-          const avgScore = totalScore / searchHexColors.length;
-          scoredImages.push({ img, score: avgScore });
+          // Совмещаем deltaE score и вес (weight) для финального скора
+          // Высокий вес = низкий score (лучше)
+          const avgDeltaE = totalScore / searchHexColors.length;
+          const avgWeight = totalWeight / searchHexColors.length;
+          // Инвертируем вес: 100 → 0, 0 → 100
+          const weightScore = 100 - avgWeight;
+          // Финальный скор: вес важнее чем deltaE
+          const finalScore = weightScore * 2 + avgDeltaE;
+          scoredImages.push({ img, score: finalScore });
         }
       }
 

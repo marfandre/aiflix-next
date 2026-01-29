@@ -10,6 +10,7 @@ import { createClient as createService } from "@supabase/supabase-js";
 type IncomingImage = {
   path?: string;
   colors?: string[] | null;
+  colorWeights?: number[] | null; // Веса цветов (процент площади)
   colorNames?: string[] | null;  // NTC названия цветов для поиска
   accentColors?: string[] | null; // Акцентные цвета
 };
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
       images, // основной вариант: массив
       path,
       colors,
+      colorWeights,  // Веса цветов
       colorNames,  // NTC названия цветов
       accentColors, // Акцентные цвета
       title,
@@ -191,6 +193,18 @@ export async function POST(req: Request) {
         .filter(Boolean)
         .slice(0, 3);
 
+      // Веса цветов (процент площади)
+      const rawColorWeights: number[] =
+        (Array.isArray(img.colorWeights) && img.colorWeights.length
+          ? img.colorWeights
+          : Array.isArray(colorWeights) && colorWeights.length
+            ? colorWeights
+            : []) as number[];
+
+      const normalizedColorWeights = rawColorWeights
+        .filter((w) => typeof w === 'number' && !isNaN(w))
+        .slice(0, 5);
+
       return {
         user_id: user.id,
         path: img.path,
@@ -200,6 +214,9 @@ export async function POST(req: Request) {
 
         // сырые HEX — для отображения палитры
         colors: normalizedColors.length ? normalizedColors : null,
+
+        // Веса цветов (процент площади)
+        color_weights: normalizedColorWeights.length ? normalizedColorWeights : null,
 
         // Акцентные цвета (до 3)
         accent_colors: normalizedAccentColors.length ? normalizedAccentColors : null,

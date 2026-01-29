@@ -118,6 +118,7 @@ interface PaletteOptions {
 
 interface ExtractedColors {
   dominant: string[];      // Основные цвета (по площади)
+  dominantWeights: number[]; // Веса (процент площади)
   accent: string[];        // Акцентные цвета (яркие, но малая площадь)
   dominantNames: string[]; // NTC названия основных
   accentNames: string[];   // NTC названия акцентных
@@ -181,7 +182,7 @@ async function extractColorsWithAccents(
   }
 
   if (pixels.length === 0) {
-    return { dominant: [], accent: [], dominantNames: [], accentNames: [] };
+    return { dominant: [], dominantWeights: [], accent: [], dominantNames: [], accentNames: [] };
   }
 
   const sampledPixels = pixels.length;
@@ -191,13 +192,13 @@ async function extractColorsWithAccents(
   const result = quantize(pixels, 20); // Берём больше для анализа
 
   if (!result) {
-    return { dominant: [], accent: [], dominantNames: [], accentNames: [] };
+    return { dominant: [], dominantWeights: [], accent: [], dominantNames: [], accentNames: [] };
   }
 
   const palette = result.palette();
 
   if (!palette || palette.length === 0) {
-    return { dominant: [], accent: [], dominantNames: [], accentNames: [] };
+    return { dominant: [], dominantWeights: [], accent: [], dominantNames: [], accentNames: [] };
   }
 
   // Подсчитываем метаданные для каждого цвета палитры
@@ -306,6 +307,7 @@ async function extractColorsWithAccents(
 
   return {
     dominant: dominantColors.map(c => c.hex),
+    dominantWeights: dominantColors.map(c => Math.round(c.percentage * 10) / 10), // Округляем до 0.1%
     accent: accentColors.map(c => c.hex),
     dominantNames: dominantColors.map(c => getName(c.hex)),
     accentNames: accentColors.map(c => getName(c.hex)),
@@ -350,6 +352,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       algorithm: 'mmcq-accent',
       colors: result.dominant,
+      colorWeights: result.dominantWeights, // Веса цветов (процент площади)
       colorNames: result.dominantNames,
       accentColors: result.accent,
       accentColorNames: result.accentNames,
