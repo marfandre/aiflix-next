@@ -767,22 +767,28 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                 {/* Цветовая палитра для мобильных — горизонтально по центру сверху */}
                 {(Array.isArray(currentColors) && currentColors.length > 0) && (
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:hidden">
-                    {/* Основные цвета (слева) */}
+                    {/* Основные цвета */}
                     {currentColors.map((c, index) => {
                       if (!c) return null;
+                      const isHovered = modalHoveredColor === index;
                       return (
                         <div
                           key={`mob-${c}-${index}`}
-                          className="rounded-full border border-white/40 shadow-md"
+                          className={`rounded-full shadow-md cursor-pointer transition-all duration-150
+                            ${isHovered ? 'border border-white' : 'border border-white/40'}`}
                           style={{
                             backgroundColor: c,
                             width: 20,
                             height: 20,
                           }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalHoveredColor(isHovered ? null : index);
+                          }}
                         />
                       );
                     })}
-                    {/* Акцентные цвета (справа) */}
+                    {/* Акцентные цвета */}
                     {selected.accent_colors && selected.accent_colors.length > 0 && (
                       selected.accent_colors.map((c, index) => (
                         <div
