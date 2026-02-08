@@ -22,6 +22,12 @@ type Props = {
   isOwnerView?: boolean;       // Труе если это профиль владельца (показывает редактирование/удаление)
 };
 
+type ColorPosition = {
+  hex: string;
+  x: number;
+  y: number;
+};
+
 type ImageRow = {
   id: string;
   user_id: string | null;
@@ -31,7 +37,8 @@ type ImageRow = {
   prompt?: string | null;
   created_at: string | null;
   colors: string[] | null;
-  accent_colors?: string[] | null;  // Акцентные цвета
+  accent_colors?: string[] | null;
+  color_positions?: ColorPosition[] | null;
   model?: string | null;
   tags?: string[] | null;
   images_count?: number | null;
@@ -97,6 +104,8 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
   const [slideIndex, setSlideIndex] = useState(0);
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [expandedChartId, setExpandedChartId] = useState<string | null>(null);
+  const [hoveredColor, setHoveredColor] = useState<{ imageId: string; index: number } | null>(null);
+  const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
   const [imageWidth, setImageWidth] = useState<number | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -132,7 +141,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       let query = supa
         .from("images_meta")
         .select(
-          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, model, tags, images_count, profiles(username, avatar_url)"
+          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, tags, images_count, profiles(username, avatar_url)"
         )
         .order("created_at", { ascending: false })
         .limit(60);
@@ -264,7 +273,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       // Подгружаем свежие данные изображения из БД
       const { data: freshData, error: freshError } = await supa
         .from("images_meta")
-        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, model, tags, images_count, profiles(username, avatar_url)")
+        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, tags, images_count, profiles(username, avatar_url)")
         .eq("id", im.id)
         .single();
 
@@ -307,6 +316,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     setSlideIndex(0);
     setVariantsLoading(false);
     setShowPrompt(false);
+    setModalHoveredColor(null);
   };
 
   // Удаление картинки
@@ -405,6 +415,29 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                     }}
                   />
 
+                  {/* Цветовой маркер на картинке при hover на сегмент диаграммы */}
+                  {hoveredColor && hoveredColor.imageId === im.id && im.color_positions && im.color_positions[hoveredColor.index] && (() => {
+                    const pos = im.color_positions[hoveredColor.index];
+                    const color = im.colors?.[hoveredColor.index] ?? pos.hex;
+                    return (
+                      <div
+                        className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
+                        style={{
+                          left: `${pos.x * 100}%`,
+                          top: `${pos.y * 100}%`,
+                        }}
+                      >
+                        <div
+                          className="w-6 h-6 rounded-full border-[1.5px] border-white"
+                          style={{
+                            backgroundColor: color,
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                          }}
+                        />
+                      </div>
+                    );
+                  })()}
+
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
@@ -483,6 +516,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                         onClick={(e) => {
                           e.stopPropagation();
                           setExpandedChartId(isExpanded ? null : im.id);
+                          if (isExpanded) setHoveredColor(null);
                         }}
                         className={`absolute rounded-full z-10 transition-all duration-300 cursor-pointer ${isExpanded ? 'bottom-2 right-2' : 'bottom-2 right-2'}`}
                         style={{
@@ -533,10 +567,23 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                                   key={i}
                                   d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle, innerRadius)}
                                   fill={color}
+                                  className="transition-opacity duration-150"
+                                  style={{
+                                    opacity: hoveredColor && hoveredColor.imageId === im.id && hoveredColor.index !== i ? 0.4 : 1,
+                                    cursor: 'pointer',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.stopPropagation();
+                                    setHoveredColor({ imageId: im.id, index: i });
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.stopPropagation();
+                                    setHoveredColor(null);
+                                  }}
                                 />
                               ))}
                               {/* Глянцевый оверлей */}
-                              <circle cx={cx} cy={cy} r={innerRadius} fill={`url(#gloss-${im.id})`} />
+                              <circle cx={cx} cy={cy} r={innerRadius} fill={`url(#gloss-${im.id})`} pointerEvents="none" />
                             </g>
                           ) : (
                             // Плоский стиль для маленькой кнопки
@@ -681,16 +728,20 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                   {/* Основные цвета */}
                   {currentColors.map((c, index) => {
                     if (!c) return null;
+                    const isHovered = modalHoveredColor === index;
                     return (
                       <div
                         key={c + index}
-                        className="rounded-full border-2 border-white/30 shadow-lg"
+                        className={`rounded-full shadow-lg cursor-pointer transition-all duration-150
+                          ${isHovered ? 'border border-white' : 'border border-white/30'}`}
                         style={{
                           backgroundColor: c,
                           width: 28,
                           height: 28,
                         }}
                         title={c}
+                        onMouseEnter={() => setModalHoveredColor(index)}
+                        onMouseLeave={() => setModalHoveredColor(null)}
                       />
                     );
                   })}
@@ -752,17 +803,42 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                 <div className="relative flex items-center justify-center bg-black flex-1">
                   {currentVariant ? (
                     <>
-                      <img
-                        ref={imageRef}
-                        src={publicImageUrl(currentVariant.path)}
-                        alt={(selected.title ?? "").trim() || "Картинка"}
-                        className="w-full h-full sm:max-h-[90vh] sm:w-auto sm:max-w-full object-contain"
-                        onLoad={() => {
-                          if (imageRef.current) {
-                            setImageWidth(imageRef.current.offsetWidth);
-                          }
-                        }}
-                      />
+                      <div className="relative inline-flex">
+                        <img
+                          ref={imageRef}
+                          src={publicImageUrl(currentVariant.path)}
+                          alt={(selected.title ?? "").trim() || "Картинка"}
+                          className="w-full h-full sm:max-h-[90vh] sm:w-auto sm:max-w-full object-contain"
+                          onLoad={() => {
+                            if (imageRef.current) {
+                              setImageWidth(imageRef.current.offsetWidth);
+                            }
+                          }}
+                        />
+
+                        {/* Маркер на картинке при hover на кружок палитры */}
+                        {modalHoveredColor !== null && selected.color_positions && selected.color_positions[modalHoveredColor] && (() => {
+                          const pos = selected.color_positions[modalHoveredColor];
+                          const color = currentColors[modalHoveredColor] ?? pos.hex;
+                          return (
+                            <div
+                              className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
+                              style={{
+                                left: `${pos.x * 100}%`,
+                                top: `${pos.y * 100}%`,
+                              }}
+                            >
+                              <div
+                                className="w-7 h-7 rounded-full border-[1.5px] border-white"
+                                style={{
+                                  backgroundColor: color,
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                }}
+                              />
+                            </div>
+                          );
+                        })()}
+                      </div>
 
                       {hasCarousel && (
                         <>

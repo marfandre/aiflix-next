@@ -225,10 +225,32 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
         return () => clearInterval(interval);
     }, [cyclingVideoId]);
 
+    // Индекс кадра цветов для модалки (отдельный от карточек)
+    const [modalColorFrame, setModalColorFrame] = useState(0);
+
     const closeModal = () => {
         setSelected(null);
         setShowPrompt(false);
     };
+
+    // Отдельный таймер для циклинга цветов в модалке — бесконечный цикл
+    useEffect(() => {
+        if (!selected) {
+            setModalColorFrame(0);
+            return;
+        }
+
+        const colors = selected.colors_preview && selected.colors_preview.length > 0
+            ? selected.colors_preview
+            : (selected.colors ?? []);
+        const totalFrames = Math.max(1, Math.ceil(colors.length / 3));
+
+        const interval = setInterval(() => {
+            setModalColorFrame(prev => (prev + 1) % totalFrames);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [selected]);
 
     // Удаление видео
     const deleteVideo = async (videoId: string, e: React.MouseEvent) => {
@@ -397,6 +419,8 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 onMouseLeave={() => {
                                     setHoveredVideoId(null);
                                     setCyclingVideoId(null);
+                                    // Сбрасываем цвета капсулы на начальный кадр
+                                    setColorTimeIndex(prev => ({ ...prev, [v.id]: 0 }));
                                 }}
                             >
                                 {/* Кликабельная карточка */}
@@ -574,30 +598,48 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                 >
                     {/* Flex контейнер для кружков + модалки */}
                     <div className="flex items-center gap-3 w-full max-w-[95vw] justify-center">
-                        {/* Цветовая палитра — слева от модалки */}
-                        {selected.colors && selected.colors.length > 0 && (
-                            <div className="flex-col gap-2 hidden lg:flex">
-                                {selected.colors.slice(0, 5).map((c, index) => (
-                                    <div
-                                        key={c + index}
-                                        className="rounded-full border-2 border-white/30 shadow-lg"
-                                        style={{
-                                            backgroundColor: c,
-                                            width: 28,
-                                            height: 28,
-                                        }}
-                                        title={c}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        {/* Цветовая капсула — слева от модалки (циклическая) */}
+                        {(selected.colors_preview || selected.colors) && (selected.colors_preview || selected.colors)!.length > 0 && (() => {
+                            const colors = selected.colors_preview && selected.colors_preview.length > 0
+                                ? selected.colors_preview
+                                : (selected.colors ?? []);
+                            const startIdx = modalColorFrame * 3;
+                            const frameColors = colors.slice(startIdx, startIdx + 3);
+                            while (frameColors.length < 3 && frameColors.length > 0) {
+                                frameColors.push(frameColors[frameColors.length - 1]);
+                            }
+
+                            return (
+                                <div
+                                    className="hidden lg:flex overflow-hidden"
+                                    style={{
+                                        flexDirection: 'column',
+                                        width: 22,
+                                        height: 90,
+                                        borderRadius: 11,
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                        border: '1px solid rgba(255,255,255,0.3)',
+                                    }}
+                                >
+                                    {frameColors.map((c, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex-1 transition-colors duration-300"
+                                            style={{ backgroundColor: c }}
+                                            title={c}
+                                        />
+                                    ))}
+                                </div>
+                            );
+                        })()}
 
                         <div
-                            className="relative flex max-h-[90vh] w-auto flex-col overflow-hidden rounded-lg shadow-2xl bg-black"
+                            className="relative flex max-h-[90vh] flex-col overflow-hidden rounded-lg shadow-2xl bg-black"
+                            style={{ minWidth: '40vw' }}
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Видеоплеер — без overlay, controls внизу видео */}
-                            <div className="relative flex items-center justify-center bg-black">
+                            <div className="relative flex items-center justify-center bg-black" style={{ minHeight: '50vh' }}>
                                 {selected.playback_id ? (
                                     <video
                                         ref={modalVideoRef}
@@ -607,7 +649,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         disablePictureInPicture
                                         controlsList="nodownload noremoteplayback noplaybackrate"
                                         poster={muxPoster(selected.playback_id)}
-                                        className="video-hover-controls max-h-[80vh] w-auto max-w-full object-contain"
+                                        className="video-hover-controls max-h-[80vh] w-full max-w-full object-contain"
                                     >
                                         {selected.playback_id && (
                                             <>
