@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import TagSelector from '@/app/components/TagSelector';
+import ColorPickerOverlay, { ColorMarker } from '@/app/components/ColorPickerOverlay';
 import Link from 'next/link';
 
 // Модели для картинок
@@ -64,7 +65,9 @@ export default function EditImagePage({ params }: PageProps) {
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [colors, setColors] = useState<string[]>([]);
     const [accentColors, setAccentColors] = useState<string[]>([]);
+    const [colorPositions, setColorPositions] = useState<ColorMarker[]>([]);
     const [activeSlot, setActiveSlot] = useState<number | null>(null); // Активный слот для добавления цвета
+    const [hoveredMarker, setHoveredMarker] = useState<number | null>(null); // Маркер под курсором
 
     // Загрузка данных картинки
     useEffect(() => {
@@ -109,6 +112,26 @@ export default function EditImagePage({ params }: PageProps) {
             setColors(image.colors || []);
             setAccentColors((image.accent_colors || []).filter((c: string) => c && c.trim() !== ''));
 
+            // Загружаем позиции маркеров из БД если есть, иначе генерируем
+            const savedPositions = image.color_positions;
+            const existingColors = image.colors || [];
+
+            if (savedPositions && Array.isArray(savedPositions) && savedPositions.length > 0) {
+                // Используем сохранённые координаты
+                setColorPositions(savedPositions.map((pos: any) => ({
+                    hex: pos.hex || '#000000',
+                    x: typeof pos.x === 'number' ? pos.x : 0.5,
+                    y: typeof pos.y === 'number' ? pos.y : 0.5,
+                })));
+            } else {
+                // Генерируем координаты для существующих цветов (для старых изображений)
+                setColorPositions(existingColors.map((hex: string, i: number) => ({
+                    hex,
+                    x: 0.15 + (i * 0.17),  // Равномерное распределение по горизонтали
+                    y: 0.3 + (i * 0.1),     // Небольшой сдвиг по вертикали
+                })));
+            }
+
             setLoading(false);
         })();
     }, [params.id, supabase]);
@@ -133,6 +156,7 @@ export default function EditImagePage({ params }: PageProps) {
                     tags: selectedTags.length ? selectedTags : null,
                     colors: colors.length ? colors : null,
                     accent_colors: accentColors.length ? accentColors : null,
+                    color_positions: colorPositions.length ? colorPositions : null,
                 }),
             });
 
@@ -307,13 +331,19 @@ export default function EditImagePage({ params }: PageProps) {
 
                 {/* Правая колонка — картинка и цвета */}
                 <div className="flex flex-col items-center">
-                    {/* Картинка */}
+                    {/* Картинка с интерактивными маркерами цветов */}
                     <div className="flex items-center justify-center">
                         {imageData?.path ? (
-                            <img
-                                src={getImageUrl(imageData.path)}
-                                alt={title || 'Картинка'}
-                                className="max-h-[60vh] w-auto max-w-full object-contain"
+                            <ColorPickerOverlay
+                                imageUrl={getImageUrl(imageData.path)}
+                                colors={colorPositions}
+                                onColorsChange={(newColors) => {
+                                    setColorPositions(newColors);
+                                    setColors(newColors.map(c => c.hex));
+                                }}
+                                onHoverChange={setHoveredMarker}
+                                maxColors={5}
+                                maxHeight="60vh"
                             />
                         ) : (
                             <div className="flex h-48 w-full items-center justify-center bg-gray-100 text-gray-400">
@@ -335,7 +365,11 @@ export default function EditImagePage({ params }: PageProps) {
                                         key={c + i}
                                         type="button"
                                         onClick={() => removeColor(i)}
-                                        className="group flex h-8 w-8 items-center justify-center rounded-full border-2 border-white shadow-md ring-2 ring-gray-300"
+                                        className={`group flex h-8 w-8 items-center justify-center rounded-full border-2 shadow-md transition-all duration-150
+                                            ${hoveredMarker === i
+                                                ? 'border-white ring-[3px] ring-black scale-125'
+                                                : 'border-white ring-2 ring-gray-300'
+                                            }`}
                                         style={{ backgroundColor: c }}
                                         title="Удалить цвет"
                                     >

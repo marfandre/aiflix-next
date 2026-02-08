@@ -13,6 +13,7 @@ type IncomingImage = {
   colorWeights?: number[] | null; // Веса цветов (процент площади)
   colorNames?: string[] | null;  // NTC названия цветов для поиска
   accentColors?: string[] | null; // Акцентные цвета
+  colorPositions?: { hex: string; x: number; y: number }[] | null; // Координаты цветов
 };
 
 // ---- ТЕ ЖЕ КОРЗИНЫ, ЧТО И В media-search (AI-оптимизированные) ----
@@ -89,6 +90,7 @@ export async function POST(req: Request) {
       colorWeights,  // Веса цветов
       colorNames,  // NTC названия цветов
       accentColors, // Акцентные цвета
+      colorPositions, // Координаты цветов на изображении
       title,
       description,
       prompt,
@@ -205,6 +207,18 @@ export async function POST(req: Request) {
         .filter((w) => typeof w === 'number' && !isNaN(w))
         .slice(0, 5);
 
+      // Координаты цветов на изображении
+      const rawColorPositions: { hex: string; x: number; y: number }[] =
+        (Array.isArray(img.colorPositions) && img.colorPositions.length
+          ? img.colorPositions
+          : Array.isArray(colorPositions) && colorPositions.length
+            ? colorPositions
+            : []) as { hex: string; x: number; y: number }[];
+
+      const normalizedColorPositions = rawColorPositions
+        .filter((p) => p && typeof p.hex === 'string' && typeof p.x === 'number' && typeof p.y === 'number')
+        .slice(0, 5);
+
       return {
         user_id: user.id,
         path: img.path,
@@ -223,6 +237,9 @@ export async function POST(req: Request) {
 
         // NTC названия — для точного поиска по категориям
         color_names: normalizedColorNames.length ? normalizedColorNames : null,
+
+        // Координаты цветов на изображении (для маркеров)
+        color_positions: normalizedColorPositions.length ? normalizedColorPositions : null,
 
         // корзины — для обратной совместимости
         dominant_color: bucket0 ?? null,

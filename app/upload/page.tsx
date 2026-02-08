@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import TagSelector from '../components/TagSelector';
+import ColorPickerOverlay, { ColorMarker } from '../components/ColorPickerOverlay';
 
 const supabase = createClientComponentClient();
 
@@ -54,6 +55,7 @@ type ExtractedPalette = {
   colorWeights: number[];  // Веса цветов (процент площади)
   colorNames: string[];    // NTC названия цветов
   accentColors: string[];
+  colorPositions: ColorMarker[];  // Координаты цветов на изображении
 };
 
 async function extractColorsFromFile(file: File): Promise<ExtractedPalette | null> {
@@ -77,6 +79,7 @@ async function extractColorsFromFile(file: File): Promise<ExtractedPalette | nul
       colorWeights: data.colorWeights ?? [],
       colorNames: data.colorNames ?? [],
       accentColors: data.accentColors ?? [],
+      colorPositions: data.colorPositions ?? [],
     };
   } catch (err) {
     console.error('extractColorsFromFile API error:', err);
@@ -173,6 +176,7 @@ type LocalImage = {
   colorNames: string[];    // NTC названия
   accentColors: string[];  // Акцентные цвета
   basePalette: string[];
+  colorPositions: ColorMarker[];  // Координаты маркеров
 };
 
 export default function UploadPage() {
@@ -306,6 +310,7 @@ export default function UploadPage() {
         const main = fullPalette.slice(0, 5);
         const weights = paletteResult?.colorWeights?.slice(0, 5) ?? [];
         const names = paletteResult?.colorNames?.slice(0, 5) ?? [];
+        const positions = paletteResult?.colorPositions?.slice(0, 5) ?? [];
         // Акценты не определяем автоматически — пользователь добавит сам через кнопку Accent
 
         newLocalImages.push({
@@ -316,6 +321,7 @@ export default function UploadPage() {
           colorWeights: weights,
           colorNames: names,
           accentColors: [], // Пустой — пользователь добавит сам
+          colorPositions: positions,
         });
       } catch (err) {
         console.error('Ошибка при предпросчёте палитры', err);
@@ -327,6 +333,7 @@ export default function UploadPage() {
           colorWeights: [],
           colorNames: [],
           accentColors: [],
+          colorPositions: [],
         });
       }
     }
@@ -442,7 +449,7 @@ export default function UploadPage() {
       } else {
         // ---------- IMAGE (карусель) ----------
         // 1) Заливаем каждый файл в storage
-        const uploaded: { path: string; colors: string[]; colorWeights: number[]; colorNames: string[]; accentColors: string[] }[] = [];
+        const uploaded: { path: string; colors: string[]; colorWeights: number[]; colorNames: string[]; accentColors: string[]; colorPositions: ColorMarker[] }[] = [];
 
         for (const img of images) {
           const startRes = await fetch('/api/images/start', {
@@ -488,12 +495,18 @@ export default function UploadPage() {
               ? img.accentColors.slice(0, 3)
               : [];
 
+          const colorPositionsToSave =
+            img.colorPositions && img.colorPositions.length
+              ? img.colorPositions.slice(0, 5)
+              : [];
+
           uploaded.push({
             path: startData.path,
             colors: colorsToSave,
             colorWeights: colorWeightsToSave,
             colorNames: colorNamesToSave,
             accentColors: accentColorsToSave,
+            colorPositions: colorPositionsToSave,
           });
         }
 
@@ -831,17 +844,29 @@ export default function UploadPage() {
                           )}
 
                           <div
-                            className="relative w-full rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden cursor-pointer hover:border-gray-300 hover:shadow-md transition-all"
+                            className="relative w-full rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden"
                             style={{
                               width: 340,
                               aspectRatio: '340/420',
                             }}
-                            onClick={() => fileInputRef.current?.click()}
                           >
-                            <img
-                              src={currentImage?.previewUrl}
-                              alt="Предпросмотр"
-                              className="h-full w-full object-cover"
+                            <ColorPickerOverlay
+                              imageUrl={currentImage?.previewUrl ?? ''}
+                              colors={currentImage?.colorPositions ?? []}
+                              onColorsChange={(newColors) => {
+                                if (!currentImage) return;
+                                setImages((prev) => {
+                                  const updated = [...prev];
+                                  updated[currentIndex] = {
+                                    ...currentImage,
+                                    colorPositions: newColors,
+                                    mainColors: newColors.map(c => c.hex),
+                                  };
+                                  return updated;
+                                });
+                              }}
+                              maxColors={5}
+                              className="h-full w-full"
                             />
                           </div>
 

@@ -1,5 +1,5 @@
 // app/api/images/reextract-colors/route.ts
-// Пересчёт цветов для всех существующих картинок используя node-vibrant
+// Пересчёт цветов и позиций маркеров для всех существующих картинок
 // Скачивает изображения из Storage и анализирует заново
 
 export const runtime = "nodejs";
@@ -7,6 +7,7 @@ export const maxDuration = 120;
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import sharp from 'sharp';
 // Динамический импорт для node-vibrant
 const getVibrant = async () => {
     const mod = await import('node-vibrant/node');
@@ -210,6 +211,139 @@ function findBestBucket(hex: string): string {
     return bestBucket;
 }
 
+// ---- Поиск координат цветов (центр масс) ----
+
+interface ColorPosition {
+    hex: string;
+    x: number;
+    y: number;
+}
+
+async function findColorPositions(
+    buffer: Buffer,
+    colors: string[]
+): Promise<ColorPosition[]> {
+    try {
+        const { data, info } = await sharp(buffer)
+            .resize(200, 200, { fit: 'inside' })
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+
+        const targetRgbs = colors.map(hex => hexToRgb(hex));
+        const THRESHOLD = 60;
+        const GRID = 10;
+        const gridW = Math.ceil(info.width / GRID);
+        const gridH = Math.ceil(info.height / GRID);
+
+        const grids = targetRgbs.map(() =>
+            Array.from({ length: gridH }, () => new Float64Array(gridW))
+        );
+
+        for (let y = 0; y < info.height; y++) {
+            for (let x = 0; x < info.width; x++) {
+                const i = (y * info.width + x) * info.channels;
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                let bestIdx = -1;
+                let bestDist = Infinity;
+
+                for (let ci = 0; ci < targetRgbs.length; ci++) {
+                    const t = targetRgbs[ci];
+                    if (!t) continue;
+                    const dist = Math.sqrt(
+                        (r - t.r) ** 2 + (g - t.g) ** 2 + (b - t.b) ** 2
+                    );
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestIdx = ci;
+                    }
+                }
+
+                if (bestIdx >= 0 && bestDist < THRESHOLD) {
+                    const gx = Math.min(Math.floor(x / GRID), gridW - 1);
+                    const gy = Math.min(Math.floor(y / GRID), gridH - 1);
+                    grids[bestIdx][gy][gx] += 1 / (1 + bestDist);
+                }
+            }
+        }
+
+        const positions: ColorPosition[] = [];
+
+        for (let ci = 0; ci < colors.length; ci++) {
+            let maxDensity = 0;
+            let peakGx = 0, peakGy = 0;
+
+            for (let gy = 0; gy < gridH; gy++) {
+                for (let gx = 0; gx < gridW; gx++) {
+                    if (grids[ci][gy][gx] > maxDensity) {
+                        maxDensity = grids[ci][gy][gx];
+                        peakGx = gx;
+                        peakGy = gy;
+                    }
+                }
+            }
+
+            if (maxDensity > 0) {
+                positions.push({
+                    hex: colors[ci],
+                    x: ((peakGx + 0.5) * GRID) / info.width,
+                    y: ((peakGy + 0.5) * GRID) / info.height,
+                });
+            } else {
+                let bestDist = Infinity;
+                let bestX = 0.5, bestY = 0.5;
+                const t = targetRgbs[ci];
+                if (t) {
+                    for (let y = 0; y < info.height; y += 2) {
+                        for (let x = 0; x < info.width; x += 2) {
+                            const idx = (y * info.width + x) * info.channels;
+                            const dist = Math.sqrt(
+                                (data[idx] - t.r) ** 2 +
+                                (data[idx + 1] - t.g) ** 2 +
+                                (data[idx + 2] - t.b) ** 2
+                            );
+                            if (dist < bestDist) {
+                                bestDist = dist;
+                                bestX = x / info.width;
+                                bestY = y / info.height;
+                            }
+                        }
+                    }
+                }
+                positions.push({ hex: colors[ci], x: bestX, y: bestY });
+            }
+        }
+
+        // Разводим слишком близкие маркеры
+        const MIN_DIST = 0.08;
+        for (let i = 0; i < positions.length; i++) {
+            for (let j = i + 1; j < positions.length; j++) {
+                const dx = positions[j].x - positions[i].x;
+                const dy = positions[j].y - positions[i].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < MIN_DIST && dist > 0) {
+                    const scale = (MIN_DIST - dist) / 2 / dist;
+                    positions[i].x = Math.max(0.02, Math.min(0.98, positions[i].x - dx * scale));
+                    positions[i].y = Math.max(0.02, Math.min(0.98, positions[i].y - dy * scale));
+                    positions[j].x = Math.max(0.02, Math.min(0.98, positions[j].x + dx * scale));
+                    positions[j].y = Math.max(0.02, Math.min(0.98, positions[j].y + dy * scale));
+                }
+            }
+        }
+
+        return positions;
+    } catch (error) {
+        console.error('findColorPositions error:', error);
+        return colors.map((hex, i) => ({
+            hex,
+            x: 0.2 + (i * 0.15),
+            y: 0.3 + (i * 0.1),
+        }));
+    }
+}
+
 // ---- Vibrant extraction ----
 
 interface ColorWithMeta {
@@ -316,7 +450,40 @@ async function extractColorsWithVibrant(
         }
     }
 
-    const dominantColors = uniqueColors.slice(0, colorCount);
+    // =====================
+    // Фильтрация "призрачных" цветов (Delta E + Saturation)
+    // =====================
+
+    // 1. Вычисляем базис: средний RGB цветов с весом > 5%
+    const basisColors = uniqueColors.filter(c => c.percentage > 5);
+
+    let filteredColors = uniqueColors;
+
+    // Фильтруем только если есть минимум 2 цвета в базисе
+    if (basisColors.length >= 2) {
+        // Максимальная популяция для расчёта относительной
+        const maxPopulation = Math.max(...uniqueColors.map(c => c.population));
+
+        console.log(`[Phantom] Basis: ${basisColors.length} colors, maxPop=${maxPopulation}`);
+
+        filteredColors = uniqueColors.filter(color => {
+            // Относительная популяция (0-100%)
+            const populationRatio = maxPopulation > 0 ? (color.population / maxPopulation) * 100 : 0;
+
+            // Если популяция < 0.0001% от максимальной — это призрак
+            if (populationRatio < 0.0001) {
+                console.log(`[Phantom] ${color.hex} REMOVE (popRatio=${populationRatio.toFixed(6)}%)`);
+                return false;
+            }
+
+            console.log(`[Phantom] ${color.hex} KEEP (popRatio=${populationRatio.toFixed(1)}%)`);
+            return true;
+        });
+    } else {
+        console.log(`[Phantom] Skip filter: only ${basisColors.length} basis colors`);
+    }
+
+    const dominantColors = filteredColors.slice(0, colorCount);
 
     // Пересчёт процентов
     const dominantTotal = dominantColors.reduce((sum, c) => sum + c.population, 0);
@@ -362,28 +529,45 @@ export async function POST(req: Request) {
 
     let updated = 0;
     let errors = 0;
+    const errorDetails: { id: string; path: string; error: string }[] = [];
 
     for (const img of images) {
         try {
-            // Скачиваем картинку
-            const { data: fileData, error: downloadError } = await supabase.storage
-                .from('images')
-                .download(img.path);
+            console.log(`Processing ${img.id}, path: ${img.path}`);
 
-            if (downloadError || !fileData) {
-                console.error(`Download error for ${img.id}:`, downloadError);
+            // Получаем публичный URL и скачиваем через fetch (как делает UI)
+            const { data: urlData } = supabase.storage
+                .from('images')
+                .getPublicUrl(img.path);
+
+            const publicUrl = urlData?.publicUrl;
+            if (!publicUrl) {
+                errorDetails.push({ id: img.id, path: img.path, error: 'no public url' });
                 errors++;
                 continue;
             }
 
-            const buffer = Buffer.from(await fileData.arrayBuffer());
+            const response = await fetch(publicUrl);
+            if (!response.ok) {
+                errorDetails.push({ id: img.id, path: img.path, error: `fetch ${response.status}: ${response.statusText}` });
+                errors++;
+                continue;
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            // Конвертируем в PNG через sharp (чтобы webp и другие форматы работали с Vibrant)
+            const buffer = await sharp(Buffer.from(arrayBuffer)).png().toBuffer();
+            console.log(`Downloaded ${img.id}, buffer size: ${buffer.length}`);
 
             // Извлекаем цвета с Vibrant
             const result = await extractColorsWithVibrant(buffer, 5);
 
+            // Пересчитываем позиции маркеров (центр масс)
+            const colorPositions = await findColorPositions(buffer, result.dominant);
+
             // Bucket'ы для первых 5 цветов
             const buckets = result.dominant.map(hex => findBestBucket(hex));
-            const [bucket0, bucket1, bucket2, bucket3, bucket4] = buckets;
+            const [bucket0, bucket1] = buckets;
 
             // Обновляем БД
             const { error: updateError } = await supabase
@@ -392,6 +576,7 @@ export async function POST(req: Request) {
                     colors: result.dominant,
                     color_weights: result.dominantWeights,
                     color_names: result.dominantNames,
+                    color_positions: colorPositions,
                     dominant_color: bucket0 || null,
                     secondary_color: bucket1 || null,
                 })
@@ -399,13 +584,16 @@ export async function POST(req: Request) {
 
             if (updateError) {
                 console.error(`Update error for ${img.id}:`, updateError);
+                errorDetails.push({ id: img.id, path: img.path, error: `update: ${updateError.message}` });
                 errors++;
             } else {
-                console.log(`✓ ${img.id}: weights = [${result.dominantWeights.join(', ')}]`);
+                console.log(`✓ ${img.id}: positions recalculated`);
                 updated++;
             }
         } catch (err: any) {
-            console.error(`Error processing ${img.id}:`, err?.message);
+            const msg = err?.message || 'Unknown error';
+            console.error(`Error processing ${img.id}:`, msg);
+            errorDetails.push({ id: img.id, path: img.path || '?', error: msg });
             errors++;
         }
     }
@@ -417,5 +605,6 @@ export async function POST(req: Request) {
         updated,
         errors,
         total: images.length,
+        errorDetails: errorDetails.slice(0, 5), // Первые 5 ошибок для диагностики
     });
 }
