@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, skipped: 'not-found' }, { status: 200 });
       }
 
-      // Извлечение цветов для hover preview: 5 кадров × 3 цвета = 15 цветов
+      // Извлечение цветов: preview (5 кадров) + full (вся длительность)
       if (playback_id && updatedFilm?.id) {
         try {
           const sharp = (await import('sharp')).default;
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
           type RGB = [number, number, number];
 
-          // Функция: RGB -> HEX
+          // RGB -> HEX
           const rgbToHex = ([r, g, b]: RGB): string => {
             const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
             const rr = clamp(r).toString(16).padStart(2, '0');
@@ -138,17 +138,7 @@ export async function POST(req: NextRequest) {
             return `#${rr}${gg}${bb}`.toUpperCase();
           };
 
-          // Функция: вычисление насыщенности (0-100)
-          const getSaturation = ([r, g, b]: RGB): number => {
-            const max = Math.max(r, g, b) / 255;
-            const min = Math.min(r, g, b) / 255;
-            const l = (max + min) / 2;
-            if (max === min) return 0;
-            const d = max - min;
-            return (l > 0.5 ? d / (2 - max - min) : d / (max + min)) * 100;
-          };
-
-          // Функция: извлечь 3 цвета из кадра (bg, secondary, accent)
+          // Извлечь 3 цвета из кадра
           const extractColorsFromFrame = async (time: number): Promise<string[]> => {
             const url = `https://image.mux.com/${playback_id}/thumbnail.jpg?time=${time}`;
             const response = await fetch(url);
@@ -176,47 +166,88 @@ export async function POST(req: NextRequest) {
             const palette = result.palette() as RGB[];
             if (palette.length < 3) return palette.map(rgbToHex);
 
-            // Просто берём топ-3 по частоте (без интерпретации)
             return [
-              rgbToHex(palette[0]),  // Самый частый
-              rgbToHex(palette[1]),  // Второй
-              rgbToHex(palette[2]),  // Третий
+              rgbToHex(palette[0]),
+              rgbToHex(palette[1]),
+              rgbToHex(palette[2]),
             ];
           };
 
-          // Извлекаем цвета из 5 кадров (начиная с 0 секунды, как WebP)
-          const timestamps = [0, 1, 2, 3, 4];
-          console.log(`Starting color extraction for playback_id: ${playback_id}`);
+          // --- Функция для параллельного извлечения из списка таймстемпов ---
+          const extractBatch = async (timestamps: number[]): Promise<{ time: number; colors: string[] }[]> => {
+            return Promise.all(
+              timestamps.map(async (time) => {
+                try {
+                  const frameColors = await extractColorsFromFrame(time);
+                  return { time, colors: frameColors };
+                } catch (err) {
+                  console.error(`Frame ${time}s: extraction failed:`, err);
+                  return { time, colors: [] as string[] };
+                }
+              })
+            );
+          };
 
-          const frameResults = await Promise.all(
-            timestamps.map(async (time) => {
-              try {
-                const frameColors = await extractColorsFromFrame(time);
-                console.log(`Frame ${time}s: extracted ${frameColors.length} colors:`, frameColors);
-                return frameColors;
-              } catch (err) {
-                console.error(`Frame ${time}s: extraction failed:`, err);
-                return [];
-              }
-            })
-          );
+          // === 1. Preview: первые 5 секунд (как было) ===
+          const previewTimestamps = [0, 1, 2, 3, 4];
+          console.log(`Starting preview color extraction for playback_id: ${playback_id}`);
 
-          const allColors = frameResults.flat();
-          console.log(`Total colors extracted: ${allColors.length}`, allColors);
+          const previewResults = await extractBatch(previewTimestamps);
+          const previewColors = previewResults
+            .sort((a, b) => a.time - b.time)
+            .flatMap(r => r.colors);
 
-          // Базовые 5 цветов (для обратной совместимости) — первый кадр
-          const baseColors = allColors.slice(0, 5);
+          const baseColors = previewColors.slice(0, 5);
+          console.log(`Preview colors: ${previewColors.length}, base: ${baseColors.length}`);
 
-          // Сохраняем оба массива
+          // === 2. Full: вся длительность видео ===
+          const duration = data?.duration ?? 0; // Mux присылает duration в секундах
+          const MAX_FRAMES = 60;
+          let fullColors: string[] = [];
+          let fullInterval = 1;
+
+          if (duration > 0) {
+            const durationSec = Math.floor(duration);
+            fullInterval = Math.max(1, Math.ceil(durationSec / MAX_FRAMES));
+            const fullTimestamps: number[] = [];
+            for (let t = 0; t < durationSec; t += fullInterval) {
+              fullTimestamps.push(t);
+            }
+
+            console.log(`Full extraction: duration=${durationSec}s, interval=${fullInterval}s, frames=${fullTimestamps.length}`);
+
+            // Извлекаем батчами по 10, чтобы не перегрузить Mux
+            const BATCH_SIZE = 10;
+            const fullResults: { time: number; colors: string[] }[] = [];
+            for (let i = 0; i < fullTimestamps.length; i += BATCH_SIZE) {
+              const batch = fullTimestamps.slice(i, i + BATCH_SIZE);
+              const batchResults = await extractBatch(batch);
+              fullResults.push(...batchResults);
+            }
+
+            fullColors = fullResults
+              .sort((a, b) => a.time - b.time)
+              .flatMap(r => r.colors);
+
+            console.log(`Full colors extracted: ${fullColors.length} (${fullResults.filter(r => r.colors.length > 0).length} frames ok)`);
+          } else {
+            // Нет duration — используем preview как fallback
+            fullColors = previewColors;
+            console.log('No duration from Mux, using preview colors as full fallback');
+          }
+
+          // === Сохраняем все цвета в БД ===
           await supa
             .from('films')
             .update({
-              colors: baseColors.length > 0 ? baseColors : null, // обратная совместимость
-              colors_preview: allColors.length > 0 ? allColors : null // новые 15 цветов
+              colors: baseColors.length > 0 ? baseColors : null,
+              colors_preview: previewColors.length > 0 ? previewColors : null,
+              colors_full: fullColors.length > 0 ? fullColors : null,
+              colors_full_interval: fullInterval,
             })
             .eq('id', updatedFilm.id);
 
-          console.log(`Colors extracted for film ${updatedFilm.id}: base=${baseColors.length}, preview=${allColors.length}`);
+          console.log(`Colors saved for film ${updatedFilm.id}: base=${baseColors.length}, preview=${previewColors.length}, full=${fullColors.length}, interval=${fullInterval}s`);
         } catch (colorErr) {
           console.error('Color extraction error:', colorErr);
         }

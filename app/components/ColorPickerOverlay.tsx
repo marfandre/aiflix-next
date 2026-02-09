@@ -230,13 +230,6 @@ export default function ColorPickerOverlay({
                 );
             })}
 
-            {/* Подсказка */}
-            {colors.length < maxColors && (
-                <div className="absolute bottom-2 left-2 right-2 text-center text-xs text-white/80 
-                    bg-black/50 rounded px-2 py-1 pointer-events-none backdrop-blur-sm">
-                    Кликните для добавления • Перетаскивайте маркеры • Двойной клик для удаления
-                </div>
-            )}
         </div>
     );
 }

@@ -27,6 +27,8 @@ type VideoRow = {
     mood?: string | null;
     colors?: string[] | null;
     colors_preview?: string[] | null;  // 15 цветов для hover анимации
+    colors_full?: string[] | null;     // Цвета на всю длительность видео (макс 60 кадров × 3)
+    colors_full_interval?: number | null; // Интервал между кадрами в секундах
     status?: string | null;
     profiles:
     | { username: string | null; avatar_url: string | null }[]
@@ -121,7 +123,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
             // Получаем видео
             const { data: filmsData, error } = await supa
                 .from("films")
-                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, status")
+                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, colors_full, colors_full_interval, status")
                 .order("created_at", { ascending: false })
                 .limit(60);
 
@@ -225,7 +227,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
         return () => clearInterval(interval);
     }, [cyclingVideoId]);
 
-    // Индекс кадра цветов для модалки (отдельный от карточек)
+    // Индекс кадра цветов для модалки — синхронизируется с video.currentTime
     const [modalColorFrame, setModalColorFrame] = useState(0);
 
     const closeModal = () => {
@@ -233,23 +235,45 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
         setShowPrompt(false);
     };
 
-    // Отдельный таймер для циклинга цветов в модалке — бесконечный цикл
+    // Синхронизация капсулы в модалке с текущим временем видео
+    // Один интервал: проверяет video ref на каждом тике (ref может быть null при первом рендере)
     useEffect(() => {
         if (!selected) {
             setModalColorFrame(0);
             return;
         }
 
-        const colors = selected.colors_preview && selected.colors_preview.length > 0
-            ? selected.colors_preview
-            : (selected.colors ?? []);
-        const totalFrames = Math.max(1, Math.ceil(colors.length / 3));
+        const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
+        const colors = hasFullColors
+            ? selected.colors_full!
+            : (selected.colors_preview && selected.colors_preview.length > 0
+                ? selected.colors_preview
+                : (selected.colors ?? []));
+        const colorInterval = hasFullColors ? (selected.colors_full_interval ?? 1) : 1;
+        const totalFrames = Math.max(1, Math.floor(colors.length / 3));
 
-        const interval = setInterval(() => {
-            setModalColorFrame(prev => (prev + 1) % totalFrames);
+        if (totalFrames <= 1) return;
+
+        let fallbackFrame = 0;
+
+        const timer = setInterval(() => {
+            const video = modalVideoRef.current;
+
+            if (hasFullColors && video && !video.paused && video.currentTime > 0) {
+                // colors_full есть и видео играет — синхронизируем с currentTime
+                const frameIdx = Math.min(
+                    Math.floor(video.currentTime / colorInterval),
+                    totalFrames - 1
+                );
+                setModalColorFrame(frameIdx);
+            } else {
+                // Нет colors_full, или видео ещё не играет — циклический перебор
+                fallbackFrame = (fallbackFrame + 1) % totalFrames;
+                setModalColorFrame(fallbackFrame);
+            }
         }, 1000);
 
-        return () => clearInterval(interval);
+        return () => clearInterval(timer);
     }, [selected]);
 
     // Удаление видео
@@ -598,11 +622,17 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                 >
                     {/* Flex контейнер для кружков + модалки */}
                     <div className="flex items-center gap-3 w-full max-w-[95vw] justify-center">
-                        {/* Цветовая капсула — слева от модалки (циклическая) */}
-                        {(selected.colors_preview || selected.colors) && (selected.colors_preview || selected.colors)!.length > 0 && (() => {
-                            const colors = selected.colors_preview && selected.colors_preview.length > 0
-                                ? selected.colors_preview
-                                : (selected.colors ?? []);
+                        {/* Цветовая капсула — слева от модалки (синхронизирована с видео) */}
+                        {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
+                            const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
+                            const colors = hasFullColors
+                                ? selected.colors_full!
+                                : (selected.colors_preview && selected.colors_preview.length > 0
+                                    ? selected.colors_preview
+                                    : (selected.colors ?? []));
+
+                            if (colors.length === 0) return null;
+
                             const startIdx = modalColorFrame * 3;
                             const frameColors = colors.slice(startIdx, startIdx + 3);
                             while (frameColors.length < 3 && frameColors.length > 0) {
