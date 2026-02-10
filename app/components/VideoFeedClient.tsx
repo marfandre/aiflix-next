@@ -48,6 +48,10 @@ const MODEL_LABELS: Record<string, string> = {
     "dall-e": "DALL·E",
     flux: "Flux",
     krea: "KREA",
+    veo: "Veo",
+    "veo-2": "Veo 2",
+    "veo-3": "Veo 3",
+    "veo-3.1": "Veo 3.1",
 };
 
 function formatModelName(raw?: string | null): string {
@@ -259,15 +263,16 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
         const timer = setInterval(() => {
             const video = modalVideoRef.current;
 
-            if (hasFullColors && video && !video.paused && video.currentTime > 0) {
-                // colors_full есть и видео играет — синхронизируем с currentTime
+            if (hasFullColors && video) {
+                // colors_full есть — привязываемся к currentTime
+                if (video.paused) return; // На паузе — не меняем кадр
                 const frameIdx = Math.min(
                     Math.floor(video.currentTime / colorInterval),
                     totalFrames - 1
                 );
                 setModalColorFrame(frameIdx);
             } else {
-                // Нет colors_full, или видео ещё не играет — циклический перебор
+                // Нет colors_full — циклический перебор (fallback для старых видео)
                 fallbackFrame = (fallbackFrame + 1) % totalFrames;
                 setModalColorFrame(fallbackFrame);
             }
@@ -664,12 +669,12 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                         })()}
 
                         <div
-                            className="relative flex max-h-[90vh] flex-col overflow-hidden rounded-lg shadow-2xl bg-black"
-                            style={{ minWidth: '40vw' }}
+                            className="relative flex flex-col overflow-hidden rounded-lg shadow-2xl"
+                            style={{ width: '70vw', maxWidth: 960 }}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Видеоплеер — без overlay, controls внизу видео */}
-                            <div className="relative flex items-center justify-center bg-black" style={{ minHeight: '50vh' }}>
+                            {/* Видеоплеер */}
+                            <div className="relative flex items-center justify-center bg-black" style={{ aspectRatio: '16/9' }}>
                                 {selected.playback_id ? (
                                     <video
                                         ref={modalVideoRef}
@@ -679,7 +684,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         disablePictureInPicture
                                         controlsList="nodownload noremoteplayback noplaybackrate"
                                         poster={muxPoster(selected.playback_id)}
-                                        className="video-hover-controls max-h-[80vh] w-full max-w-full object-contain"
+                                        className="video-hover-controls absolute inset-0 h-full w-full object-contain"
                                     >
                                         {selected.playback_id && (
                                             <>
@@ -690,7 +695,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         Ваш браузер не поддерживает воспроизведение видео.
                                     </video>
                                 ) : (
-                                    <div className="flex h-[40vh] w-full items-center justify-center text-center text-gray-400">
+                                    <div className="absolute inset-0 flex w-full items-center justify-center text-center text-gray-400">
                                         {selected.status === 'processing' ? (
                                             <div className="flex flex-col items-center gap-3">
                                                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -713,11 +718,11 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 />
                             </div>
 
-                            {/* Info-bar — отдельный блок ПОД видео (после controls) */}
+                            {/* Info-bar — отдельный блок ПОД видео */}
                             <div className="bg-black/90 backdrop-blur-sm p-3 border-t border-white/20">
                                 <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
 
-                                    {/* Кнопка Промт (копировать) + Дата */}
+                                    {/* Кнопка Промт + Дата */}
                                     <div className="flex flex-col items-center gap-0.5">
                                         <button
                                             type="button"

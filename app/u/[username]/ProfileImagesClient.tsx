@@ -35,6 +35,10 @@ type ImageVariant = {
 /** Те же подписи для моделей, что и в ленте */
 const MODEL_LABELS: Record<string, string> = {
   sora: "Sora",
+  veo: "Veo",
+  "veo-2": "Veo 2",
+  "veo-3": "Veo 3",
+  "veo-3.1": "Veo 3.1",
   midjourney: "MidJourney",
   "stable diffusion xl": "Stable Diffusion XL",
   "stable diffusion 3": "Stable Diffusion 3",

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Masonry from "react-masonry-css";
 import LikeButton from "./LikeButton";
@@ -57,6 +58,10 @@ type ImageVariant = {
 /** Красивые подписи для моделей */
 const MODEL_LABELS: Record<string, string> = {
   sora: "Sora",
+  veo: "Veo",
+  "veo-2": "Veo 2",
+  "veo-3": "Veo 3",
+  "veo-3.1": "Veo 3.1",
   midjourney: "MidJourney",
   "stable diffusion xl": "Stable Diffusion XL",
   "stable-diffusion-xl": "Stable Diffusion XL",
@@ -108,9 +113,47 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
   const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
   const [imageWidth, setImageWidth] = useState<number | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [copied, setCopied] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
 
   const supa = createClientComponentClient();
+  const pathname = usePathname();
+
+  // Сохраняем оригинальный URL для восстановления при закрытии модалки
+  const originalUrlRef = useRef<string | null>(null);
+
+  // ---------- СИНХРОНИЗАЦИЯ URL С МОДАЛКОЙ ----------
+  // При открытии модалки — pushState на /images/{id}
+  // При закрытии — возвращаемся назад
+  const pushImageUrl = useCallback((imageId: string) => {
+    originalUrlRef.current = window.location.href;
+    window.history.pushState({ imageModal: imageId }, "", `/images/${imageId}`);
+  }, []);
+
+  const restoreUrl = useCallback(() => {
+    if (originalUrlRef.current) {
+      window.history.pushState(null, "", originalUrlRef.current);
+      originalUrlRef.current = null;
+    }
+  }, []);
+
+  // Закрытие модалки при нажатии кнопки «Назад» в браузере
+  useEffect(() => {
+    const handlePopState = () => {
+      if (selected) {
+        // Браузерная кнопка «Назад» — закрываем модалку без pushState
+        originalUrlRef.current = null;
+        setSelected(null);
+        setVariants([]);
+        setSlideIndex(0);
+        setVariantsLoading(false);
+        setShowPrompt(false);
+        setModalHoveredColor(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [selected]);
 
   // Загрузка тегов для маппинга id -> {ru, en}
   useEffect(() => {
@@ -269,6 +312,9 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     setVariantsLoading(true);
     setImageWidth(null);
 
+    // Обновляем URL для шаринга
+    pushImageUrl(im.id);
+
     try {
       // Подгружаем свежие данные изображения из БД
       const { data: freshData, error: freshError } = await supa
@@ -311,12 +357,45 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
   };
 
   const closeModal = () => {
+    restoreUrl();
     setSelected(null);
     setVariants([]);
     setSlideIndex(0);
     setVariantsLoading(false);
     setShowPrompt(false);
     setModalHoveredColor(null);
+    setCopied(false);
+  };
+
+  const shareImage = async (imageId: string) => {
+    const shareUrl = `${window.location.origin}/images/${imageId}`;
+
+    // Пробуем нативный Web Share API (мобильные)
+    if (navigator.share) {
+      try {
+        await navigator.share({ url: shareUrl });
+        return;
+      } catch {
+        // Пользователь отменил — fallback на копирование
+      }
+    }
+
+    // Копируем в буфер
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback для старых браузеров
+      const input = document.createElement('input');
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   // Удаление картинки
@@ -752,7 +831,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                 className="group relative flex w-screen h-screen sm:w-auto sm:h-auto sm:max-h-[90vh] sm:max-w-[95vw] flex-col overflow-hidden rounded-none sm:rounded-lg shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Кнопка закрытия */}
+                {/* Кнопка закрытия (мобильные) */}
                 <button
                   type="button"
                   onClick={closeModal}
@@ -1001,6 +1080,32 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* Кнопка поделиться — справа от модалки */}
+              <div className="hidden sm:flex flex-col items-center self-start">
+                <button
+                  type="button"
+                  onClick={() => selected && shareImage(selected.id)}
+                  className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${
+                    copied
+                      ? 'bg-green-500/80 text-white'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                  }`}
+                  title={copied ? 'Скопировано!' : 'Поделиться'}
+                >
+                  {copied ? (
+                    <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>

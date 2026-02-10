@@ -694,38 +694,39 @@ export default function UploadPage() {
                 {/* Модель */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-600">Модель</label>
-                  <select
+                  <input
+                    list={`models-${type}`}
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
+                    placeholder="Выбрать или ввести..."
                     className={`w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:border-gray-300 focus:bg-white focus:outline-none transition ${!model ? 'text-gray-400' : 'text-gray-900'}`}
-                  >
-                    <option value="">Не указано</option>
-                    {type === 'video' ? (
-                      <>
-                        <option value="sora">Sora</option>
-                        <option value="pika">Pika</option>
-                        <option value="runway">Runway</option>
-                        <option value="kling">Kling</option>
-                        <option value="gen-3">Gen-3</option>
-                        <option value="midjourney">Midjourney</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="dalle">DALL·E</option>
-                        <option value="dalle-3">DALL·E 3</option>
-                        <option value="midjourney">Midjourney</option>
-                        <option value="stable-diffusion-xl">Stable Diffusion XL</option>
-                        <option value="stable-diffusion-3">Stable Diffusion 3</option>
-                        <option value="sdxl">SDXL</option>
-                        <option value="flux">Flux</option>
-                        <option value="kandinsky">Kandinsky</option>
-                        <option value="leonardo">Leonardo</option>
-                        <option value="ideogram">Ideogram</option>
-                        <option value="playground">Playground</option>
-                        <option value="krea">KREA</option>
-                      </>
-                    )}
-                  </select>
+                  />
+                  <datalist id="models-video">
+                    <option value="sora">Sora</option>
+                    <option value="veo">Veo</option>
+                    <option value="veo-2">Veo 2</option>
+                    <option value="veo-3">Veo 3</option>
+                    <option value="veo-3.1">Veo 3.1</option>
+                    <option value="pika">Pika</option>
+                    <option value="runway">Runway</option>
+                    <option value="kling">Kling</option>
+                    <option value="gen-3">Gen-3</option>
+                    <option value="midjourney">Midjourney</option>
+                  </datalist>
+                  <datalist id="models-image">
+                    <option value="dalle">DALL·E</option>
+                    <option value="dalle-3">DALL·E 3</option>
+                    <option value="midjourney">Midjourney</option>
+                    <option value="stable-diffusion-xl">Stable Diffusion XL</option>
+                    <option value="stable-diffusion-3">Stable Diffusion 3</option>
+                    <option value="sdxl">SDXL</option>
+                    <option value="flux">Flux</option>
+                    <option value="kandinsky">Kandinsky</option>
+                    <option value="leonardo">Leonardo</option>
+                    <option value="ideogram">Ideogram</option>
+                    <option value="playground">Playground</option>
+                    <option value="krea">KREA</option>
+                  </datalist>
                 </div>
 
                 {/* Кнопка загрузки */}
