@@ -234,6 +234,49 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
     // Индекс кадра цветов для модалки — синхронизируется с video.currentTime
     const [modalColorFrame, setModalColorFrame] = useState(0);
 
+    // Точные пиксельные размеры видео в модалке (предотвращает скачки)
+    const [modalWidth, setModalWidth] = useState(0);
+    const [modalHeight, setModalHeight] = useState(0);
+
+    // Вычислить оптимальные размеры контейнера по aspect ratio
+    const computeModalSize = useCallback((aspect: number) => {
+        const maxW = Math.min(window.innerWidth * 0.85, 960);
+        const maxH = window.innerHeight * 0.8;
+        let w = maxW;
+        let h = w / aspect;
+        if (h > maxH) {
+            h = maxH;
+            w = h * aspect;
+        }
+        setModalWidth(Math.round(w));
+        setModalHeight(Math.round(h));
+    }, []);
+
+    // При выборе видео — предзагрузка постера для определения пропорций
+    // (постер уже в кеше браузера из ленты → onload срабатывает мгновенно)
+    useEffect(() => {
+        if (!selected?.playback_id) return;
+
+        // Сразу ставим дефолт 16:9 чтобы контейнер был с первого кадра
+        computeModalSize(16 / 9);
+
+        const img = new Image();
+        img.onload = () => {
+            if (img.naturalWidth && img.naturalHeight) {
+                computeModalSize(img.naturalWidth / img.naturalHeight);
+            }
+        };
+        img.src = muxPoster(selected.playback_id);
+    }, [selected, computeModalSize]);
+
+    // Backup: если постер не дал размеры — берём из метаданных видео
+    const handleVideoMetadata = useCallback(() => {
+        const video = modalVideoRef.current;
+        if (video && video.videoWidth && video.videoHeight) {
+            computeModalSize(video.videoWidth / video.videoHeight);
+        }
+    }, [computeModalSize]);
+
     const closeModal = () => {
         setSelected(null);
         setShowPrompt(false);
@@ -625,7 +668,9 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
                     onClick={closeModal}
                 >
-                    {/* Flex контейнер для кружков + модалки */}
+                    {/* Вертикальный контейнер: [капсула + видео] сверху, [инфо-бар] снизу */}
+                    <div className="flex flex-col items-center">
+                    {/* Горизонтальный контейнер: капсула + видео */}
                     <div className="flex items-center gap-3 w-full max-w-[95vw] justify-center">
                         {/* Цветовая капсула — слева от модалки (синхронизирована с видео) */}
                         {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
@@ -669,103 +714,102 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                         })()}
 
                         <div
-                            className="relative flex flex-col overflow-hidden rounded-lg shadow-2xl"
-                            style={{ width: '70vw', maxWidth: 960 }}
+                            className="relative"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Видеоплеер */}
-                            <div className="relative flex items-center justify-center bg-black" style={{ aspectRatio: '16/9' }}>
-                                {selected.playback_id ? (
-                                    <video
-                                        ref={modalVideoRef}
-                                        controls
-                                        loop
-                                        playsInline
-                                        disablePictureInPicture
-                                        controlsList="nodownload noremoteplayback noplaybackrate"
-                                        poster={muxPoster(selected.playback_id)}
-                                        className="video-hover-controls absolute inset-0 h-full w-full object-contain"
-                                    >
-                                        {selected.playback_id && (
-                                            <>
-                                                <source src={`https://stream.mux.com/${selected.playback_id}.m3u8`} type="application/x-mpegURL" />
-                                                <source src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`} type="video/mp4" />
-                                            </>
-                                        )}
-                                        Ваш браузер не поддерживает воспроизведение видео.
-                                    </video>
-                                ) : (
-                                    <div className="absolute inset-0 flex w-full items-center justify-center text-center text-gray-400">
-                                        {selected.status === 'processing' ? (
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                                <p>Видео обрабатывается...</p>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-2">
-                                                <p>Видео недоступно</p>
-                                                <p className="text-xs opacity-50">Попробуйте загрузить заново</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                <PromptModal
-                                    prompt={selected.prompt}
-                                    description={selected.description}
-                                    isOpen={showPrompt}
-                                    onClose={() => setShowPrompt(false)}
-                                />
-                            </div>
-
-                            {/* Info-bar — плавающая полоска внизу */}
-                            <div className="flex justify-center py-3">
-                                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 backdrop-blur-md px-4 py-2 text-sm text-white">
-
-                                    {/* Кнопка Промт */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPrompt(true)}
-                                        className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 transition hover:bg-white/30 text-white font-medium text-xs"
-                                    >
-                                        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                            <polyline points="14 2 14 8 20 8" />
-                                            <line x1="16" y1="13" x2="8" y2="13" />
-                                            <line x1="16" y1="17" x2="8" y2="17" />
-                                        </svg>
-                                        Промт
-                                    </button>
-
-                                    {/* Автор */}
-                                    <Link
-                                        href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
-                                        className="flex items-center gap-2 transition hover:opacity-80"
-                                    >
-                                        {selectedProfile?.avatar_url && (
-                                            <img
-                                                src={selectedProfile.avatar_url}
-                                                alt={selectedProfile.username ?? "user"}
-                                                className="h-5 w-5 rounded-full object-cover ring-1 ring-white/30"
-                                            />
-                                        )}
-                                        <span className="text-white font-medium text-xs">{selectedProfile?.username ?? "user"}</span>
-                                    </Link>
-
-                                    {/* Модель */}
-                                    <span className="font-mono text-xs uppercase tracking-wider text-white/70">
-                                        {formatModelName(selected.model)}
-                                    </span>
-
-                                    {/* Дата */}
-                                    {selected.created_at && (
-                                        <span className="text-xs text-white/50">
-                                            {new Date(selected.created_at).toLocaleDateString("en-US", { month: 'short', year: '2-digit' }).toUpperCase()}
-                                        </span>
+                            {selected.playback_id ? (
+                                <video
+                                    ref={modalVideoRef}
+                                    controls
+                                    loop
+                                    playsInline
+                                    disablePictureInPicture
+                                    controlsList="nodownload noremoteplayback noplaybackrate"
+                                    poster={muxPoster(selected.playback_id)}
+                                    onLoadedMetadata={handleVideoMetadata}
+                                    className="video-hover-controls block rounded-xl shadow-2xl"
+                                    width={modalWidth || undefined}
+                                    height={modalHeight || undefined}
+                                >
+                                    <source src={`https://stream.mux.com/${selected.playback_id}.m3u8`} type="application/x-mpegURL" />
+                                    <source src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`} type="video/mp4" />
+                                    Ваш браузер не поддерживает воспроизведение видео.
+                                </video>
+                            ) : (
+                                <div
+                                    className="flex items-center justify-center rounded-xl bg-neutral-900 text-center text-gray-400 shadow-2xl"
+                                    style={{ width: 'min(85vw, 960px)', aspectRatio: '16/9' }}
+                                >
+                                    {selected.status === 'processing' ? (
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                            <p>Видео обрабатывается...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <p>Видео недоступно</p>
+                                            <p className="text-xs opacity-50">Попробуйте загрузить заново</p>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
+                            )}
+
+                            <PromptModal
+                                prompt={selected.prompt}
+                                description={selected.description}
+                                isOpen={showPrompt}
+                                onClose={() => setShowPrompt(false)}
+                            />
                         </div>
+                    </div>
+
+                    {/* Info-bar — плавающая полоска под модалкой */}
+                    <div
+                        className="mt-3 inline-flex items-center justify-center gap-4 rounded-full bg-white/10 backdrop-blur-md px-6 py-2.5 text-sm text-white"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Кнопка Промт */}
+                        <button
+                            type="button"
+                            onClick={() => setShowPrompt(true)}
+                            className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 transition hover:bg-white/30 text-white font-medium text-xs"
+                        >
+                            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="16" y1="13" x2="8" y2="13" />
+                                <line x1="16" y1="17" x2="8" y2="17" />
+                            </svg>
+                            Промт
+                        </button>
+
+                        {/* Автор */}
+                        <Link
+                            href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
+                            className="flex items-center gap-2 transition hover:opacity-80"
+                        >
+                            {selectedProfile?.avatar_url && (
+                                <img
+                                    src={selectedProfile.avatar_url}
+                                    alt={selectedProfile.username ?? "user"}
+                                    className="h-5 w-5 rounded-full object-cover ring-1 ring-white/30"
+                                />
+                            )}
+                            <span className="text-white font-medium text-xs">{selectedProfile?.username ?? "user"}</span>
+                        </Link>
+
+                        {/* Модель */}
+                        <span className="font-mono text-xs uppercase tracking-wider text-white/70">
+                            {formatModelName(selected.model)}
+                        </span>
+
+                        {/* Дата */}
+                        {selected.created_at && (
+                            <span className="text-xs text-white/50">
+                                {new Date(selected.created_at).toLocaleDateString("en-US", { month: 'short', year: '2-digit' }).toUpperCase()}
+                            </span>
+                        )}
+                    </div>
                     </div>
                 </div>
             )}
