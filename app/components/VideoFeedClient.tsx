@@ -646,21 +646,21 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
                             return (
                                 <div
-                                    className="hidden lg:flex overflow-hidden"
+                                    className="hidden lg:flex flex-col items-center gap-3 rounded-full py-4 px-[7px]"
                                     style={{
-                                        flexDirection: 'column',
-                                        width: 22,
-                                        height: 90,
-                                        borderRadius: 11,
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
+                                        background: 'rgba(255,255,255,0.1)',
                                     }}
                                 >
                                     {frameColors.map((c, index) => (
                                         <div
                                             key={index}
-                                            className="flex-1 transition-colors duration-300"
-                                            style={{ backgroundColor: c }}
+                                            className="rounded-full transition-colors duration-500"
+                                            style={{
+                                                width: 28,
+                                                height: 28,
+                                                backgroundColor: c,
+                                                boxShadow: `0 2px 8px ${c}44`,
+                                            }}
                                             title={c}
                                         />
                                     ))}
@@ -718,66 +718,50 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 />
                             </div>
 
-                            {/* Info-bar — отдельный блок ПОД видео */}
-                            <div className="bg-black/90 backdrop-blur-sm p-3 border-t border-white/20">
-                                <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
+                            {/* Info-bar — плавающая полоска внизу */}
+                            <div className="flex justify-center py-3">
+                                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 backdrop-blur-md px-4 py-2 text-sm text-white">
 
-                                    {/* Кнопка Промт + Дата */}
-                                    <div className="flex flex-col items-center gap-0.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPrompt(true)}
-                                            className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
-                                        >
-                                            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                                <polyline points="14 2 14 8 20 8" />
-                                                <line x1="16" y1="13" x2="8" y2="13" />
-                                                <line x1="16" y1="17" x2="8" y2="17" />
-                                            </svg>
-                                            Промт
-                                        </button>
-                                        {selected.created_at && (
-                                            <span className="text-[10px] text-white/50">
-                                                {new Date(selected.created_at).toLocaleDateString("en-US", { month: 'short', year: '2-digit' }).toUpperCase()}
-                                            </span>
-                                        )}
-                                    </div>
+                                    {/* Кнопка Промт */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPrompt(true)}
+                                        className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 transition hover:bg-white/30 text-white font-medium text-xs"
+                                    >
+                                        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                            <line x1="16" y1="13" x2="8" y2="13" />
+                                            <line x1="16" y1="17" x2="8" y2="17" />
+                                        </svg>
+                                        Промт
+                                    </button>
 
                                     {/* Автор */}
                                     <Link
                                         href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
-                                        className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                                        className="flex items-center gap-2 transition hover:opacity-80"
                                     >
                                         {selectedProfile?.avatar_url && (
                                             <img
                                                 src={selectedProfile.avatar_url}
                                                 alt={selectedProfile.username ?? "user"}
-                                                className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                                                className="h-5 w-5 rounded-full object-cover ring-1 ring-white/30"
                                             />
                                         )}
-                                        <span className="text-white">{selectedProfile?.username ?? "user"}</span>
+                                        <span className="text-white font-medium text-xs">{selectedProfile?.username ?? "user"}</span>
                                     </Link>
 
                                     {/* Модель */}
-                                    <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                                    <span className="font-mono text-xs uppercase tracking-wider text-white/70">
                                         {formatModelName(selected.model)}
                                     </span>
 
-                                    {/* Жанры/Муд inline */}
-                                    {((selected.genres && selected.genres.length > 0) || selected.mood) && (
-                                        <>
-                                            {selected.genres?.slice(0, 2).map((g) => (
-                                                <span key={g} className="rounded-full bg-white/20 px-2 py-0.5">
-                                                    {g}
-                                                </span>
-                                            ))}
-                                            {selected.mood && (
-                                                <span className="rounded-full bg-white/20 px-2 py-0.5">
-                                                    {selected.mood}
-                                                </span>
-                                            )}
-                                        </>
+                                    {/* Дата */}
+                                    {selected.created_at && (
+                                        <span className="text-xs text-white/50">
+                                            {new Date(selected.created_at).toLocaleDateString("en-US", { month: 'short', year: '2-digit' }).toUpperCase()}
+                                        </span>
                                     )}
                                 </div>
                             </div>
