@@ -837,7 +837,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                   className={`hidden sm:flex overflow-hidden transition-all duration-300 ease-in-out ${showPrompt ? 'max-w-[340px] opacity-100' : 'max-w-0 opacity-0'
                     }`}
                 >
-                  <div className="w-[340px] h-full bg-neutral-900/70 backdrop-blur-xl rounded-l-xl p-6 flex flex-col gap-5 text-white overflow-y-auto" style={{ maxHeight: '90vh' }}>
+                  <div className="w-[340px] h-full bg-neutral-900/70 backdrop-blur-xl rounded-l-xl p-6 flex flex-col gap-5 text-white overflow-y-auto scrollbar-thin" style={{ maxHeight: '90vh' }}>
                     {/* Prompt */}
                     {selected.prompt && (
                       <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative group/prompt">
@@ -847,13 +847,21 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                             type="button"
                             onClick={() => {
                               navigator.clipboard.writeText(selected.prompt || '');
-                              const btn = document.getElementById('copy-prompt-btn');
-                              if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '⎘'; }, 1500); }
+                              const icon = document.getElementById('copy-prompt-icon');
+                              const check = document.getElementById('copy-prompt-check');
+                              if (icon && check) { icon.classList.add('hidden'); check.classList.remove('hidden'); setTimeout(() => { icon.classList.remove('hidden'); check.classList.add('hidden'); }, 1500); }
                             }}
-                            id="copy-prompt-btn"
-                            className="text-white/30 hover:text-white/70 transition text-lg leading-none"
+                            className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
                             title="Скопировать промт"
-                          >⎘</button>
+                          >
+                            <svg id="copy-prompt-icon" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            <svg id="copy-prompt-check" className="h-4 w-4 hidden text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
                         </div>
                         <div className="max-h-[150px] overflow-y-auto pr-1 scrollbar-thin">
                           <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
@@ -869,8 +877,11 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                       </div>
                     )}
 
-                    {!selected.prompt && !selected.description && (
-                      <p className="text-sm text-white/40 italic">Нет информации</p>
+                    {!selected.prompt && (
+                      <div className="rounded-xl bg-white/5 border border-white/10 p-4 opacity-40">
+                        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Промт</h3>
+                        <p className="text-[13px] text-white/50 italic">Промт не указан</p>
+                      </div>
                     )}
 
                     <hr className="border-white/10" />
