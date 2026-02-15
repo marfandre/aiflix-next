@@ -668,51 +668,10 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
                     onClick={closeModal}
                 >
-                    {/* Вертикальный контейнер: [капсула + видео] сверху, [инфо-бар] снизу */}
+                    {/* Вертикальный контейнер: [видео] сверху, [капсула + инфо-бар] снизу */}
                     <div className="flex flex-col items-center">
-                    {/* Горизонтальный контейнер: капсула + видео */}
-                    <div className="flex items-center gap-3 w-full max-w-[95vw] justify-center">
-                        {/* Цветовая капсула — слева от модалки (синхронизирована с видео) */}
-                        {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
-                            const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
-                            const colors = hasFullColors
-                                ? selected.colors_full!
-                                : (selected.colors_preview && selected.colors_preview.length > 0
-                                    ? selected.colors_preview
-                                    : (selected.colors ?? []));
-
-                            if (colors.length === 0) return null;
-
-                            const startIdx = modalColorFrame * 3;
-                            const frameColors = colors.slice(startIdx, startIdx + 3);
-                            while (frameColors.length < 3 && frameColors.length > 0) {
-                                frameColors.push(frameColors[frameColors.length - 1]);
-                            }
-
-                            return (
-                                <div
-                                    className="hidden lg:flex flex-col items-center gap-3 rounded-full py-4 px-[7px]"
-                                    style={{
-                                        background: 'rgba(255,255,255,0.1)',
-                                    }}
-                                >
-                                    {frameColors.map((c, index) => (
-                                        <div
-                                            key={index}
-                                            className="rounded-full transition-colors duration-500"
-                                            style={{
-                                                width: 28,
-                                                height: 28,
-                                                backgroundColor: c,
-                                                boxShadow: `0 2px 8px ${c}44`,
-                                            }}
-                                            title={c}
-                                        />
-                                    ))}
-                                </div>
-                            );
-                        })()}
-
+                        {/* Горизонтальный контейнер: видео */}
+                        <div className="flex items-center gap-3 w-full max-w-[95vw] justify-center">
                         <div
                             className="relative"
                             onClick={(e) => e.stopPropagation()}
@@ -765,9 +724,45 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
                     {/* Info-bar — плавающая полоска под модалкой */}
                     <div
-                        className="mt-3 inline-flex items-center justify-center gap-4 rounded-full bg-white/10 backdrop-blur-md px-6 py-2.5 text-sm text-white"
+                        className="mt-3 flex max-w-[95vw] items-center justify-center gap-3"
                         onClick={(e) => e.stopPropagation()}
                     >
+                        {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
+                            const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
+                            const colors = hasFullColors
+                                ? selected.colors_full!
+                                : (selected.colors_preview && selected.colors_preview.length > 0
+                                    ? selected.colors_preview
+                                    : (selected.colors ?? []));
+
+                            if (colors.length === 0) return null;
+
+                            const startIdx = modalColorFrame * 3;
+                            const frameColors = colors.slice(startIdx, startIdx + 3);
+                            while (frameColors.length < 3 && frameColors.length > 0) {
+                                frameColors.push(frameColors[frameColors.length - 1]);
+                            }
+
+                            return (
+                                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 backdrop-blur-md">
+                                    {frameColors.map((c, index) => (
+                                        <div
+                                            key={index}
+                                            className="rounded-full transition-colors duration-500"
+                                            style={{
+                                                width: 20,
+                                                height: 20,
+                                                backgroundColor: c,
+                                                boxShadow: `0 2px 8px ${c}44`,
+                                            }}
+                                            title={c}
+                                        />
+                                    ))}
+                                </div>
+                            );
+                        })()}
+
+                        <div className="inline-flex items-center justify-center gap-4 rounded-full bg-white/10 backdrop-blur-md px-6 py-2.5 text-sm text-white">
                         {/* Кнопка Промт */}
                         <button
                             type="button"
@@ -812,8 +807,8 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                     </div>
                     </div>
                 </div>
+                </div>
             )}
         </>
     );
 }
-

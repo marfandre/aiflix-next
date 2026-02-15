@@ -113,6 +113,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
   const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
   const [imageWidth, setImageWidth] = useState<number | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showPromptOverlay, setShowPromptOverlay] = useState(false);
   const [copied, setCopied] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -148,6 +149,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
         setSlideIndex(0);
         setVariantsLoading(false);
         setShowPrompt(false);
+        setShowPromptOverlay(false);
         setModalHoveredColor(null);
       }
     };
@@ -363,6 +365,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     setSlideIndex(0);
     setVariantsLoading(false);
     setShowPrompt(false);
+    setShowPromptOverlay(false);
     setModalHoveredColor(null);
     setCopied(false);
   };
@@ -785,8 +788,8 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
           >
             {/* Flex контейнер для кружков + модалки */}
             <div className="flex items-center gap-3">
-              {/* Цветовая палитра — слева от модалки */}
-              {(Array.isArray(currentColors) && currentColors.length > 0) && (
+              {/* Цветовая палитра — слева от модалки (когда панель закрыта) */}
+              {!showPrompt && (Array.isArray(currentColors) && currentColors.length > 0) && (
                 <div className="flex-col gap-2 hidden sm:flex items-center">
                   {/* Акцентные цвета сверху */}
                   {selected.accent_colors && selected.accent_colors.length > 0 && (
@@ -827,271 +830,420 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                 </div>
               )}
 
-              <div
-                className="group relative flex w-screen h-screen sm:w-auto sm:h-auto sm:max-h-[90vh] sm:max-w-[95vw] flex-col overflow-hidden rounded-none sm:rounded-lg shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Кнопка закрытия (мобильные) */}
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 sm:hidden"
-                  title="Закрыть"
+              {/* Book container — info panel + image side by side */}
+              <div className="flex items-stretch sm:max-w-[95vw] relative" onClick={(e) => e.stopPropagation()}>
+                {/* Left page — info panel */}
+                <div
+                  className={`hidden sm:flex overflow-hidden transition-all duration-300 ease-in-out ${showPrompt ? 'max-w-[340px] opacity-100' : 'max-w-0 opacity-0'
+                    }`}
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-
-                {/* Цветовая палитра для мобильных — горизонтально по центру сверху */}
-                {(Array.isArray(currentColors) && currentColors.length > 0) && (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:hidden">
-                    {/* Основные цвета */}
-                    {currentColors.map((c, index) => {
-                      if (!c) return null;
-                      const isHovered = modalHoveredColor === index;
-                      return (
-                        <div
-                          key={`mob-${c}-${index}`}
-                          className={`rounded-full shadow-md cursor-pointer transition-all duration-150
-                            ${isHovered ? 'border border-white' : 'border border-white/40'}`}
-                          style={{
-                            backgroundColor: c,
-                            width: 20,
-                            height: 20,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setModalHoveredColor(isHovered ? null : index);
-                          }}
-                        />
-                      );
-                    })}
-                    {/* Акцентные цвета */}
-                    {selected.accent_colors && selected.accent_colors.length > 0 && (
-                      selected.accent_colors.map((c, index) => (
-                        <div
-                          key={`mob-accent-${c}-${index}`}
-                          className="rounded-full border border-white/40 shadow-md"
-                          style={{
-                            backgroundColor: c,
-                            width: 16,
-                            height: 16,
-                          }}
-                        />
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {/* Картинка с overlay */}
-                <div className="relative flex items-center justify-center bg-black flex-1">
-                  {currentVariant ? (
-                    <>
-                      <div className="relative inline-flex">
-                        <img
-                          ref={imageRef}
-                          src={publicImageUrl(currentVariant.path)}
-                          alt={(selected.title ?? "").trim() || "Картинка"}
-                          className="w-full h-full sm:max-h-[90vh] sm:w-auto sm:max-w-full object-contain"
-                          onLoad={() => {
-                            if (imageRef.current) {
-                              setImageWidth(imageRef.current.offsetWidth);
-                            }
-                          }}
-                        />
-
-                        {/* Маркер на картинке при hover на кружок палитры */}
-                        {modalHoveredColor !== null && selected.color_positions && selected.color_positions[modalHoveredColor] && (() => {
-                          const pos = selected.color_positions[modalHoveredColor];
-                          const color = currentColors[modalHoveredColor] ?? pos.hex;
-                          return (
-                            <div
-                              className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
-                              style={{
-                                left: `${pos.x * 100}%`,
-                                top: `${pos.y * 100}%`,
-                              }}
-                            >
-                              <div
-                                className="w-7 h-7 rounded-full border-[1.5px] border-white"
-                                style={{
-                                  backgroundColor: color,
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                                }}
-                              />
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {hasCarousel && (
-                        <>
+                  <div className="w-[340px] h-full bg-neutral-900/70 backdrop-blur-xl rounded-l-xl p-6 flex flex-col gap-5 text-white overflow-y-auto" style={{ maxHeight: '90vh' }}>
+                    {/* Prompt */}
+                    {selected.prompt && (
+                      <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative group/prompt">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Промт</h3>
                           <button
                             type="button"
-                            onClick={() =>
-                              setSlideIndex(
-                                (i) =>
-                                  (i - 1 + variants.length) % variants.length
-                              )
-                            }
-                            className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                            title="Предыдущее изображение"
-                          >
-                            <span className="block text-lg leading-none text-white transition-transform group-hover:-translate-x-0.5">
-                              ‹
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSlideIndex((i) => (i + 1) % variants.length)
-                            }
-                            className="group absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                          >
-                            <span className="block text-lg leading-none text-white transition-transform group-hover:translate-x-0.5">
-                              ›
-                            </span>
-                          </button>
-
-                          <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 gap-1">
-                            {variants.map((v, idx) => (
-                              <button
-                                key={v.path + idx}
-                                type="button"
-                                onClick={() => setSlideIndex(idx)}
-                                className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
-                                  ? "bg-white"
-                                  : "bg-white/40"
-                                  }`}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
-
-                      {/* Всплывающее окно с промтом */}
-                      <PromptModal
-                        prompt={selected.prompt}
-                        description={selected.description}
-                        isOpen={showPrompt}
-                        onClose={() => setShowPrompt(false)}
-                      />
-
-                      {/* Оптическое стекло effect */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md py-1.5 px-3 border-t border-white/20">
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
-
-                          {/* Кнопка Промт + Дата */}
-                          <div className="flex flex-col items-center gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => setShowPrompt(true)}
-                              className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
-                            >
-                              <svg
-                                aria-hidden="true"
-                                viewBox="0 0 24 24"
-                                className="h-3.5 w-3.5"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                                <line x1="16" y1="13" x2="8" y2="13" />
-                                <line x1="16" y1="17" x2="8" y2="17" />
-                              </svg>
-                              Промт
-                            </button>
-                            {selected.created_at && (
-                              <span className="text-[10px] text-white/50">
-                                {formatDate(selected.created_at)}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Автор */}
-                          {(() => {
-                            const p = Array.isArray(selected.profiles)
-                              ? selected.profiles[0]
-                              : selected.profiles;
-                            const nick: string = p?.username ?? "user";
-                            const avatar: string | null = p?.avatar_url ?? null;
-                            return (
-                              <Link
-                                href={`/u/${encodeURIComponent(nick)}`}
-                                className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
-                              >
-                                {avatar && (
-                                  <img
-                                    src={avatar}
-                                    alt={nick}
-                                    className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
-                                  />
-                                )}
-                                <span className="text-white">{nick}</span>
-                              </Link>
-                            );
-                          })()}
-
-                          {/* Модель */}
-                          <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
-                            {formatModelName(selected.model)}
-                          </span>
-
-                          {/* Теги inline */}
-                          {selected.tags && selected.tags.length > 0 && (
-                            <>
-                              {selected.tags.slice(0, 3).map((tagWithLang) => {
-                                let tagId = tagWithLang;
-                                let lang: 'ru' | 'en' = 'ru';
-                                if (tagWithLang.endsWith(':en')) {
-                                  tagId = tagWithLang.slice(0, -3);
-                                  lang = 'en';
-                                } else if (tagWithLang.endsWith(':ru')) {
-                                  tagId = tagWithLang.slice(0, -3);
-                                  lang = 'ru';
-                                }
-                                const tagNames = tagsMap[tagId];
-                                const displayName = tagNames ? tagNames[lang] : tagId;
-
-                                return (
-                                  <span
-                                    key={tagWithLang}
-                                    className="rounded-full bg-white/20 px-2 py-0.5"
-                                  >
-                                    {displayName}
-                                  </span>
-                                );
-                              })}
-                              {selected.tags.length > 3 && (
-                                <span className="text-white/60">+{selected.tags.length - 3}</span>
-                              )}
-                            </>
-                          )}
+                            onClick={() => {
+                              navigator.clipboard.writeText(selected.prompt || '');
+                              const btn = document.getElementById('copy-prompt-btn');
+                              if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '⎘'; }, 1500); }
+                            }}
+                            id="copy-prompt-btn"
+                            className="text-white/30 hover:text-white/70 transition text-lg leading-none"
+                            title="Скопировать промт"
+                          >⎘</button>
+                        </div>
+                        <div className="max-h-[150px] overflow-y-auto pr-1 scrollbar-thin">
+                          <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
                         </div>
                       </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-white/60 p-8">
-                      Не удалось загрузить изображение.
-                    </p>
-                  )}
-                </div>
-              </div>
+                    )}
 
-              {/* Кнопка поделиться — справа от модалки */}
-              <div className="hidden sm:flex flex-col items-center self-start">
+                    {/* Description */}
+                    {selected.description && (
+                      <div>
+                        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Описание</h3>
+                        <p className="text-[13px] text-white/80 leading-relaxed">{selected.description}</p>
+                      </div>
+                    )}
+
+                    {!selected.prompt && !selected.description && (
+                      <p className="text-sm text-white/40 italic">Нет информации</p>
+                    )}
+
+                    <hr className="border-white/10" />
+
+                    {/* Author */}
+                    {(() => {
+                      const p = Array.isArray(selected.profiles) ? selected.profiles[0] : selected.profiles;
+                      const nick = p?.username ?? "user";
+                      const avatar = p?.avatar_url ?? null;
+                      return (
+                        <div>
+                          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Автор</h3>
+                          <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
+                            {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
+                            <span className="text-sm text-white font-medium">{nick}</span>
+                          </Link>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Model */}
+                    <div>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Модель</h3>
+                      <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{formatModelName(selected.model)}</span>
+                    </div>
+
+                    {/* Tags */}
+                    {selected.tags && selected.tags.length > 0 && (
+                      <div>
+                        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Теги</h3>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selected.tags.map((tagWithLang) => {
+                            let tagId = tagWithLang;
+                            let lang: 'ru' | 'en' = 'ru';
+                            if (tagWithLang.endsWith(':en')) { tagId = tagWithLang.slice(0, -3); lang = 'en'; }
+                            else if (tagWithLang.endsWith(':ru')) { tagId = tagWithLang.slice(0, -3); lang = 'ru'; }
+                            const tagNames = tagsMap[tagId];
+                            const displayName = tagNames ? tagNames[lang] : tagId;
+                            return (
+                              <span key={tagWithLang} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">
+                                {displayName}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Date */}
+                    {selected.created_at && (
+                      <div>
+                        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Дата</h3>
+                        <span className="text-sm text-white/60">{new Date(selected.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right page wrapper — allows spine overflow */}
+                <div className="relative">
+                  {/* Color circles — spine (когда панель открыта), привязаны к левому краю картинки */}
+                  {showPrompt && (Array.isArray(currentColors) && currentColors.length > 0) && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full flex-col gap-2 hidden sm:flex items-end z-10" style={{ paddingRight: '4px' }}>
+                      {/* Акцентные цвета сверху */}
+                      {selected.accent_colors && selected.accent_colors.length > 0 && (
+                        selected.accent_colors.map((c, index) => (
+                          <div key={`accent-spine-${c}-${index}`} className="flex items-center gap-1">
+                            <span className="text-[9px] font-mono text-white/50 uppercase">{c}</span>
+                            <div className="w-6 h-[1px] bg-white/30" />
+                            <div
+                              className="rounded-full border-2 border-white/30 shadow-lg flex-shrink-0"
+                              style={{
+                                backgroundColor: c,
+                                width: 18,
+                                height: 18,
+                              }}
+                              title={`Акцент: ${c}`}
+                            />
+                          </div>
+                        ))
+                      )}
+
+                      {/* Основные цвета */}
+                      {currentColors.map((c, index) => {
+                        if (!c) return null;
+                        const isHovered = modalHoveredColor === index;
+                        return (
+                          <div key={`spine-${c}-${index}`} className="flex items-center gap-1">
+                            <span className={`text-[9px] font-mono uppercase transition-all duration-150 ${isHovered ? 'text-white/90' : 'text-white/50'}`}>{c}</span>
+                            <div className={`w-8 h-[1px] transition-all duration-150 ${isHovered ? 'bg-white/60' : 'bg-white/30'}`} />
+                            <div
+                              className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 flex-shrink-0
+                                ${isHovered ? 'border border-white' : 'border border-white/30'}`}
+                              style={{
+                                backgroundColor: c,
+                                width: 28,
+                                height: 28,
+                              }}
+                              title={c}
+                              onMouseEnter={() => setModalHoveredColor(index)}
+                              onMouseLeave={() => setModalHoveredColor(null)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Image container with clipped corners */}
+                  <div
+                    className={`group relative flex w-screen h-screen sm:w-auto sm:h-auto sm:max-h-[90vh] flex-col overflow-hidden rounded-none ${showPrompt ? 'sm:rounded-r-xl sm:rounded-l-none' : 'sm:rounded-xl'
+                      } shadow-2xl`}
+                  >
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 sm:hidden"
+                      title="Закрыть"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+
+                    {/* Цветовая палитра для мобильных — горизонтально по центру сверху */}
+                    {(Array.isArray(currentColors) && currentColors.length > 0) && (
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:hidden">
+                        {/* Основные цвета */}
+                        {currentColors.map((c, index) => {
+                          if (!c) return null;
+                          const isHovered = modalHoveredColor === index;
+                          return (
+                            <div
+                              key={`mob-${c}-${index}`}
+                              className={`rounded-full shadow-md cursor-pointer transition-all duration-150
+                            ${isHovered ? 'border border-white' : 'border border-white/40'}`}
+                              style={{
+                                backgroundColor: c,
+                                width: 20,
+                                height: 20,
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalHoveredColor(isHovered ? null : index);
+                              }}
+                            />
+                          );
+                        })}
+                        {/* Акцентные цвета */}
+                        {selected.accent_colors && selected.accent_colors.length > 0 && (
+                          selected.accent_colors.map((c, index) => (
+                            <div
+                              key={`mob-accent-${c}-${index}`}
+                              className="rounded-full border border-white/40 shadow-md"
+                              style={{
+                                backgroundColor: c,
+                                width: 16,
+                                height: 16,
+                              }}
+                            />
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    {/* Картинка с overlay */}
+                    <div className="relative flex items-center justify-center bg-black flex-1">
+                      {currentVariant ? (
+                        <>
+                          <div className="relative inline-flex">
+                            <img
+                              ref={imageRef}
+                              src={publicImageUrl(currentVariant.path)}
+                              alt={(selected.title ?? "").trim() || "Картинка"}
+                              className="w-full h-full sm:max-h-[90vh] sm:w-auto sm:max-w-full object-contain"
+                              onLoad={() => {
+                                if (imageRef.current) {
+                                  setImageWidth(imageRef.current.offsetWidth);
+                                }
+                              }}
+                            />
+
+                            {/* Маркер на картинке при hover на кружок палитры */}
+                            {modalHoveredColor !== null && selected.color_positions && selected.color_positions[modalHoveredColor] && (() => {
+                              const pos = selected.color_positions[modalHoveredColor];
+                              const color = currentColors[modalHoveredColor] ?? pos.hex;
+                              return (
+                                <div
+                                  className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
+                                  style={{
+                                    left: `${pos.x * 100}%`,
+                                    top: `${pos.y * 100}%`,
+                                  }}
+                                >
+                                  <div
+                                    className="w-7 h-7 rounded-full border-[1.5px] border-white"
+                                    style={{
+                                      backgroundColor: color,
+                                      boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          {hasCarousel && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSlideIndex(
+                                    (i) =>
+                                      (i - 1 + variants.length) % variants.length
+                                  )
+                                }
+                                className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
+                                title="Предыдущее изображение"
+                              >
+                                <span className="block text-lg leading-none text-white transition-transform group-hover:-translate-x-0.5">
+                                  ‹
+                                </span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSlideIndex((i) => (i + 1) % variants.length)
+                                }
+                                className="group absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
+                              >
+                                <span className="block text-lg leading-none text-white transition-transform group-hover:translate-x-0.5">
+                                  ›
+                                </span>
+                              </button>
+
+                              <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 gap-1">
+                                {variants.map((v, idx) => (
+                                  <button
+                                    key={v.path + idx}
+                                    type="button"
+                                    onClick={() => setSlideIndex(idx)}
+                                    className={`h-1.5 w-1.5 rounded-full ${idx === slideIndex
+                                      ? "bg-white"
+                                      : "bg-white/40"
+                                      }`}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
+
+                          {/* Всплывающее окно с промтом — поверх картинки */}
+                          <PromptModal
+                            prompt={selected.prompt}
+                            description={selected.description}
+                            isOpen={showPromptOverlay}
+                            onClose={() => setShowPromptOverlay(false)}
+                          />
+
+                          {/* Оптическое стекло effect — скрывается на десктопе когда открыта info-панель */}
+                          <div className={`absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md py-1.5 px-3 border-t border-white/20 transition-opacity duration-300 ${showPrompt ? 'sm:opacity-0 sm:pointer-events-none' : ''}`}>
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
+
+                              {/* Кнопка Промт + Дата */}
+                              <div className="flex flex-col items-center gap-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPromptOverlay(true)}
+                                  className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 transition hover:bg-white/30 text-white"
+                                >
+                                  <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 24 24"
+                                    className="h-3.5 w-3.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                  </svg>
+                                  Промт
+                                </button>
+                                {selected.created_at && (
+                                  <span className="text-[10px] text-white/50">
+                                    {formatDate(selected.created_at)}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Автор */}
+                              {(() => {
+                                const p = Array.isArray(selected.profiles)
+                                  ? selected.profiles[0]
+                                  : selected.profiles;
+                                const nick: string = p?.username ?? "user";
+                                const avatar: string | null = p?.avatar_url ?? null;
+                                return (
+                                  <Link
+                                    href={`/u/${encodeURIComponent(nick)}`}
+                                    className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                                  >
+                                    {avatar && (
+                                      <img
+                                        src={avatar}
+                                        alt={nick}
+                                        className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                                      />
+                                    )}
+                                    <span className="text-white">{nick}</span>
+                                  </Link>
+                                );
+                              })()}
+
+                              {/* Модель */}
+                              <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                                {formatModelName(selected.model)}
+                              </span>
+
+                              {/* Теги inline */}
+                              {selected.tags && selected.tags.length > 0 && (
+                                <>
+                                  {selected.tags.slice(0, 3).map((tagWithLang) => {
+                                    let tagId = tagWithLang;
+                                    let lang: 'ru' | 'en' = 'ru';
+                                    if (tagWithLang.endsWith(':en')) {
+                                      tagId = tagWithLang.slice(0, -3);
+                                      lang = 'en';
+                                    } else if (tagWithLang.endsWith(':ru')) {
+                                      tagId = tagWithLang.slice(0, -3);
+                                      lang = 'ru';
+                                    }
+                                    const tagNames = tagsMap[tagId];
+                                    const displayName = tagNames ? tagNames[lang] : tagId;
+
+                                    return (
+                                      <span
+                                        key={tagWithLang}
+                                        className="rounded-full bg-white/20 px-2 py-0.5"
+                                      >
+                                        {displayName}
+                                      </span>
+                                    );
+                                  })}
+                                  {selected.tags.length > 3 && (
+                                    <span className="text-white/60">+{selected.tags.length - 3}</span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-white/60 p-8">
+                          Не удалось загрузить изображение.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>{/* Close image wrapper */}
+              </div>{/* Close book container */}
+
+              {/* Кнопки справа от модалки — поделиться + лайк */}
+              <div className="hidden sm:flex flex-col items-center self-start gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={() => selected && shareImage(selected.id)}
-                  className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${
-                    copied
-                      ? 'bg-green-500/80 text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-                  }`}
+                  className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${copied
+                    ? 'bg-green-500/80 text-white'
+                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                    }`}
                   title={copied ? 'Скопировано!' : 'Поделиться'}
                 >
                   {copied ? (
@@ -1105,6 +1257,28 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                       <line x1="10" y1="14" x2="21" y2="3" />
                     </svg>
                   )}
+                </button>
+                <LikeButton
+                  target="image"
+                  id={selected.id}
+                  userId={userId}
+                  ownerId={selected.user_id}
+                  className="!h-14 !w-14 !rounded-xl !bg-white/10 !text-white/70 hover:!bg-white/20 hover:!text-white !backdrop-blur-none [&_svg]:!h-7 [&_svg]:!w-7"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPrompt((v) => !v)}
+                  className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${showPrompt
+                    ? 'bg-white/30 text-white'
+                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                    }`}
+                  title="Информация"
+                >
+                  <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                  </svg>
                 </button>
               </div>
             </div>
