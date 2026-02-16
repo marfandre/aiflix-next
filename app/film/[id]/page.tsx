@@ -4,11 +4,48 @@ export const dynamic = 'force-dynamic';
 import { cookies } from 'next/headers';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 type Props = {
   params: { id: string };
   searchParams: { from?: string; u?: string };
 };
+
+// OG metadata для шаринга
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const supa = createServerComponentClient({ cookies });
+
+  const { data } = await supa
+    .from('films')
+    .select('title, description, prompt, playback_id, model')
+    .eq('id', params.id)
+    .maybeSingle();
+
+  if (!data) return { title: 'Видео не найдено — Waiva' };
+
+  const title = (data.title ?? '').trim() || 'AI Video';
+  const description = data.prompt ?? data.description ?? `AI-generated video${data.model ? ` by ${data.model}` : ''}`;
+  const imageUrl = data.playback_id
+    ? `https://image.mux.com/${data.playback_id}/thumbnail.jpg?time=1&width=1200`
+    : undefined;
+
+  return {
+    title: `${title} — Waiva`,
+    description,
+    openGraph: {
+      title,
+      description,
+      ...(imageUrl ? { images: [{ url: imageUrl, width: 1200, height: 630 }] } : {}),
+      type: 'video.other',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(imageUrl ? { images: [imageUrl] } : {}),
+    },
+  };
+}
 
 export default async function FilmPage({ params, searchParams }: Props) {
   const supa = createServerComponentClient({ cookies });
