@@ -32,8 +32,8 @@ export default async function AccountPage() {
   // видео
   const { data: films } = await supabase
     .from('films')
-    .select('id,user_id,title,description,playback_id,upload_id,created_at')
-    .eq('user_id', session.user.id)
+    .select('id,author_id,title,description,playback_id,upload_id,created_at')
+    .eq('author_id', session.user.id)
     .order('created_at', { ascending: false });
 
   // картинки

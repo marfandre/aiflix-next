@@ -667,7 +667,6 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                 </Masonry>
             </div>
 
-            {/* МОДАЛКА С ВИДЕО */}
             {/* МОДАЛКА ВИДЕО */}
             {selected && (
                 <div
@@ -676,106 +675,182 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                 >
                     {/* Горизонтальный контейнер: видео + кнопки справа */}
                     <div className="flex items-center gap-3">
-                        {/* Вертикальный контейнер: [видео] сверху, [капсула + инфо-бар] снизу */}
+                        {/* Вертикальный контейнер: [book] сверху, [инфо-бар] снизу */}
                         <div className="flex flex-col items-center">
-                            {/* Видео */}
-                            <div
-                                className="relative"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {selected.playback_id ? (
-                                    <video
-                                        ref={modalVideoRef}
-                                        controls
-                                        loop
-                                        playsInline
-                                        disablePictureInPicture
-                                        controlsList="nodownload noremoteplayback noplaybackrate"
-                                        poster={muxPoster(selected.playback_id)}
-                                        onLoadedMetadata={handleVideoMetadata}
-                                        className="video-hover-controls block rounded-xl shadow-2xl"
-                                        width={modalWidth || undefined}
-                                        height={modalHeight || undefined}
-                                    >
-                                        <source src={`https://stream.mux.com/${selected.playback_id}.m3u8`} type="application/x-mpegURL" />
-                                        <source src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`} type="video/mp4" />
-                                        Ваш браузер не поддерживает воспроизведение видео.
-                                    </video>
-                                ) : (
-                                    <div
-                                        className="flex items-center justify-center rounded-xl bg-neutral-900 text-center text-gray-400 shadow-2xl"
-                                        style={{ width: 'min(85vw, 960px)', aspectRatio: '16/9' }}
-                                    >
-                                        {selected.status === 'processing' ? (
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                                <p>Видео обрабатывается...</p>
+
+                            {/* Book container — info panel + video side by side */}
+                            <div className="flex items-stretch sm:max-w-[95vw] relative" onClick={(e) => e.stopPropagation()}>
+                                {/* Left page — info panel */}
+                                <div
+                                    className={`hidden sm:flex overflow-hidden transition-all duration-300 ease-in-out ${showPrompt ? 'max-w-[340px] opacity-100' : 'max-w-0 opacity-0'}`}
+                                >
+                                    <div className="w-[340px] h-full bg-neutral-900/70 backdrop-blur-xl rounded-l-xl p-6 flex flex-col gap-5 text-white overflow-y-auto scrollbar-thin" style={{ maxHeight: '90vh' }}>
+                                        {/* Промт */}
+                                        {selected.prompt && (
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Промт</h3>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(selected.prompt || '');
+                                                        }}
+                                                        className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
+                                                        title="Скопировать промт"
+                                                    >
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div className="max-h-[150px] overflow-y-auto pr-1 scrollbar-thin">
+                                                    <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-2">
-                                                <p>Видео недоступно</p>
-                                                <p className="text-xs opacity-50">Попробуйте загрузить заново</p>
+                                        )}
+
+                                        {/* Описание */}
+                                        {selected.description && (
+                                            <div>
+                                                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Описание</h3>
+                                                <p className="text-[13px] text-white/80 leading-relaxed">{selected.description}</p>
+                                            </div>
+                                        )}
+
+                                        {!selected.prompt && (
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-4 opacity-40">
+                                                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Промт</h3>
+                                                <p className="text-[13px] text-white/50 italic">Промт не указан</p>
+                                            </div>
+                                        )}
+
+                                        <hr className="border-white/10" />
+
+                                        {/* Автор */}
+                                        <div>
+                                            <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Автор</h3>
+                                            <Link href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
+                                                {selectedProfile?.avatar_url && <img src={selectedProfile.avatar_url} alt={selectedProfile.username ?? "user"} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
+                                                <span className="text-sm text-white font-medium">{selectedProfile?.username ?? "user"}</span>
+                                            </Link>
+                                        </div>
+
+                                        {/* Модель */}
+                                        <div>
+                                            <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Модель</h3>
+                                            <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{formatModelName(selected.model)}</span>
+                                        </div>
+
+                                        {/* Дата */}
+                                        {selected.created_at && (
+                                            <div>
+                                                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Дата</h3>
+                                                <span className="text-sm text-white/60">{new Date(selected.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                </div>
 
-                                <PromptModal
-                                    prompt={selected.prompt}
-                                    description={selected.description}
-                                    isOpen={showPrompt}
-                                    onClose={() => setShowPrompt(false)}
-                                />
-                            </div>
+                                {/* Right page — video */}
+                                <div className="relative">
+                                    <div className={`relative flex flex-col overflow-hidden rounded-none ${showPrompt ? 'sm:rounded-r-xl sm:rounded-l-none' : 'sm:rounded-xl'} shadow-2xl`}>
+                                        {selected.playback_id ? (
+                                            <video
+                                                ref={modalVideoRef}
+                                                controls
+                                                loop
+                                                playsInline
+                                                disablePictureInPicture
+                                                controlsList="nodownload noremoteplayback noplaybackrate"
+                                                poster={muxPoster(selected.playback_id)}
+                                                onLoadedMetadata={handleVideoMetadata}
+                                                className="video-hover-controls block"
+                                                width={modalWidth || undefined}
+                                                height={modalHeight || undefined}
+                                                style={{ maxHeight: '85vh' }}
+                                            >
+                                                <source src={`https://stream.mux.com/${selected.playback_id}.m3u8`} type="application/x-mpegURL" />
+                                                <source src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`} type="video/mp4" />
+                                                Ваш браузер не поддерживает воспроизведение видео.
+                                            </video>
+                                        ) : (
+                                            <div
+                                                className="flex items-center justify-center bg-neutral-900 text-center text-gray-400"
+                                                style={{ width: 'min(85vw, 960px)', aspectRatio: '16/9' }}
+                                            >
+                                                {selected.status === 'processing' ? (
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                                        <p>Видео обрабатывается...</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <p>Видео недоступно</p>
+                                                        <p className="text-xs opacity-50">Попробуйте загрузить заново</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>{/* Close book container */}
+                            {/* Info-bar + цветовая капсула — в одну строку под видео */}
+                            <div className={`mt-3 flex items-center justify-center gap-3 transition-opacity duration-300 ${showPrompt ? 'sm:opacity-0 sm:pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
+                                {/* Инфо-полоска со встроенной цветовой капсулой */}
+                                <div
+                                    className="inline-flex items-center gap-4 rounded-full pl-1.5 pr-6 py-1.5 text-sm text-white"
+                                    style={{
+                                        minWidth: 480,
+                                        background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)',
+                                        backdropFilter: 'blur(24px) saturate(1.4)',
+                                        WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+                                        border: '1px solid rgba(255,255,255,0.18)',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                    }}
+                                >
+                                    {/* Цветовая капсула — встроена слева */}
+                                    {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
+                                        const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
+                                        const colors = hasFullColors
+                                            ? selected.colors_full!
+                                            : (selected.colors_preview && selected.colors_preview.length > 0
+                                                ? selected.colors_preview
+                                                : (selected.colors ?? []));
 
-                            {/* Info-bar — плавающая полоска под видео */}
-                            <div
-                                className="mt-3 flex max-w-[95vw] items-center justify-center gap-3"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
-                                    const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
-                                    const colors = hasFullColors
-                                        ? selected.colors_full!
-                                        : (selected.colors_preview && selected.colors_preview.length > 0
-                                            ? selected.colors_preview
-                                            : (selected.colors ?? []));
+                                        if (colors.length === 0) return null;
 
-                                    if (colors.length === 0) return null;
+                                        const startIdx = modalColorFrame * 3;
+                                        const frameColors = colors.slice(startIdx, startIdx + 3);
+                                        while (frameColors.length < 3 && frameColors.length > 0) {
+                                            frameColors.push(frameColors[frameColors.length - 1]);
+                                        }
 
-                                    const startIdx = modalColorFrame * 3;
-                                    const frameColors = colors.slice(startIdx, startIdx + 3);
-                                    while (frameColors.length < 3 && frameColors.length > 0) {
-                                        frameColors.push(frameColors[frameColors.length - 1]);
-                                    }
+                                        return (
+                                            <div
+                                                className="flex-shrink-0 flex overflow-hidden transition-all duration-300"
+                                                style={{
+                                                    height: 28,
+                                                    borderRadius: 14,
+                                                    border: '1.5px solid rgba(255,255,255,0.25)',
+                                                }}
+                                            >
+                                                {frameColors.map((c, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="transition-colors duration-500"
+                                                        style={{
+                                                            width: 22,
+                                                            height: '100%',
+                                                            backgroundColor: c,
+                                                        }}
+                                                        title={c}
+                                                    />
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
 
-                                    return (
-                                        <div
-                                            className="flex overflow-hidden transition-all duration-300"
-                                            style={{
-                                                height: 28,
-                                                borderRadius: 14,
-                                                boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
-                                                border: '2.5px solid rgba(255,255,255,0.35)',
-                                            }}
-                                        >
-                                            {frameColors.map((c, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="transition-colors duration-500"
-                                                    style={{
-                                                        width: 24,
-                                                        height: '100%',
-                                                        backgroundColor: c,
-                                                    }}
-                                                    title={c}
-                                                />
-                                            ))}
-                                        </div>
-                                    );
-                                })()}
-
-                                <div className="inline-flex items-center justify-center gap-4 rounded-full bg-white/10 backdrop-blur-md px-6 py-2.5 text-sm text-white" style={{ minWidth: 480 }}>
                                     {/* Название */}
                                     {selected.title && (
                                         <span className="text-xs font-semibold text-white truncate max-w-[200px]" title={selected.title}>
@@ -787,7 +862,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     <button
                                         type="button"
                                         onClick={() => setShowPrompt(true)}
-                                        className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 transition hover:bg-white/30 text-white font-medium text-xs mr-auto"
+                                        className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 transition hover:bg-white/30 text-white font-medium text-xs"
                                     >
                                         <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -817,7 +892,6 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     <span className="font-mono text-xs uppercase tracking-wider text-white/70">
                                         {formatModelName(selected.model)}
                                     </span>
-
                                 </div>
                             </div>
                         </div>

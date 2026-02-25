@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 type Film = {
   id: string;
-  user_id: string;
+  author_id: string;
   title: string | null;
   description: string | null;
   playback_id: string | null;
