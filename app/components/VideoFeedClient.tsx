@@ -809,7 +809,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
                                     }}
                                 >
-                                    {/* Цветовая капсула — встроена слева */}
+                                    {/* Цветовые точки — перекрывающиеся кружки */}
                                     {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
                                         const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
                                         const colors = hasFullColors
@@ -827,22 +827,19 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         }
 
                                         return (
-                                            <div
-                                                className="flex-shrink-0 flex overflow-hidden transition-all duration-300"
-                                                style={{
-                                                    height: 28,
-                                                    borderRadius: 14,
-                                                    border: '1.5px solid rgba(255,255,255,0.25)',
-                                                }}
-                                            >
+                                            <div className="group/dots flex-shrink-0 flex items-center pl-1">
                                                 {frameColors.map((c, index) => (
                                                     <div
                                                         key={index}
-                                                        className="transition-colors duration-500"
+                                                        className="transition-all duration-300 rounded-full group-hover/dots:ml-0.5"
                                                         style={{
                                                             width: 22,
-                                                            height: '100%',
+                                                            height: 22,
                                                             backgroundColor: c,
+                                                            border: '2px solid rgba(0,0,0,0.4)',
+                                                            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                                                            marginLeft: index > 0 ? -8 : 0,
+                                                            zIndex: 3 - index,
                                                         }}
                                                         title={c}
                                                     />
