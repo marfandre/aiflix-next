@@ -6,6 +6,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Masonry from "react-masonry-css";
 import LikeButton from "./LikeButton";
 import PromptModal from "./PromptModal";
+import CustomVideoPlayer from "./CustomVideoPlayer";
 
 type Props = {
     userId: string | null;
@@ -355,32 +356,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
         }
     };
 
-    // Умный autoplay — сначала пробуем со звуком, если блокируется — тогда muted
-    useEffect(() => {
-        const video = modalVideoRef.current;
-        if (!video || !selected) return;
-
-        const tryPlay = async () => {
-            try {
-                // Сначала пробуем воспроизвести со звуком
-                video.muted = false;
-                await video.play();
-            } catch (err) {
-                // Браузер заблокировал — пробуем muted
-                console.log('Autoplay blocked, trying muted:', err);
-                video.muted = true;
-                try {
-                    await video.play();
-                } catch (e) {
-                    console.error('Autoplay failed even muted:', e);
-                }
-            }
-        };
-
-        // Небольшая задержка чтобы video элемент успел примонтироваться
-        const timer = setTimeout(tryPlay, 100);
-        return () => clearTimeout(timer);
-    }, [selected]);
+    // Autoplay теперь обрабатывается внутри CustomVideoPlayer
 
     // Функция для ПРЕДЗАГРУЗКИ всех цветов из разных кадров видео (ПАРАЛЛЕЛЬНО)
     const preloadAllColors = useCallback(async (videoId: string, playbackId: string, baseColors: string[]) => {
@@ -756,24 +732,18 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 <div className="relative">
                                     <div className={`relative flex flex-col overflow-hidden rounded-none ${showPrompt ? 'sm:rounded-r-xl sm:rounded-l-none' : 'sm:rounded-xl'} shadow-2xl`}>
                                         {selected.playback_id ? (
-                                            <video
-                                                ref={modalVideoRef}
-                                                controls
-                                                loop
-                                                playsInline
-                                                disablePictureInPicture
-                                                controlsList="nodownload noremoteplayback noplaybackrate"
+                                            <CustomVideoPlayer
+                                                src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`}
+                                                hlsSrc={`https://stream.mux.com/${selected.playback_id}.m3u8`}
                                                 poster={muxPoster(selected.playback_id)}
-                                                onLoadedMetadata={handleVideoMetadata}
-                                                className="video-hover-controls block"
+                                                colors={selected.colors_full ?? selected.colors_preview ?? selected.colors ?? undefined}
+                                                colorInterval={selected.colors_full_interval ?? 1}
                                                 width={modalWidth || undefined}
                                                 height={modalHeight || undefined}
-                                                style={{ maxHeight: '85vh' }}
-                                            >
-                                                <source src={`https://stream.mux.com/${selected.playback_id}.m3u8`} type="application/x-mpegURL" />
-                                                <source src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`} type="video/mp4" />
-                                                Ваш браузер не поддерживает воспроизведение видео.
-                                            </video>
+                                                maxHeight="85vh"
+                                                onLoadedMetadata={handleVideoMetadata}
+                                                videoRef={modalVideoRef}
+                                            />
                                         ) : (
                                             <div
                                                 className="flex items-center justify-center bg-neutral-900 text-center text-gray-400"

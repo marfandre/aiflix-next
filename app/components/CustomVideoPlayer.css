@@ -1,0 +1,263 @@
+/* ================================================
+   CustomVideoPlayer — кастомные видео-контролы
+   Glass Pill Timeline + Segmented Colors
+   ================================================ */
+
+/* Контейнер плеера */
+.custom-player {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #000;
+    width: fit-content;
+}
+
+.custom-player video {
+    display: block;
+}
+
+/* Overlay для play/pause по центру */
+.custom-player .play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.custom-player .play-overlay .play-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.custom-player:hover .play-overlay .play-icon,
+.custom-player.paused .play-overlay .play-icon {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.custom-player.paused .play-overlay .play-icon {
+    opacity: 0.9;
+}
+
+/* ================================================
+   Controls bar — стеклянная нижняя панель
+   ================================================ */
+.custom-player .controls-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px 10px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 10;
+}
+
+.custom-player:hover .controls-bar,
+.custom-player.paused .controls-bar,
+.custom-player.controls-visible .controls-bar {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Строка с кнопками */
+.controls-bar .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Кнопки контролов */
+.controls-bar .ctrl-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background 0.2s;
+}
+
+.controls-bar .ctrl-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.controls-bar .ctrl-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Время */
+.controls-bar .time-display {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 500;
+    user-select: none;
+    white-space: nowrap;
+}
+
+/* Спейсер */
+.controls-bar .spacer {
+    flex: 1;
+}
+
+/* ================================================
+   Volume — ползунок громкости
+   ================================================ */
+.controls-bar .volume-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.controls-bar .volume-slider {
+    width: 0;
+    transition: width 0.2s ease, opacity 0.2s ease;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.controls-bar .volume-group:hover .volume-slider {
+    width: 60px;
+    opacity: 1;
+}
+
+.controls-bar .volume-slider input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 60px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.controls-bar .volume-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ================================================
+   Glass Pill Timeline
+   ================================================ */
+.glass-timeline {
+    width: 100%;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    padding: 3px;
+    display: flex;
+    align-items: center;
+    gap: 1.5px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: height 0.2s, border-radius 0.2s, padding 0.2s;
+    position: relative;
+}
+
+.glass-timeline:hover {
+    height: 24px;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+/* Точка-маркер текущей позиции */
+.glass-timeline .progress-dot {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.glass-timeline:hover .progress-dot {
+    opacity: 1;
+}
+
+/* ---- Режим: БЕЗ цветов (plain glass) ---- */
+.glass-timeline .plain-fill {
+    height: 100%;
+    border-radius: 8px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: width 0.1s linear;
+    position: relative;
+    min-width: 4px;
+}
+
+/* ---- Режим: С цветами (segments) ---- */
+.glass-timeline .color-segment {
+    flex: 1;
+    height: 100%;
+    border-radius: 2px;
+    transition: opacity 0.3s, filter 0.3s, transform 0.2s;
+}
+
+.glass-timeline .color-segment.played {
+    opacity: 1;
+    filter: saturate(1.2);
+}
+
+.glass-timeline .color-segment.current {
+    opacity: 1;
+    filter: saturate(1.3) brightness(1.15);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+    transform: scaleY(1.1);
+}
+
+.glass-timeline .color-segment.upcoming {
+    opacity: 0.25;
+    filter: saturate(0.5);
+}
+
+.glass-timeline:hover .color-segment {
+    border-radius: 3px;
+}
+
+.glass-timeline:hover .color-segment.upcoming {
+    opacity: 0.35;
+}

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Pill + Segmented Colors</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 56px;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            text-align: center;
+            background: linear-gradient(135deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .variant {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .variant-header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .variant-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .variant-tag {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #888;
+        }
+
+        .variant-desc {
+            font-size: 13px;
+            color: #777;
+            line-height: 1.5;
+        }
+
+        .video-mock {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-mock.scene-a {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+        }
+
+        .video-mock.scene-b {
+            background: linear-gradient(135deg, #2d1b2e, #1b1e2e, #1e2b1b);
+        }
+
+        .video-mock.scene-c {
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a, #1a1a1a);
+        }
+
+        .video-mock::before {
+            content: '▶';
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.12);
+        }
+
+        .time-label {
+            position: absolute;
+            bottom: 40px;
+            left: 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .separator {
+            width: 100%;
+            max-width: 640px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+        }
+
+        /* ======== GLASS PILL — базовый контейнер ======== */
+        .glass-timeline {
+            position: absolute;
+            bottom: 10px;
+            left: 14px;
+            right: 14px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px) saturate(1.3);
+            -webkit-backdrop-filter: blur(16px) saturate(1.3);
+            border-radius: 11px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: height 0.2s, border-radius 0.2s;
+        }
+
+        .glass-timeline:hover {
+            height: 26px;
+            border-radius: 13px;
+        }
+
+        /* ======== БЕЗ ЦВЕТОВ — простая стеклянная заливка ======== */
+        .glass-fill-only .fill {
+            height: 100%;
+            border-radius: 8px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            transition: width 0.3s;
+        }
+
+        .glass-fill-only .fill::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .glass-fill-only:hover .fill::after {
+            opacity: 1;
+        }
+
+        .glass-fill-only .time-inside {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ======== С ЦВЕТАМИ — сегментированные блоки внутри стекла ======== */
+        .glass-segmented .segment {
+            flex: 1;
+            height: 100%;
+            border-radius: 2px;
+            transition: opacity 0.3s, filter 0.3s, transform 0.2s;
+        }
+
+        .glass-segmented .segment.upcoming {
+            opacity: 0.25;
+            filter: saturate(0.5);
+        }
+
+        .glass-segmented .segment.played {
+            opacity: 1;
+            filter: saturate(1.2);
+        }
+
+        .glass-segmented .segment.current {
+            opacity: 1;
+            filter: saturate(1.3) brightness(1.15);
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+            transform: scaleY(1.1);
+        }
+
+        .glass-segmented:hover .segment {
+            border-radius: 3px;
+        }
+
+        /* Белая точка-индикатор текущей позиции */
+        .glass-segmented .dot-indicator {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .glass-segmented:hover .dot-indicator {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🧊 Glass Pill + 🧱 Segmented Colors</h1>
+
+    <!-- DEMO A: С цветами — яркое видео -->
+    <div class="variant">
+        <div class="variant-header">
+            <span class="variant-name">С цветами — яркое видео</span>
+            <span class="variant-tag">colors_full ✓</span>
+        </div>
+        <p class="variant-desc">Стеклянная капсула заполнена цветными сегментами. Просмотренные — яркие, будущие —
+            приглушённые. Текущий сегмент слегка увеличен и подсвечен. При hover появляется белая точка-маркер.</p>
+        <div class="video-mock scene-a">
+            <span class="time-label">0:03 / 0:10</span>
+            <div class="glass-timeline glass-segmented" style="position: absolute;">
+                <div class="segment played" style="background: #e8a04c;"></div>
+                <div class="segment played" style="background: #d4a96a;"></div>
+                <div class="segment current" style="background: #c47ad5;"></div>
+                <div class="segment upcoming" style="background: #9b6dd5;"></div>
+                <div class="segment upcoming" style="background: #6a9fd4;"></div>
+                <div class="segment upcoming" style="background: #5bb8d4;"></div>
+                <div class="segment upcoming" style="background: #4dd4a8;"></div>
+                <div class="segment upcoming" style="background: #8bd44d;"></div>
+                <div class="segment upcoming" style="background: #d4c64d;"></div>
+                <div class="segment upcoming" style="background: #d46a4d;"></div>
+                <div class="dot-indicator" style="left: 30%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- DEMO B: С цветами — тёмное видео -->
+    <div class="variant">
+        <div class="variant-header">
+            <span class="variant-name">С цветами — тёмное видео</span>
+            <span class="variant-tag">colors_full ✓</span>
+        </div>
+        <p class="variant-desc">Тот же подход, но с более тёмной палитрой. Сегменты хорошо читаются даже на тёмных
+            цветах благодаря стеклянному контейнеру, который создаёт контраст.</p>
+        <div class="video-mock scene-b">
+            <span class="time-label">0:05 / 0:12</span>
+            <div class="glass-timeline glass-segmented" style="position: absolute;">
+                <div class="segment played" style="background: #2d1b4e;"></div>
+                <div class="segment played" style="background: #4a1942;"></div>
+                <div class="segment played" style="background: #6b2d3a;"></div>
+                <div class="segment played" style="background: #8b4432;"></div>
+                <div class="segment current" style="background: #ab5b2a;"></div>
+                <div class="segment upcoming" style="background: #7a6b2d;"></div>
+                <div class="segment upcoming" style="background: #4a7a30;"></div>
+                <div class="segment upcoming" style="background: #2d6b4a;"></div>
+                <div class="segment upcoming" style="background: #2d4a6b;"></div>
+                <div class="segment upcoming" style="background: #3d2d6b;"></div>
+                <div class="segment upcoming" style="background: #1a1a3e;"></div>
+                <div class="segment upcoming" style="background: #0f0f2e;"></div>
+                <div class="dot-indicator" style="left: 42%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- DEMO C: БЕЗ цветов — fallback -->
+    <div class="variant">
+        <div class="variant-header">
+            <span class="variant-name">Без цветов — чистое стекло</span>
+            <span class="variant-tag">no colors</span>
+        </div>
+        <p class="variant-desc">Если пользователь не указал цвета, таймлайн остаётся элегантной стеклянной капсулой с
+            простой белой заливкой. При hover появляется точка-маркер. Время показано слева.</p>
+        <div class="video-mock scene-c">
+            <span class="time-label">0:04 / 0:10</span>
+            <div class="glass-timeline glass-fill-only" style="position: absolute;">
+                <div class="fill" style="width: 40%;"></div>
+                <span class="time-inside">0:04 / 0:10</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- DEMO D: С малым количеством цветов -->
+    <div class="variant">
+        <div class="variant-header">
+            <span class="variant-name">Мало цветов (colors_preview)</span>
+            <span class="variant-tag">5 colors</span>
+        </div>
+        <p class="variant-desc">Если доступно только 5 базовых цветов (без colors_full), сегменты шире. Всё равно
+            красиво и информативно.</p>
+        <div class="video-mock scene-a">
+            <span class="time-label">0:02 / 0:08</span>
+            <div class="glass-timeline glass-segmented" style="position: absolute;">
+                <div class="segment played" style="background: #e8a04c;"></div>
+                <div class="segment current" style="background: #d4a96a;"></div>
+                <div class="segment upcoming" style="background: #c47ad5;"></div>
+                <div class="segment upcoming" style="background: #6a9fd4;"></div>
+                <div class="segment upcoming" style="background: #4dd4a8;"></div>
+                <div class="dot-indicator" style="left: 25%;"></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
