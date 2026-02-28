@@ -174,28 +174,23 @@
    ================================================ */
 .glass-timeline {
     width: 100%;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(16px) saturate(1.3);
-    -webkit-backdrop-filter: blur(16px) saturate(1.3);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    padding: 3px;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+    border: none;
+    padding: 0;
     display: flex;
     align-items: center;
-    gap: 1.5px;
+    gap: 0;
     cursor: pointer;
     overflow: hidden;
-    transition: height 0.2s, border-radius 0.2s, padding 0.2s;
+    transition: height 0.2s, border-radius 0.2s;
     position: relative;
 }
 
 .glass-timeline:hover {
-    height: 24px;
-    border-radius: 12px;
-    padding: 4px;
+    height: 10px;
+    border-radius: 5px;
 }
 
 /* Точка-маркер текущей позиции */
@@ -221,43 +216,18 @@
 /* ---- Режим: БЕЗ цветов (plain glass) ---- */
 .glass-timeline .plain-fill {
     height: 100%;
-    border-radius: 8px;
+    border-radius: 6px;
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    transition: width 0.1s linear;
     position: relative;
-    min-width: 4px;
+    min-width: 0;
+    width: 0;
 }
 
-/* ---- Режим: С цветами (segments) ---- */
-.glass-timeline .color-segment {
-    flex: 1;
+/* ---- Режим: С цветами (continuous gradient) ---- */
+.glass-timeline .color-fill {
     height: 100%;
-    border-radius: 2px;
-    transition: opacity 0.3s, filter 0.3s, transform 0.2s;
-}
-
-.glass-timeline .color-segment.played {
-    opacity: 1;
-    filter: saturate(1.2);
-}
-
-.glass-timeline .color-segment.current {
-    opacity: 1;
-    filter: saturate(1.3) brightness(1.15);
-    box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-    transform: scaleY(1.1);
-}
-
-.glass-timeline .color-segment.upcoming {
-    opacity: 0.25;
-    filter: saturate(0.5);
-}
-
-.glass-timeline:hover .color-segment {
-    border-radius: 3px;
-}
-
-.glass-timeline:hover .color-segment.upcoming {
-    opacity: 0.35;
+    border-radius: 6px;
+    transition: width 0.1s linear;
+    min-width: 4px;
 }

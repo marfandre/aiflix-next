@@ -45,6 +45,8 @@ export default function CustomVideoPlayer({
 
     const containerRef = useRef<HTMLDivElement>(null);
     const timelineRef = useRef<HTMLDivElement>(null);
+    const fillRef = useRef<HTMLDivElement>(null);
+    const dotRef = useRef<HTMLDivElement>(null);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
@@ -58,17 +60,11 @@ export default function CustomVideoPlayer({
 
     const progress = duration > 0 ? currentTime / duration : 0;
 
-    // ----- Color segments logic -----
+    // ----- Continuous gradient from all colors -----
     const hasColors = colors && colors.length >= 3;
-    const segmentCount = hasColors ? Math.floor(colors.length / 3) : 0;
-    const currentSegment = hasColors && duration > 0
-        ? Math.min(Math.floor(currentTime / (duration / segmentCount)), segmentCount - 1)
-        : 0;
-
-    // Dominant color for each segment (use the first of the 3 colors per frame)
-    const segmentColors = hasColors
-        ? Array.from({ length: segmentCount }, (_, i) => colors[i * 3])
-        : [];
+    const colorGradient = hasColors
+        ? `linear-gradient(90deg, ${colors.join(', ')})`
+        : '';
 
     // ----- Auto-hide controls -----
     const resetHideTimer = useCallback(() => {
@@ -124,9 +120,6 @@ export default function CustomVideoPlayer({
 
         const onPlay = () => setIsPlaying(true);
         const onPause = () => setIsPlaying(false);
-        const onTimeUpdate = () => {
-            if (!isDragging) setCurrentTime(v.currentTime);
-        };
         const onDurationChange = () => setDuration(v.duration || 0);
         const onLoadedMeta = () => {
             setDuration(v.duration || 0);
@@ -139,7 +132,6 @@ export default function CustomVideoPlayer({
 
         v.addEventListener("play", onPlay);
         v.addEventListener("pause", onPause);
-        v.addEventListener("timeupdate", onTimeUpdate);
         v.addEventListener("durationchange", onDurationChange);
         v.addEventListener("loadedmetadata", onLoadedMeta);
         v.addEventListener("volumechange", onVolumeChange);
@@ -147,12 +139,48 @@ export default function CustomVideoPlayer({
         return () => {
             v.removeEventListener("play", onPlay);
             v.removeEventListener("pause", onPause);
-            v.removeEventListener("timeupdate", onTimeUpdate);
             v.removeEventListener("durationchange", onDurationChange);
             v.removeEventListener("loadedmetadata", onLoadedMeta);
             v.removeEventListener("volumechange", onVolumeChange);
         };
-    }, [videoEl, isDragging, onLoadedMetadata]);
+    }, [videoEl, onLoadedMetadata]);
+
+    // ----- Smooth 60fps progress via requestAnimationFrame -----
+    useEffect(() => {
+        const v = videoEl.current;
+        if (!v) return;
+        let rafId: number;
+        let lastDisplayUpdate = 0;
+        const tick = () => {
+            if (!isDragging && v.duration > 0) {
+                const p = v.currentTime / v.duration;
+                const pct = `${p * 100}%`;
+                // Direct DOM updates — no React re-render
+                if (fillRef.current) fillRef.current.style.width = pct;
+                if (dotRef.current) dotRef.current.style.left = pct;
+                // Update React state for time display ~4x/sec
+                const now = performance.now();
+                if (now - lastDisplayUpdate > 250) {
+                    setCurrentTime(v.currentTime);
+                    lastDisplayUpdate = now;
+                }
+            }
+            rafId = requestAnimationFrame(tick);
+        };
+        if (isPlaying) {
+            rafId = requestAnimationFrame(tick);
+        } else {
+            // Update once when paused
+            if (v.duration > 0) {
+                const p = v.currentTime / v.duration;
+                const pct = `${p * 100}%`;
+                if (fillRef.current) fillRef.current.style.width = pct;
+                if (dotRef.current) dotRef.current.style.left = pct;
+                setCurrentTime(v.currentTime);
+            }
+        }
+        return () => cancelAnimationFrame(rafId);
+    }, [videoEl, isPlaying, isDragging]);
 
     // ----- Fullscreen -----
     const toggleFullscreen = useCallback(() => {
@@ -295,38 +323,16 @@ export default function CustomVideoPlayer({
                     className="glass-timeline"
                     onMouseDown={handleTimelineMouseDown}
                 >
-                    {hasColors ? (
-                        <>
-                            {segmentColors.map((color, i) => {
-                                let state: string;
-                                if (i < currentSegment) state = "played";
-                                else if (i === currentSegment) state = "current";
-                                else state = "upcoming";
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`color-segment ${state}`}
-                                        style={{ backgroundColor: color }}
-                                    />
-                                );
-                            })}
-                            <div
-                                className="progress-dot"
-                                style={{ left: `${progress * 100}%` }}
-                            />
-                        </>
-                    ) : (
-                        <>
-                            <div
-                                className="plain-fill"
-                                style={{ width: `${progress * 100}%` }}
-                            />
-                            <div
-                                className="progress-dot"
-                                style={{ left: `${progress * 100}%` }}
-                            />
-                        </>
-                    )}
+                    <>
+                        <div
+                            ref={fillRef}
+                            className="plain-fill"
+                        />
+                        <div
+                            ref={dotRef}
+                            className="progress-dot"
+                        />
+                    </>
                 </div>
 
                 {/* Controls row */}

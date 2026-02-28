@@ -77,6 +77,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
     const [mp4FailedIds, setMp4FailedIds] = useState<Set<string>>(new Set());  // Видео без MP4 support
     const [deletingId, setDeletingId] = useState<string | null>(null);  // Для анимации удаления
     const [copied, setCopied] = useState(false);  // Для кнопки "Поделиться"
+    const [videoTime, setVideoTime] = useState(0);  // Текущее время видео для синхронизации точек
 
     // Dynamic color cycling - накапливаем цвета в очереди
     const [colorQueue, setColorQueue] = useState<Record<string, string[]>>({});
@@ -91,6 +92,17 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
     // Ref для видео в модалке — для умного autoplay со звуком
     const modalVideoRef = useRef<HTMLVideoElement | null>(null);
+
+    // Слушаем время видео чтобы точки обновлялись синхронно с таймлайном
+    useEffect(() => {
+        if (!selected) return;
+        const interval = setInterval(() => {
+            if (modalVideoRef.current) {
+                setVideoTime(modalVideoRef.current.currentTime);
+            }
+        }, 250);
+        return () => clearInterval(interval);
+    }, [selected]);
 
     // Refs для preview видео на карточках — для сброса времени на 0
     const previewVideoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -790,7 +802,13 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
                                         if (colors.length === 0) return null;
 
-                                        const startIdx = modalColorFrame * 3;
+                                        // Sync with timeline: use video playback position
+                                        const video = modalVideoRef.current;
+                                        const segCount = Math.floor(colors.length / 3);
+                                        const currentSeg = video && video.duration > 0 && segCount > 0
+                                            ? Math.min(Math.floor(videoTime / (video.duration / segCount)), segCount - 1)
+                                            : 0;
+                                        const startIdx = currentSeg * 3;
                                         const frameColors = colors.slice(startIdx, startIdx + 3);
                                         while (frameColors.length < 3 && frameColors.length > 0) {
                                             frameColors.push(frameColors[frameColors.length - 1]);
