@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Timeline Placement Concepts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Inter', -apple-system, sans-serif;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 300;
+            margin-bottom: 40px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .concept {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .concept h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        .concept p {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 16px;
+        }
+
+        /* Mock video */
+        .mock-video {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background: linear-gradient(135deg, #2a2540, #3d3555, #4a3f60);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mock-video::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 60% 40%, rgba(200, 180, 160, 0.15), transparent 60%);
+        }
+
+        .play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .play-btn::after {
+            content: '▶';
+            color: #fff;
+            font-size: 14px;
+            margin-left: 2px;
+        }
+
+        /* Mock info bar */
+        .mock-infobar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 10px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .mock-dots {
+            display: flex;
+            gap: -4px;
+        }
+
+        .mock-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(0, 0, 0, 0.3);
+        }
+
+        .mock-dot:not(:first-child) {
+            margin-left: -4px;
+        }
+
+        /* Timeline styles */
+        .tl {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tl-fill {
+            height: 100%;
+            width: 40%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
+            border-radius: 2px;
+        }
+
+        .tl-dot {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            left: 40%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+        }
+
+        .tl-hover:hover {
+            height: 8px;
+            border-radius: 4px;
+            transition: height 0.2s;
+        }
+
+        .tl-hover:hover .tl-dot {
+            width: 10px;
+            height: 10px;
+        }
+
+        .time-small {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* === Concept 1: Под видео === */
+        .c1-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .c1-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 2px;
+        }
+
+        /* === Concept 2: В инфо-баре === */
+        .c2-infobar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 10px;
+        }
+
+        .c2-infobar .tl {
+            flex: 1;
+        }
+
+        /* === Concept 3: Рамка вокруг видео === */
+        .c3-wrapper {
+            position: relative;
+            padding: 3px;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .c3-wrapper .mock-video {
+            border-radius: 10px;
+        }
+
+        .c3-progress-border {
+            position: absolute;
+            inset: 0;
+            border-radius: 13px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .c3-progress-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 40%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.25));
+            border-radius: 0 2px 0 13px;
+        }
+
+        /* === Concept 4: Вертикально сбоку === */
+        .c4-layout {
+            display: flex;
+            gap: 6px;
+        }
+
+        .c4-layout .mock-video {
+            flex: 1;
+        }
+
+        .c4-sidebar {
+            width: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .c4-sidebar-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
+            border-radius: 2px;
+        }
+
+        .c4-sidebar-dot {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            top: 40%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+        }
+
+        /* === Concept 5: Невидимый — только точка === */
+        .c5-bottom {
+            position: absolute;
+            bottom: 8px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .c5-line {
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .c5-dot-track {
+            position: absolute;
+            left: 40%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .c5-glow {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .c5-time {
+            position: absolute;
+            bottom: 10px;
+            right: 12px;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* === Concept 6: Дуга под видео === */
+        .c6-arc {
+            position: relative;
+            height: 20px;
+            margin-top: 2px;
+            overflow: hidden;
+        }
+
+        .c6-arc svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .badge-rec {
+            background: rgba(76, 175, 80, 0.15);
+            color: #81c784;
+        }
+
+        .badge-creative {
+            background: rgba(156, 39, 176, 0.15);
+            color: #ce93d8;
+        }
+
+        .badge-minimal {
+            background: rgba(33, 150, 243, 0.15);
+            color: #64b5f6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Варианты расположения таймлайна</h1>
+
+    <div class="grid">
+
+        <!-- Concept 1: Под видео -->
+        <div class="concept">
+            <h2>1. Под видео <span class="badge badge-rec">рекомендую</span></h2>
+            <p>Таймлайн между видео и инфо-баром. Всегда виден, не перекрывает контент.</p>
+            <div class="c1-wrapper">
+                <div class="mock-video">
+                    <div class="play-btn"></div>
+                </div>
+                <div class="c1-controls">
+                    <div class="tl tl-hover" style="flex:1">
+                        <div class="tl-fill"></div>
+                        <div class="tl-dot"></div>
+                    </div>
+                    <span class="time-small">0:04 / 0:10</span>
+                </div>
+                <div class="mock-infobar">
+                    <div class="mock-dots">
+                        <div class="mock-dot" style="background:#8b7e9a"></div>
+                        <div class="mock-dot" style="background:#a89bb5"></div>
+                        <div class="mock-dot" style="background:#6d6278"></div>
+                    </div>
+                    <span>Промт</span>
+                    <span>marfandre</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Concept 2: Встроен в инфо-бар -->
+        <div class="concept">
+            <h2>2. Внутри инфо-бара</h2>
+            <p>Таймлайн прямо в инфо-баре, рядом с dots и промтом. Экономит место.</p>
+            <div>
+                <div class="mock-video">
+                    <div class="play-btn"></div>
+                </div>
+                <div class="c2-infobar">
+                    <div class="mock-dots">
+                        <div class="mock-dot" style="background:#8b7e9a"></div>
+                        <div class="mock-dot" style="background:#a89bb5"></div>
+                        <div class="mock-dot" style="background:#6d6278"></div>
+                    </div>
+                    <div class="tl tl-hover">
+                        <div class="tl-fill"></div>
+                        <div class="tl-dot"></div>
+                    </div>
+                    <span class="time-small">0:04</span>
+                    <span style="font-size:11px">Промт</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Concept 3: Рамка-прогресс -->
+        <div class="concept">
+            <h2>3. Рамка вокруг видео <span class="badge badge-creative">креатив</span></h2>
+            <p>Тонкая полоска идёт по нижнему краю рамки видео. Невесомо интегрировано.</p>
+            <div>
+                <div class="c3-wrapper">
+                    <div class="mock-video">
+                        <div class="play-btn"></div>
+                    </div>
+                    <div class="c3-progress-border">
+                        <div class="c3-progress-line"></div>
+                    </div>
+                </div>
+                <div class="mock-infobar" style="margin-top:10px">
+                    <div class="mock-dots">
+                        <div class="mock-dot" style="background:#8b7e9a"></div>
+                        <div class="mock-dot" style="background:#a89bb5"></div>
+                        <div class="mock-dot" style="background:#6d6278"></div>
+                    </div>
+                    <span>Промт</span>
+                    <span>marfandre</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Concept 4: Вертикально сбоку -->
+        <div class="concept">
+            <h2>4. Вертикально справа <span class="badge badge-creative">креатив</span></h2>
+            <p>Тонкая вертикальная полоска справа от видео. Необычно, экономит горизонталь.</p>
+            <div>
+                <div class="c4-layout">
+                    <div class="mock-video">
+                        <div class="play-btn"></div>
+                    </div>
+                    <div class="c4-sidebar">
+                        <div class="c4-sidebar-fill"></div>
+                        <div class="c4-sidebar-dot"></div>
+                    </div>
+                </div>
+                <div class="mock-infobar" style="margin-top:10px">
+                    <div class="mock-dots">
+                        <div class="mock-dot" style="background:#8b7e9a"></div>
+                        <div class="mock-dot" style="background:#a89bb5"></div>
+                        <div class="mock-dot" style="background:#6d6278"></div>
+                    </div>
+                    <span>Промт</span>
+                    <span>marfandre</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Concept 5: Минимальный — только точка -->
+        <div class="concept">
+            <h2>5. Невидимая линия + точка <span class="badge badge-minimal">минимал</span></h2>
+            <p>Почти невидимая линия внизу видео, только светящаяся точка показывает позицию.</p>
+            <div>
+                <div class="mock-video" style="position:relative">
+                    <div class="play-btn"></div>
+                    <div class="c5-bottom">
+                        <div class="c5-line">
+                            <div class="c5-dot-track">
+                                <div class="c5-glow"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="c5-time">0:04</div>
+                </div>
+                <div class="mock-infobar" style="margin-top:10px">
+                    <div class="mock-dots">
+                        <div class="mock-dot" style="background:#8b7e9a"></div>
+                        <div class="mock-dot" style="background:#a89bb5"></div>
+                        <div class="mock-dot" style="background:#6d6278"></div>
+                    </div>
+                    <span>Промт</span>
+                    <span>marfandre</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Concept 6: Дуга -->
+        <div class="concept">
+            <h2>6. Дуга под видео <span class="badge badge-creative">креатив</span></h2>
+            <p>Мягкая дуга под видео — прогресс как улыбка. Органичная форма.</p>
+            <div>
+                <div class="mock-video">
+                    <div class="play-btn"></div>
+                </div>
+                <div class="c6-arc">
+                    <svg viewBox="0 0 400 20" preserveAspectRatio="none">
+                        <path d="M0 0 Q200 20 400 0" stroke="rgba(255,255,255,0.08)" stroke-width="3" fill="none" />
+                        <path d="M0 0 Q80 8 160 0" stroke="rgba(255,255,255,0.35)" stroke-width="3" fill="none" />
+                        <circle cx="160" cy="3.5" r="4" fill="#fff" filter="url(#glow)" />
+                        <defs>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="2" result="blur" />
+                                <feMerge>
+                                    <feMergeNode in="blur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="mock-infobar" style="margin-top:4px">
+                    <div class="mock-dots">
+                        <div class="mock-dot" style="background:#8b7e9a"></div>
+                        <div class="mock-dot" style="background:#a89bb5"></div>
+                        <div class="mock-dot" style="background:#6d6278"></div>
+                    </div>
+                    <span>Промт</span>
+                    <span>marfandre</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

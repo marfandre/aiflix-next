@@ -93,15 +93,32 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
     // Ref для видео в модалке — для умного autoplay со звуком
     const modalVideoRef = useRef<HTMLVideoElement | null>(null);
 
-    // Слушаем время видео чтобы точки обновлялись синхронно с таймлайном
+    // Refs для внешнего таймлайна (под видео)
+    const extTimelineRef = useRef<HTMLDivElement | null>(null);
+    const extFillRef = useRef<HTMLDivElement | null>(null);
+
+    // RAF для плавного обновления таймлайна + периодическое обновление точек
     useEffect(() => {
         if (!selected) return;
-        const interval = setInterval(() => {
-            if (modalVideoRef.current) {
-                setVideoTime(modalVideoRef.current.currentTime);
+        let rafId: number;
+        let lastDotsUpdate = 0;
+        const tick = () => {
+            const v = modalVideoRef.current;
+            if (v && v.duration > 0) {
+                const pct = `${(v.currentTime / v.duration) * 100}%`;
+                // Direct DOM update for smooth timeline
+                if (extFillRef.current) extFillRef.current.style.width = pct;
+                // Update dots ~4x/sec
+                const now = performance.now();
+                if (now - lastDotsUpdate > 250) {
+                    setVideoTime(v.currentTime);
+                    lastDotsUpdate = now;
+                }
             }
-        }, 250);
-        return () => clearInterval(interval);
+            rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafId);
     }, [selected]);
 
     // Refs для preview видео на карточках — для сброса времени на 0
@@ -774,9 +791,59 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                                 )}
                                             </div>
                                         )}
+
+                                        {/* Timeline — inside rounded container so corners are clipped */}
+                                        {selected.playback_id && (
+                                            <div
+                                                ref={extTimelineRef}
+                                                className="cursor-pointer"
+                                                style={{
+                                                    width: '100%',
+                                                    height: 3,
+                                                    background: 'rgba(255,255,255,0.08)',
+                                                    overflow: 'hidden',
+                                                    transition: 'height 0.15s ease',
+                                                    flexShrink: 0,
+                                                }}
+                                                onMouseEnter={(e) => { e.currentTarget.style.height = '6px'; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.height = '3px'; }}
+                                                onMouseDown={(e) => {
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                                                    const v = modalVideoRef.current;
+                                                    if (v && v.duration) {
+                                                        v.currentTime = ratio * v.duration;
+                                                        if (extFillRef.current) extFillRef.current.style.width = `${ratio * 100}%`;
+                                                    }
+                                                    const onMove = (ev: MouseEvent) => {
+                                                        const r = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+                                                        if (v && v.duration) {
+                                                            v.currentTime = r * v.duration;
+                                                            if (extFillRef.current) extFillRef.current.style.width = `${r * 100}%`;
+                                                        }
+                                                    };
+                                                    const onUp = () => {
+                                                        window.removeEventListener('mousemove', onMove);
+                                                        window.removeEventListener('mouseup', onUp);
+                                                    };
+                                                    window.addEventListener('mousemove', onMove);
+                                                    window.addEventListener('mouseup', onUp);
+                                                }}
+                                            >
+                                                <div
+                                                    ref={extFillRef}
+                                                    style={{
+                                                        height: '100%',
+                                                        width: 0,
+                                                        background: 'rgba(255,255,255,0.35)',
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>{/* Close book container */}
+
                             {/* Info-bar + цветовая капсула — в одну строку под видео */}
                             <div className={`mt-3 flex items-center justify-center gap-3 transition-opacity duration-300 ${showPrompt ? 'sm:opacity-0 sm:pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
                                 {/* Инфо-полоска со встроенной цветовой капсулой */}
