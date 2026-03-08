@@ -96,9 +96,7 @@ async function processVideo(
             if (!result) return [];
 
             const palette = result.palette() as RGB[];
-            if (palette.length < 3) return palette.map(rgbToHex);
-
-            return [rgbToHex(palette[0]), rgbToHex(palette[1]), rgbToHex(palette[2])];
+            return palette.map(rgbToHex);
         };
 
         const extractBatch = async (timestamps: number[]): Promise<{ time: number; colors: string[] }[]> => {
@@ -113,10 +111,68 @@ async function processVideo(
             );
         };
 
-        // === 1. Preview: первые 5 секунд ===
-        const previewResults = await extractBatch([0, 1, 2, 3, 4]);
-        const previewColors = previewResults.sort((a, b) => a.time - b.time).flatMap(r => r.colors);
-        const baseColors = previewColors.slice(0, 5);
+        // Расстояние между двумя цветами (Euclidean в RGB)
+        const colorDist = (a: string, b: string): number => {
+            const hexToRgb = (hex: string): [number, number, number] => {
+                const h = hex.replace('#', '');
+                return [
+                    parseInt(h.substring(0, 2), 16),
+                    parseInt(h.substring(2, 4), 16),
+                    parseInt(h.substring(4, 6), 16),
+                ];
+            };
+            const [r1, g1, b1] = hexToRgb(a);
+            const [r2, g2, b2] = hexToRgb(b);
+            return Math.sqrt((r2 - r1) ** 2 + (g2 - g1) ** 2 + (b2 - b1) ** 2);
+        };
+
+        // Выбрать N самых разнообразных цветов из массива (max-distance greedy)
+        const selectDiverseColors = (allColors: string[], count: number): string[] => {
+            if (allColors.length <= count) return allColors;
+            const selected = [allColors[0]];
+            const remaining = allColors.slice(1);
+            while (selected.length < count && remaining.length > 0) {
+                let bestIdx = 0;
+                let bestMinDist = -1;
+                for (let i = 0; i < remaining.length; i++) {
+                    const minDist = Math.min(...selected.map(s => colorDist(s, remaining[i])));
+                    if (minDist > bestMinDist) {
+                        bestMinDist = minDist;
+                        bestIdx = i;
+                    }
+                }
+                selected.push(remaining[bestIdx]);
+                remaining.splice(bestIdx, 1);
+            }
+            return selected;
+        };
+
+        // === 1. Базовые цвета: 3 кадра (25%, 50%, 75%) ===
+        let baseColors: string[] = [];
+        let previewColors: string[] = []; // Для обратной совместимости мы сохраним все найденные цвета из 3 кадров
+
+        if (duration > 0) {
+            const sampleTimes = [
+                Math.max(0.5, duration * 0.25),
+                Math.max(1, duration * 0.5),
+                Math.max(1.5, duration * 0.75),
+            ];
+
+            const previewResults = await extractBatch(sampleTimes);
+            previewColors = previewResults.sort((a, b) => a.time - b.time).flatMap(r => r.colors);
+
+            // Выбираем 5 самых непохожих цветов из пула 24 цветов (3 кадра * 8 цветов)
+            if (previewColors.length > 0) {
+                baseColors = selectDiverseColors(previewColors, 5);
+            }
+        } else {
+            // Если duration = 0 (по какой-то причине), берем первые 5 секунд
+            const previewResults = await extractBatch([0, 1, 2, 3, 4]);
+            previewColors = previewResults.sort((a, b) => a.time - b.time).flatMap(r => r.colors);
+            if (previewColors.length > 0) {
+                baseColors = selectDiverseColors(previewColors, 5);
+            }
+        }
 
         // === 2. Full: вся длительность ===
         let fullColors: string[] = [];
@@ -134,7 +190,8 @@ async function processVideo(
             for (let i = 0; i < fullTimestamps.length; i += MUX_BATCH) {
                 const batch = fullTimestamps.slice(i, i + MUX_BATCH);
                 const batchResults = await extractBatch(batch);
-                fullResults.push(...batchResults);
+                // Для full берем только самую суть: 3 цвета на кадр, чтобы массив не разрастался
+                fullResults.push(...batchResults.map(r => ({ time: r.time, colors: r.colors.slice(0, 3) })));
             }
 
             fullColors = fullResults.sort((a, b) => a.time - b.time).flatMap(r => r.colors);

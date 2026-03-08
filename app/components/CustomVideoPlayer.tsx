@@ -72,7 +72,7 @@ export default function CustomVideoPlayer({
         if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
         hideTimerRef.current = setTimeout(() => {
             if (!isDragging) setControlsVisible(false);
-        }, 2500);
+        }, 3000);
     }, [isDragging]);
 
     const handleMouseMove = useCallback(() => {
@@ -305,7 +305,7 @@ export default function CustomVideoPlayer({
             </video>
 
             {/* Click to play/pause */}
-            <div className="play-overlay" onClick={togglePlay}>
+            <div className="play-overlay" onClick={togglePlay} onDoubleClick={toggleFullscreen}>
                 {!isPlaying && (
                     <div className="play-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">

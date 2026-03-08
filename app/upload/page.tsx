@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import TagSelector from '../components/TagSelector';
 import ColorPickerOverlay, { ColorMarker } from '../components/ColorPickerOverlay';
+import { getColorAtPosition } from '../utils/getColorAtPosition';
 
 const supabase = createClientComponentClient();
 
@@ -87,11 +88,103 @@ async function extractColorsFromFile(file: File): Promise<ExtractedPalette | nul
   }
 }
 
-// Извлечение кадра из видео и получение цветов
-async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: string | null; colors: string[] }> {
+// Hex → RGB
+function hexToRgbArr(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [
+    parseInt(h.substring(0, 2), 16),
+    parseInt(h.substring(2, 4), 16),
+    parseInt(h.substring(4, 6), 16),
+  ];
+}
+
+// Расстояние между двумя цветами (Euclidean в RGB)
+function colorDistance(a: string, b: string): number {
+  const [r1, g1, b1] = hexToRgbArr(a);
+  const [r2, g2, b2] = hexToRgbArr(b);
+  return Math.sqrt((r2 - r1) ** 2 + (g2 - g1) ** 2 + (b2 - b1) ** 2);
+}
+
+// Выбрать N самых разнообразных цветов из массива (max-distance greedy)
+function selectDiverseColors(allColors: string[], count: number): string[] {
+  if (allColors.length <= count) return allColors;
+
+  // Начинаем с первого цвета
+  const selected = [allColors[0]];
+  const remaining = allColors.slice(1);
+
+  while (selected.length < count && remaining.length > 0) {
+    // Находим цвет, максимально далёкий от всех уже выбранных
+    let bestIdx = 0;
+    let bestMinDist = -1;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const minDist = Math.min(...selected.map(s => colorDistance(s, remaining[i])));
+      if (minDist > bestMinDist) {
+        bestMinDist = minDist;
+        bestIdx = i;
+      }
+    }
+
+    selected.push(remaining[bestIdx]);
+    remaining.splice(bestIdx, 1);
+  }
+
+  return selected;
+}
+
+// Извлечение цветов из одного кадра видео через canvas → /api/palette
+function extractFrameColors(video: HTMLVideoElement, time: number): Promise<{ blob: Blob | null; colors: string[] }> {
   return new Promise((resolve) => {
+    video.currentTime = time;
+
+    video.onseeked = async () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          resolve({ blob: null, colors: [] });
+          return;
+        }
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            resolve({ blob: null, colors: [] });
+            return;
+          }
+
+          try {
+            const formData = new FormData();
+            formData.append('file', blob, 'frame.jpg');
+            const res = await fetch('/api/palette', { method: 'POST', body: formData });
+
+            if (res.ok) {
+              const data = await res.json();
+              resolve({ blob, colors: data.colors ?? [] });
+            } else {
+              resolve({ blob, colors: [] });
+            }
+          } catch {
+            resolve({ blob, colors: [] });
+          }
+        }, 'image/jpeg', 0.8);
+      } catch {
+        resolve({ blob: null, colors: [] });
+      }
+    };
+  });
+}
+
+// Извлечение кадров из видео: 3 кадра (25%, 50%, 75%) → merge в 5 цветов
+async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: string | null; colors: string[] }> {
+  return new Promise(async (resolve) => {
     const video = document.createElement('video');
-    video.preload = 'metadata';
+    video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
 
@@ -99,59 +192,44 @@ async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: st
     video.src = objectUrl;
 
     video.onloadeddata = async () => {
-      // Перематываем на 1 секунду или на середину если короче
-      const seekTime = Math.min(1, video.duration / 2);
-      video.currentTime = seekTime;
-    };
-
-    video.onseeked = async () => {
       try {
-        // Создаём canvas и рисуем кадр
+        const duration = video.duration;
+        // 3 точки: 25%, 50%, 75% длительности
+        const sampleTimes = [
+          Math.max(0.5, duration * 0.25),
+          Math.max(1, duration * 0.5),
+          Math.max(1.5, duration * 0.75),
+        ];
+
+        // Превью — с середины видео
+        const midTime = sampleTimes[1];
+        video.currentTime = midTime;
+        await new Promise<void>((res) => { video.onseeked = () => res(); });
+
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const previewUrl = canvas.toDataURL('image/jpeg', 0.8);
 
-        if (!ctx) {
-          URL.revokeObjectURL(objectUrl);
-          resolve({ previewUrl: null, colors: [] });
+        // Извлекаем цвета из 3 кадров последовательно
+        const allColors: string[] = [];
+        for (const time of sampleTimes) {
+          const result = await extractFrameColors(video, time);
+          allColors.push(...result.colors);
+        }
+
+        URL.revokeObjectURL(objectUrl);
+
+        if (allColors.length === 0) {
+          resolve({ previewUrl, colors: [] });
           return;
         }
 
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Получаем превью как data URL
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-        // Конвертируем в blob для отправки на API
-        canvas.toBlob(async (blob) => {
-          URL.revokeObjectURL(objectUrl);
-
-          if (!blob) {
-            resolve({ previewUrl, colors: [] });
-            return;
-          }
-
-          // Отправляем на API палитры
-          const formData = new FormData();
-          formData.append('file', blob, 'frame.jpg');
-
-          try {
-            const res = await fetch('/api/palette', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              resolve({ previewUrl, colors: data.colors ?? [] });
-            } else {
-              resolve({ previewUrl, colors: [] });
-            }
-          } catch {
-            resolve({ previewUrl, colors: [] });
-          }
-        }, 'image/jpeg', 0.8);
+        // Выбираем 5 самых разнообразных цветов
+        const finalColors = selectDiverseColors(allColors, 5);
+        resolve({ previewUrl, colors: finalColors });
       } catch {
         URL.revokeObjectURL(objectUrl);
         resolve({ previewUrl: null, colors: [] });
@@ -163,7 +241,6 @@ async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: st
       resolve({ previewUrl: null, colors: [] });
     };
 
-    // Начинаем загрузку
     video.load();
   });
 }
@@ -248,6 +325,8 @@ export default function UploadPage() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null); // превью кадра видео
   const [videoColors, setVideoColors] = useState<string[]>([]); // цвета видео
   const [isVideoColorsLoading, setIsVideoColorsLoading] = useState(false); // загрузка цветов видео
+  const [isEditingVideoColors, setIsEditingVideoColors] = useState(false); // редактирование цветов видео
+  const [selectedVideoColorIdx, setSelectedVideoColorIdx] = useState<number | null>(null); // выбранный цвет для замены
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -444,6 +523,8 @@ export default function UploadPage() {
         setFile(null);
         setVideoPreviewUrl(null);
         setVideoColors([]);
+        setIsEditingVideoColors(false);
+        setSelectedVideoColorIdx(null);
         setModel('');
         setSelectedTags([]);
       } else {
@@ -769,6 +850,8 @@ export default function UploadPage() {
                           setSuccess(null);
                           setVideoPreviewUrl(null);
                           setVideoColors([]);
+                          setIsEditingVideoColors(false);
+                          setSelectedVideoColorIdx(null);
                           if (newFile) {
                             setIsVideoColorsLoading(true);
                             try {
@@ -791,11 +874,45 @@ export default function UploadPage() {
                     {/* Контент внутри карточки */}
                     {
                       videoPreviewUrl ? (
-                        <img
-                          src={videoPreviewUrl}
-                          alt="Превью видео"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <>
+                          <img
+                            src={videoPreviewUrl}
+                            alt="Превью видео"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          {/* Пипетка — оверлей поверх превью */}
+                          {isEditingVideoColors && selectedVideoColorIdx !== null && (
+                            <div
+                              className="absolute inset-0 z-10"
+                              style={{ cursor: 'crosshair' }}
+                              onClick={async (e) => {
+                                e.stopPropagation(); // не открываем файлпикер
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = (e.clientX - rect.left) / rect.width;
+                                const y = (e.clientY - rect.top) / rect.height;
+                                try {
+                                  const hex = await getColorAtPosition(videoPreviewUrl!, x, y);
+                                  const newColors = [...videoColors];
+                                  newColors[selectedVideoColorIdx] = hex;
+                                  setVideoColors(newColors);
+                                  setSelectedVideoColorIdx(null);
+                                } catch (err) {
+                                  console.error('Eyedropper error:', err);
+                                }
+                              }}
+                            >
+                              {/* Подсказка */}
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-white text-xs font-medium backdrop-blur-sm">
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M2 22l1-1h3l9-9" />
+                                  <path d="M3 21v-3l9-9" />
+                                  <path d="M14.5 5.5l4-4 4 4-4 4" />
+                                </svg>
+                                Кликните на цвет
+                              </div>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
                           {isVideoColorsLoading ? (
@@ -812,6 +929,80 @@ export default function UploadPage() {
                         </div>
                       )}
                   </div>
+
+                  {/* Палитра цветов видео (редактируемая) */}
+                  {videoColors.length > 0 && (
+                    <div className="mt-4 w-full max-w-[340px]">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-500">Цвета ({videoColors.slice(0, 5).length}/5)</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingVideoColors(!isEditingVideoColors);
+                            setSelectedVideoColorIdx(null);
+                          }}
+                          className={`text-xs font-medium px-2 py-1 rounded-md transition ${isEditingVideoColors
+                            ? 'bg-black text-white'
+                            : 'text-gray-500 hover:bg-gray-100'
+                            }`}
+                        >
+                          {isEditingVideoColors ? 'Готово' : 'Изменить'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm border border-gray-100">
+                        {videoColors.slice(0, 5).map((c, index) => {
+                          const isSelected = isEditingVideoColors && selectedVideoColorIdx === index;
+                          return (
+                            <button
+                              key={c + index}
+                              type="button"
+                              onClick={() => {
+                                if (!isEditingVideoColors) return;
+                                setSelectedVideoColorIdx(index);
+                              }}
+                              className={`flex items-center justify-center rounded-full transition-all ${isSelected
+                                ? 'ring-2 ring-black ring-offset-2 scale-110'
+                                : 'border border-gray-200 hover:scale-105'
+                                }`}
+                              style={{ width: 32, height: 32 }}
+                              title={isEditingVideoColors ? 'Нажмите для замены' : c}
+                            >
+                              <span
+                                className="block rounded-full"
+                                style={{
+                                  backgroundColor: c,
+                                  width: isSelected ? 32 : 30,
+                                  height: isSelected ? 32 : 30,
+                                }}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Палитра замены */}
+                      {isEditingVideoColors && selectedVideoColorIdx !== null && (
+                        <div className="mt-3 flex flex-wrap gap-1.5 justify-center rounded-xl bg-gray-50 p-3 border border-gray-100">
+                          {COLOR_PALETTE.map((pc) => (
+                            <button
+                              key={pc.id}
+                              type="button"
+                              onClick={() => {
+                                const newColors = [...videoColors];
+                                newColors[selectedVideoColorIdx] = pc.hex;
+                                setVideoColors(newColors);
+                                setSelectedVideoColorIdx(null);
+                              }}
+                              className="rounded-full border border-gray-200 hover:scale-110 transition-transform"
+                              style={{ width: 26, height: 26, backgroundColor: pc.hex }}
+                              title={pc.label}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

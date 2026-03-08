@@ -30,6 +30,7 @@ type VideoRow = {
     colors_preview?: string[] | null;  // 15 цветов для hover анимации
     colors_full?: string[] | null;     // Цвета на всю длительность видео (макс 60 кадров × 3)
     colors_full_interval?: number | null; // Интервал между кадрами в секундах
+    color_mode?: string | null; // 'dynamic' | 'static' | 'none'
     status?: string | null;
     profiles:
     | { username: string | null; avatar_url: string | null }[]
@@ -92,6 +93,25 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
     // Ref для видео в модалке — для умного autoplay со звуком
     const modalVideoRef = useRef<HTMLVideoElement | null>(null);
+    const [modalMuted, setModalMuted] = useState(false);
+
+    // Mouse idle detection — скрываем иконку звука после 3с без движения мыши
+    const [mouseIdle, setMouseIdle] = useState(false);
+    const mouseIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const resetMouseIdle = useCallback(() => {
+        setMouseIdle(false);
+        if (mouseIdleTimer.current) clearTimeout(mouseIdleTimer.current);
+        mouseIdleTimer.current = setTimeout(() => setMouseIdle(true), 2000);
+    }, []);
+
+    // Очистка таймера при закрытии модалки
+    useEffect(() => {
+        if (!selected) {
+            setMouseIdle(false);
+            if (mouseIdleTimer.current) clearTimeout(mouseIdleTimer.current);
+        }
+    }, [selected]);
 
     // Refs для внешнего таймлайна (под видео)
     const extTimelineRef = useRef<HTMLDivElement | null>(null);
@@ -158,7 +178,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
             // Получаем видео
             const { data: filmsData, error } = await supa
                 .from("films")
-                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, colors_full, colors_full_interval, status")
+                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, colors_full, colors_full_interval, color_mode, status")
                 .order("created_at", { ascending: false })
                 .limit(60);
 
@@ -544,69 +564,54 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     {/* Hover overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                                    {/* Капсула с цветами — 15 цветов для hover анимации */}
-                                    {(v.colors_preview || v.colors) && (v.colors_preview || v.colors)!.length > 0 && v.playback_id && (() => {
-                                        // Используем colors_preview (15 цветов) или fallback на colors (5 базовых)
-                                        const colors = v.colors_preview && v.colors_preview.length > 0
-                                            ? v.colors_preview
-                                            : (v.colors ?? []);
+                                    {/* Цветовой кружок (палитра) */}
+                                    {v.color_mode !== 'none' && (v.colors ?? []).length > 0 && (() => {
+                                        const staticColors = (v.colors ?? []).slice(0, 5);
+                                        if (staticColors.length === 0) return null;
 
-                                        // Капсула расширяется при hover на карточку
-                                        const isHovered = hoveredVideoId === v.id;
-                                        const isCycling = cyclingVideoId === v.id;
+                                        const size = 20;
+                                        const cx = size / 2;
+                                        const cy = size / 2;
+                                        const r = size / 2;
+                                        const segmentAngle = 360 / staticColors.length;
 
-                                        // Размеры капсулы — увеличиваются при hover
-                                        const height = isHovered ? 22 : 16;
-                                        const stripeWidth = isHovered ? 18 : 14;
-                                        const borderRadius = height / 2;
-                                        // Ширина = ровно 3 цвета (скруглённые углы просто обрежут края)
-                                        const totalWidth = 3 * stripeWidth;
+                                        const createSegmentPath = (startAngle: number, endAngle: number) => {
+                                            const startRad = (startAngle - 90) * Math.PI / 180;
+                                            const endRad = (endAngle - 90) * Math.PI / 180;
+                                            const x1 = cx + r * Math.cos(startRad);
+                                            const y1 = cy + r * Math.sin(startRad);
+                                            const x2 = cx + r * Math.cos(endRad);
+                                            const y2 = cy + r * Math.sin(endRad);
+                                            const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+                                            return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                                        };
 
                                         return (
                                             <div
-                                                key={`capsule-${v.id}-${hoverKeys[v.id] || 0}`}
-                                                className={`absolute bottom-2 right-2 z-20 transition-all duration-300 overflow-hidden ${isCycling ? 'ring-2 ring-white/50' : ''}`}
+                                                className="absolute bottom-2 right-2 z-20 rounded-full"
                                                 style={{
-                                                    width: totalWidth,
-                                                    height: height,
-                                                    borderRadius: borderRadius,
-                                                    boxShadow: isHovered
-                                                        ? '0 4px 12px rgba(0,0,0,0.4)'
-                                                        : '0 1px 4px rgba(0,0,0,0.3)',
-                                                    border: '1px solid rgba(255,255,255,0.4)',
+                                                    width: size,
+                                                    height: size,
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                                                 }}
                                             >
-                                                {/* 3 цвета текущего кадра — меняются каждую секунду */}
-                                                {(() => {
-                                                    // Текущий индекс кадра (0-4)
-                                                    const frameIndex = colorTimeIndex[v.id] ?? 0;
-                                                    // 3 цвета для текущего кадра (индексы: 0-2, 3-5, 6-8, 9-11, 12-14)
-                                                    const startIdx = frameIndex * 3;
-                                                    const frameColors = colors.slice(startIdx, startIdx + 3);
-
-                                                    // Если цветов меньше 3, дублируем последний
-                                                    while (frameColors.length < 3 && frameColors.length > 0) {
-                                                        frameColors.push(frameColors[frameColors.length - 1]);
-                                                    }
-
-                                                    return (
-                                                        <div
-                                                            className="h-full flex transition-all duration-300"
-                                                            style={{ width: '100%' }}
-                                                        >
-                                                            {frameColors.map((color, idx) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    className="h-full transition-all duration-300"
-                                                                    style={{
-                                                                        width: stripeWidth,
-                                                                        backgroundColor: color,
-                                                                    }}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    );
-                                                })()}
+                                                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
+                                                    {staticColors.map((color, i) => (
+                                                        <path
+                                                            key={i}
+                                                            d={createSegmentPath(i * segmentAngle, (i + 1) * segmentAngle)}
+                                                            fill={color}
+                                                        />
+                                                    ))}
+                                                    <circle
+                                                        cx={cx}
+                                                        cy={cy}
+                                                        r={r - 0.5}
+                                                        fill="none"
+                                                        stroke="rgba(255,255,255,0.5)"
+                                                        strokeWidth={1}
+                                                    />
+                                                </svg>
                                             </div>
                                         );
                                     })()}
@@ -679,7 +684,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                     onClick={closeModal}
                 >
                     {/* Горизонтальный контейнер: видео + кнопки справа */}
-                    <div className="flex items-center gap-3">
+                    <div className="group/modal flex items-center gap-3" onMouseMove={resetMouseIdle}>
                         {/* Вертикальный контейнер: [book] сверху, [инфо-бар] снизу */}
                         <div className="flex flex-col items-center">
 
@@ -758,7 +763,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 </div>
 
                                 {/* Right page — video */}
-                                <div className="relative">
+                                <div className="relative flex items-end gap-2">
                                     <div className={`relative flex flex-col overflow-hidden rounded-none ${showPrompt ? 'sm:rounded-r-xl sm:rounded-l-none' : 'sm:rounded-xl'} shadow-2xl`}>
                                         {selected.playback_id ? (
                                             <CustomVideoPlayer
@@ -841,6 +846,43 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Звук — справа от таймлайна */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const v = modalVideoRef.current;
+                                            if (v) {
+                                                v.muted = !v.muted;
+                                                setModalMuted(v.muted);
+                                            }
+                                        }}
+                                        className={`flex-shrink-0 flex items-center justify-center transition-opacity duration-300 hover:!opacity-100 ${mouseIdle ? 'opacity-0' : 'opacity-0 group-hover/modal:opacity-50'}`}
+                                        style={{
+                                            background: 'none',
+                                            cursor: 'pointer',
+                                            color: 'rgba(255,255,255,0.85)',
+                                            padding: 6,
+                                            borderRadius: '50%',
+                                            border: '1px solid rgba(255,255,255,0.25)',
+                                            marginBottom: -10,
+                                        }}
+                                        title="Звук"
+                                    >
+                                        {modalMuted ? (
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                                <line x1="23" y1="9" x2="17" y2="15" />
+                                                <line x1="17" y1="9" x2="23" y2="15" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                            </svg>
+                                        )}
+                                    </button>
                                 </div>
                             </div>{/* Close book container */}
 
@@ -859,7 +901,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     }}
                                 >
                                     {/* Цветовые точки — перекрывающиеся кружки */}
-                                    {(selected.colors_full || selected.colors_preview || selected.colors) && (() => {
+                                    {selected.color_mode !== 'none' && (selected.colors_full || selected.colors_preview || selected.colors) && (() => {
                                         const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
                                         const colors = hasFullColors
                                             ? selected.colors_full!
@@ -949,7 +991,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                         </div>
 
                         {/* Кнопки справа от модалки — поделиться + лайк + инфо */}
-                        <div className="hidden sm:flex flex-col items-center self-start gap-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="hidden sm:flex flex-col items-center self-stretch gap-2" onClick={(e) => e.stopPropagation()}>
                             {/* Поделиться */}
                             <button
                                 type="button"
@@ -1004,6 +1046,8 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     <line x1="12" y1="8" x2="12.01" y2="8" />
                                 </svg>
                             </button>
+
+
                         </div>
                     </div>
                 </div>
