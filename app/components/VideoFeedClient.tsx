@@ -882,7 +882,84 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 </div>
                             </div>{/* Close book container */}
 
-                            {/* Info-bar + цветовая капсула — отцентрирована по видео */}
+                            {/* Кнопки Play и Звук (показываются под таймлайном если открыта левая панель) */}
+                            {showPrompt && (
+                                <div className="flex justify-between w-full" style={{ paddingLeft: '340px' }}>
+                                    <div className="flex gap-3 px-3 mt-3 w-full justify-center">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const v = modalVideoRef.current;
+                                                if (v) {
+                                                    if (v.paused) v.play();
+                                                    else v.pause();
+                                                }
+                                            }}
+                                            className="flex items-center justify-center flex-shrink-0 text-white/80 hover:text-white transition-all rounded-full"
+                                            style={{
+                                                width: 32,
+                                                height: 32,
+                                                background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)',
+                                                backdropFilter: 'blur(24px) saturate(1.4)',
+                                                WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+                                                border: '1px solid rgba(255,255,255,0.18)',
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            }}
+                                            title={modalPlaying ? "Пауза" : "Играть"}
+                                        >
+                                            {modalPlaying ? (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                                    <rect x="6" y="4" width="4" height="16" />
+                                                    <rect x="14" y="4" width="4" height="16" />
+                                                </svg>
+                                            ) : (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M8 5v14l11-7z" />
+                                                </svg>
+                                            )}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const v = modalVideoRef.current;
+                                                if (v) {
+                                                    v.muted = !v.muted;
+                                                    setModalMuted(v.muted);
+                                                }
+                                            }}
+                                            className="flex items-center justify-center flex-shrink-0 text-white/80 hover:text-white transition-all rounded-full"
+                                            style={{
+                                                width: 32,
+                                                height: 32,
+                                                background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)',
+                                                backdropFilter: 'blur(24px) saturate(1.4)',
+                                                WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+                                                border: '1px solid rgba(255,255,255,0.18)',
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            }}
+                                            title="Звук"
+                                        >
+                                            {modalMuted ? (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                                    <line x1="23" y1="9" x2="17" y2="15" />
+                                                    <line x1="17" y1="9" x2="23" y2="15" />
+                                                </svg>
+                                            ) : (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Инфо-bar + цветовая капсула — отцентрирована по видео */}
                             <div className={`mt-3 flex justify-center transition-opacity duration-300 ${showPrompt ? 'sm:opacity-0 sm:pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
                                 <div className="relative inline-flex">
                                     {/* Кнопки вынесены из потока и висят слева */}

@@ -307,15 +307,7 @@ export default function CustomVideoPlayer({
             </video>
 
             {/* Click to play/pause */}
-            <div className="play-overlay" onClick={togglePlay} onDoubleClick={toggleFullscreen}>
-                {!isPlaying && (
-                    <div className="play-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8 5v14l11-7z" />
-                        </svg>
-                    </div>
-                )}
-            </div>
+            <div className="absolute inset-0 z-5 cursor-pointer" onClick={togglePlay} onDoubleClick={toggleFullscreen} />
 
         </div>
     );
