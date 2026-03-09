@@ -306,9 +306,77 @@ export default function CustomVideoPlayer({
                 <source src={src} type="video/mp4" />
             </video>
 
-            {/* Click to play/pause */}
-            <div className="absolute inset-0 z-5 cursor-pointer" onClick={togglePlay} onDoubleClick={toggleFullscreen} />
+            {/* Drag to seek overlay (replaces simple play-overlay) */}
+            <div
+                className="absolute inset-0 z-5 cursor-pointer"
+                onDoubleClick={toggleFullscreen}
+                onContextMenu={(e) => e.preventDefault()}
+                onPointerDown={(e) => {
+                    // Игнорируем правый клик
+                    if (e.button !== 0) return;
+                    e.preventDefault();
 
+                    const v = videoEl.current;
+                    if (!v || !v.duration) return;
+
+                    setIsDragging(true);
+
+                    // Считаем клик или драг
+                    let hasDragged = false;
+                    const startX = e.clientX;
+                    const startRect = e.currentTarget.getBoundingClientRect();
+                    const initialTime = v.currentTime;
+
+                    // Запоминаем играло ли видео до клика
+                    const wasPlaying = !v.paused;
+
+                    const onPointerMove = (ev: PointerEvent) => {
+                        const dx = ev.clientX - startX;
+                        // Если сдвинулись больше чем на 3px, считаем это драгом (перемоткой)
+                        if (!hasDragged && Math.abs(dx) > 3) {
+                            hasDragged = true;
+                            // Начинаем драг - ставим на паузу чтобы не было конфликтов кадров
+                            if (wasPlaying) v.pause();
+                        }
+
+                        if (hasDragged) {
+                            // Логика перемотки: весь экран = ширина видео
+                            const ratio = dx / startRect.width;
+                            const timeDelta = ratio * v.duration;
+
+                            // Вычисляем новое время и ограничиваем его в пределах 0..duration
+                            let newTime = initialTime + timeDelta;
+                            newTime = Math.max(0, Math.min(newTime, v.duration));
+
+                            v.currentTime = newTime;
+                            setCurrentTime(newTime);
+
+                            // Синхронно обновляем ползунок таймлайна
+                            if (fillRef.current) fillRef.current.style.width = `${(newTime / v.duration) * 100}%`;
+                            if (dotRef.current) dotRef.current.style.left = `${(newTime / v.duration) * 100}%`;
+                        }
+                    };
+
+                    const onPointerUp = (ev: PointerEvent) => {
+                        setIsDragging(false);
+                        window.removeEventListener("pointermove", onPointerMove);
+                        window.removeEventListener("pointerup", onPointerUp);
+
+                        // Если драга не было, считаем это обычным кликом -> переключаем Play/Pause
+                        if (!hasDragged) {
+                            togglePlay();
+                        } else {
+                            // Если был драг, и до драга видео играло - продолжаем воспроизведение
+                            if (wasPlaying && v.paused) {
+                                v.play().catch(() => { });
+                            }
+                        }
+                    };
+
+                    window.addEventListener("pointermove", onPointerMove);
+                    window.addEventListener("pointerup", onPointerUp);
+                }}
+            />
         </div>
     );
 }
