@@ -95,7 +95,10 @@ export async function POST(req: Request) {
 
     if (insError) {
       console.error('videos/start films insert error:', insError);
-      // всё равно вернём URL — пусть видео загрузится в Mux
+      return NextResponse.json(
+        { error: `Database insert error: ${insError.message}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(

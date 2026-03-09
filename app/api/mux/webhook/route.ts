@@ -201,45 +201,8 @@ export async function POST(req: NextRequest) {
             .sort((a, b) => a.time - b.time)
             .flatMap(r => r.colors);
 
-          // baseColors будет вычислен ниже из previewColors
+          // baseColors вычислен ниже из previewColors
           console.log(`Base colors pool size: ${previewColors.length}`);
-
-          // === 2. Full: вся длительность видео ===
-          // === 2. Full: вся длительность видео ===
-          const MAX_FRAMES = 60;
-          let fullColors: string[] = [];
-          let fullInterval = 1;
-
-          if (duration > 0) {
-            const durationSec = Math.floor(duration);
-            fullInterval = Math.max(1, Math.ceil(durationSec / MAX_FRAMES));
-            const fullTimestamps: number[] = [];
-            for (let t = 0; t < durationSec; t += fullInterval) {
-              fullTimestamps.push(t);
-            }
-
-            console.log(`Full extraction: duration=${durationSec}s, interval=${fullInterval}s, frames=${fullTimestamps.length}`);
-
-            // Извлекаем батчами по 10, чтобы не перегрузить Mux
-            const BATCH_SIZE = 10;
-            const fullResults: { time: number; colors: string[] }[] = [];
-            for (let i = 0; i < fullTimestamps.length; i += BATCH_SIZE) {
-              const batch = fullTimestamps.slice(i, i + BATCH_SIZE);
-              const batchResults = await extractBatch(batch);
-              // Берем только топ-3 цвета для каждого кадра fullColors, чтобы не раздувать массив
-              fullResults.push(...batchResults.map(r => ({ time: r.time, colors: r.colors.slice(0, 3) })));
-            }
-
-            fullColors = fullResults
-              .sort((a, b) => a.time - b.time)
-              .flatMap(r => r.colors);
-
-            console.log(`Full colors extracted: ${fullColors.length} (${fullResults.filter(r => r.colors.length > 0).length} frames ok)`);
-          } else {
-            // Нет duration — используем preview как fallback
-            fullColors = previewColors;
-            console.log('No duration from Mux, using preview colors as full fallback');
-          }
 
           // === Вычисляем 5 базовых цветов (max-distance greedy) из превью ===
           const allExtractedColors = previewColors;
@@ -311,13 +274,11 @@ export async function POST(req: NextRequest) {
               // Если пользователь уже задал цвета при загрузке — оставляем их
               colors: userAlreadySetColors ? existingFilm.colors : (baseColors.length > 0 ? baseColors : null),
               colors_preview: previewColors.length > 0 ? previewColors : null,
-              colors_full: fullColors.length > 0 ? fullColors : null,
-              colors_full_interval: fullInterval,
               color_mode: colorMode,
             })
             .eq('id', updatedFilm.id);
 
-          console.log(`Colors saved for film ${updatedFilm.id}: base=${baseColors.length}, preview=${previewColors.length}, full=${fullColors.length}, interval=${fullInterval}s, mode=${colorMode}`);
+          console.log(`Colors saved for film ${updatedFilm.id}: base=${baseColors.length}, preview=${previewColors.length}, mode=${colorMode}`);
         } catch (colorErr) {
           console.error('Color extraction error:', colorErr);
         }

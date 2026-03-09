@@ -174,45 +174,22 @@ async function processVideo(
             }
         }
 
-        // === 2. Full: вся длительность ===
-        let fullColors: string[] = [];
-        let fullInterval = 1;
-
-        if (duration > 0) {
-            const durationSec = Math.floor(duration);
-            fullInterval = Math.max(1, Math.ceil(durationSec / MAX_FRAMES));
-            const fullTimestamps: number[] = [];
-            for (let t = 0; t < durationSec; t += fullInterval) {
-                fullTimestamps.push(t);
-            }
-
-            const fullResults: { time: number; colors: string[] }[] = [];
-            for (let i = 0; i < fullTimestamps.length; i += MUX_BATCH) {
-                const batch = fullTimestamps.slice(i, i + MUX_BATCH);
-                const batchResults = await extractBatch(batch);
-                // Для full берем только самую суть: 3 цвета на кадр, чтобы массив не разрастался
-                fullResults.push(...batchResults.map(r => ({ time: r.time, colors: r.colors.slice(0, 3) })));
-            }
-
-            fullColors = fullResults.sort((a, b) => a.time - b.time).flatMap(r => r.colors);
-        } else {
-            fullColors = previewColors;
-        }
-
         // === Сохраняем ===
+        const colorMode = 'preview_only'; // New field to indicate the color extraction mode
+        const updateData: any = {
+            colors: baseColors.length > 0 ? baseColors : null,
+            colors_preview: previewColors.length > 0 ? previewColors : null,
+            color_mode: colorMode,
+        };
+
         const { error: updateError } = await supa
             .from('films')
-            .update({
-                colors: baseColors.length > 0 ? baseColors : null,
-                colors_preview: previewColors.length > 0 ? previewColors : null,
-                colors_full: fullColors.length > 0 ? fullColors : null,
-                colors_full_interval: fullInterval,
-            })
+            .update(updateData)
             .eq('id', filmId);
 
         if (updateError) throw updateError;
 
-        return { ok: true, fullFrames: Math.floor(fullColors.length / 3) };
+        return { ok: true, fullFrames: 3 }; // Now only 3 frames are processed for preview
     } catch (err: any) {
         return { ok: false, error: err?.message ?? 'unknown' };
     }

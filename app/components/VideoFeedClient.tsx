@@ -141,6 +141,10 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
         return () => cancelAnimationFrame(rafId);
     }, [selected]);
 
+    const [imageWidth, setImageWidth] = useState<number | null>(null);
+    const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
+    const [modalPlaying, setModalPlaying] = useState(false);
+
     // Refs для preview видео на карточках — для сброса времени на 0
     const previewVideoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
@@ -683,8 +687,8 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
                     onClick={closeModal}
                 >
-                    {/* Горизонтальный контейнер: видео + кнопки справа */}
                     <div className="group/modal flex items-center gap-3" onMouseMove={resetMouseIdle}>
+
                         {/* Вертикальный контейнер: [book] сверху, [инфо-бар] снизу */}
                         <div className="flex flex-col items-center">
 
@@ -714,7 +718,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                                         </svg>
                                                     </button>
                                                 </div>
-                                                <div className="max-h-[150px] overflow-y-auto pr-1 scrollbar-thin">
+                                                <div className="max-h-[110px] overflow-y-auto pr-1 scrollbar-thin">
                                                     <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
                                                 </div>
                                             </div>
@@ -762,21 +766,49 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     </div>
                                 </div>
 
-                                {/* Right page — video */}
-                                <div className="relative flex items-end gap-2">
-                                    <div className={`relative flex flex-col overflow-hidden rounded-none ${showPrompt ? 'sm:rounded-r-xl sm:rounded-l-none' : 'sm:rounded-xl'} shadow-2xl`}>
+                                {/* Right page wrapper — video */}
+                                <div className="relative flex flex-1">
+                                    {/* Color circles — spine (когда панель открыта), привязаны к левому краю картинки */}
+                                    {showPrompt && selected.colors && selected.colors.length > 0 && (
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full flex-col gap-2 hidden sm:flex items-end z-10" style={{ paddingRight: '4px' }}>
+                                            {selected.colors.slice(0, 5).map((c, index) => {
+                                                const isHovered = modalHoveredColor === index;
+                                                return (
+                                                    <div key={`spine-${c}-${index}`} className="flex items-center gap-1">
+                                                        <span className={`text-[9px] font-mono uppercase transition-all duration-150 ${isHovered ? 'text-white/90' : 'text-white/50'}`}>{c}</span>
+                                                        <div className={`w-8 h-[1px] transition-all duration-150 ${isHovered ? 'bg-white/60' : 'bg-white/30'}`} />
+                                                        <div
+                                                            className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 flex-shrink-0
+                                                                ${isHovered ? 'border border-white' : 'border border-white/30'}`}
+                                                            style={{
+                                                                backgroundColor: c,
+                                                                width: 28,
+                                                                height: 28,
+                                                            }}
+                                                            title={c}
+                                                            onMouseEnter={() => setModalHoveredColor(index)}
+                                                            onMouseLeave={() => setModalHoveredColor(null)}
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                    <div className={`relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-black rounded-none ${showPrompt ? 'sm:rounded-r-xl sm:rounded-l-none' : 'sm:rounded-xl'} shadow-2xl h-full w-full`}>
                                         {selected.playback_id ? (
                                             <CustomVideoPlayer
                                                 src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`}
                                                 hlsSrc={`https://stream.mux.com/${selected.playback_id}.m3u8`}
                                                 poster={muxPoster(selected.playback_id)}
-                                                colors={selected.colors_full ?? selected.colors_preview ?? selected.colors ?? undefined}
-                                                colorInterval={selected.colors_full_interval ?? 1}
+                                                colors={selected.colors ?? undefined}
+                                                colorInterval={1}
                                                 width={modalWidth || undefined}
                                                 height={modalHeight || undefined}
                                                 maxHeight="85vh"
                                                 onLoadedMetadata={handleVideoMetadata}
                                                 videoRef={modalVideoRef}
+                                                className="w-full h-full [&>video]:h-full [&>video]:object-contain"
+                                                onPlayChange={setModalPlaying}
                                             />
                                         ) : (
                                             <div
@@ -845,150 +877,172 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                                 />
                                             </div>
                                         )}
-                                    </div>
 
-                                    {/* Звук — справа от таймлайна */}
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const v = modalVideoRef.current;
-                                            if (v) {
-                                                v.muted = !v.muted;
-                                                setModalMuted(v.muted);
-                                            }
-                                        }}
-                                        className={`flex-shrink-0 flex items-center justify-center transition-opacity duration-300 hover:!opacity-100 ${mouseIdle ? 'opacity-0' : 'opacity-0 group-hover/modal:opacity-50'}`}
-                                        style={{
-                                            background: 'none',
-                                            cursor: 'pointer',
-                                            color: 'rgba(255,255,255,0.85)',
-                                            padding: 6,
-                                            borderRadius: '50%',
-                                            border: '1px solid rgba(255,255,255,0.25)',
-                                            marginBottom: -10,
-                                        }}
-                                        title="Звук"
-                                    >
-                                        {modalMuted ? (
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                                <line x1="23" y1="9" x2="17" y2="15" />
-                                                <line x1="17" y1="9" x2="23" y2="15" />
-                                            </svg>
-                                        ) : (
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                                            </svg>
-                                        )}
-                                    </button>
+                                    </div>
                                 </div>
                             </div>{/* Close book container */}
 
-                            {/* Info-bar + цветовая капсула — в одну строку под видео */}
-                            <div className={`mt-3 flex items-center justify-center gap-3 transition-opacity duration-300 ${showPrompt ? 'sm:opacity-0 sm:pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
-                                {/* Инфо-полоска со встроенной цветовой капсулой */}
-                                <div
-                                    className="inline-flex items-center gap-4 rounded-full pl-1.5 pr-6 py-1.5 text-sm text-white"
-                                    style={{
-                                        minWidth: 480,
-                                        background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)',
-                                        backdropFilter: 'blur(24px) saturate(1.4)',
-                                        WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-                                        border: '1px solid rgba(255,255,255,0.18)',
-                                        boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
-                                    }}
-                                >
-                                    {/* Цветовые точки — перекрывающиеся кружки */}
-                                    {selected.color_mode !== 'none' && (selected.colors_full || selected.colors_preview || selected.colors) && (() => {
-                                        const hasFullColors = selected.colors_full && selected.colors_full.length > 0;
-                                        const colors = hasFullColors
-                                            ? selected.colors_full!
-                                            : (selected.colors_preview && selected.colors_preview.length > 0
-                                                ? selected.colors_preview
-                                                : (selected.colors ?? []));
+                            {/* Info-bar + цветовая капсула — отцентрирована по видео */}
+                            <div className={`mt-3 flex justify-center transition-opacity duration-300 ${showPrompt ? 'sm:opacity-0 sm:pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
+                                <div className="relative inline-flex">
+                                    {/* Кнопки вынесены из потока и висят слева */}
+                                    <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                                        {/* Кнопка Play/Pause вне видео */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const v = modalVideoRef.current;
+                                                if (v) {
+                                                    if (v.paused) v.play();
+                                                    else v.pause();
+                                                }
+                                            }}
+                                            className="flex items-center justify-center flex-shrink-0 text-white/80 hover:text-white transition-all rounded-full"
+                                            style={{
+                                                width: 32,
+                                                height: 32,
+                                                background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)',
+                                                backdropFilter: 'blur(24px) saturate(1.4)',
+                                                WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+                                                border: '1px solid rgba(255,255,255,0.18)',
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            }}
+                                            title={modalPlaying ? "Пауза" : "Играть"}
+                                        >
+                                            {modalPlaying ? (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                                    <rect x="6" y="4" width="4" height="16" />
+                                                    <rect x="14" y="4" width="4" height="16" />
+                                                </svg>
+                                            ) : (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M8 5v14l11-7z" />
+                                                </svg>
+                                            )}
+                                        </button>
 
-                                        if (colors.length === 0) return null;
+                                        {/* Кнопка звука вне видео (справа от Play) */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const v = modalVideoRef.current;
+                                                if (v) {
+                                                    v.muted = !v.muted;
+                                                    setModalMuted(v.muted);
+                                                }
+                                            }}
+                                            className="flex items-center justify-center flex-shrink-0 text-white/80 hover:text-white transition-all rounded-full"
+                                            style={{
+                                                width: 32,
+                                                height: 32,
+                                                background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)',
+                                                backdropFilter: 'blur(24px) saturate(1.4)',
+                                                WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+                                                border: '1px solid rgba(255,255,255,0.18)',
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            }}
+                                            title="Звук"
+                                        >
+                                            {modalMuted ? (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                                    <line x1="23" y1="9" x2="17" y2="15" />
+                                                    <line x1="17" y1="9" x2="23" y2="15" />
+                                                </svg>
+                                            ) : (
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
 
-                                        // Sync with timeline: use video playback position
-                                        const video = modalVideoRef.current;
-                                        const segCount = Math.floor(colors.length / 3);
-                                        const currentSeg = video && video.duration > 0 && segCount > 0
-                                            ? Math.min(Math.floor(videoTime / (video.duration / segCount)), segCount - 1)
-                                            : 0;
-                                        const startIdx = currentSeg * 3;
-                                        const frameColors = colors.slice(startIdx, startIdx + 3);
-                                        while (frameColors.length < 3 && frameColors.length > 0) {
-                                            frameColors.push(frameColors[frameColors.length - 1]);
-                                        }
-
-                                        return (
-                                            <div className="group/dots flex-shrink-0 flex items-center pl-1">
-                                                {frameColors.map((c, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="transition-all duration-300 rounded-full group-hover/dots:ml-0.5"
-                                                        style={{
-                                                            width: 22,
-                                                            height: 22,
-                                                            backgroundColor: c,
-                                                            border: '2px solid rgba(0,0,0,0.4)',
-                                                            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                                                            marginLeft: index > 0 ? -8 : 0,
-                                                            zIndex: 3 - index,
-                                                        }}
-                                                        title={c}
-                                                    />
-                                                ))}
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* Название */}
-                                    {selected.title && (
-                                        <span className="text-xs font-semibold text-white truncate max-w-[200px]" title={selected.title}>
-                                            {selected.title}
-                                        </span>
-                                    )}
-
-                                    {/* Кнопка Промт */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPrompt(true)}
-                                        className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 transition hover:bg-white/30 text-white font-medium text-xs"
+                                    {/* Инфо-полоска со встроенной цветовой капсулой */}
+                                    <div
+                                        className="inline-flex items-center gap-4 rounded-full pl-1.5 pr-6 py-1.5 text-sm text-white"
+                                        style={{
+                                            minWidth: 480,
+                                            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)',
+                                            backdropFilter: 'blur(24px) saturate(1.4)',
+                                            WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+                                            border: '1px solid rgba(255,255,255,0.18)',
+                                            boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                        }}
                                     >
-                                        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                            <polyline points="14 2 14 8 20 8" />
-                                            <line x1="16" y1="13" x2="8" y2="13" />
-                                            <line x1="16" y1="17" x2="8" y2="17" />
-                                        </svg>
-                                        Промт
-                                    </button>
+                                        {/* Цветовые точки — статические 5 базовых цветов */}
+                                        {selected.color_mode !== 'none' && (selected.colors ?? []).length > 0 && (() => {
+                                            const colors = (selected.colors ?? []).slice(0, 5);
 
-                                    {/* Автор */}
-                                    <Link
-                                        href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
-                                        className="flex items-center gap-2 transition hover:opacity-80"
-                                    >
-                                        {selectedProfile?.avatar_url && (
-                                            <img
-                                                src={selectedProfile.avatar_url}
-                                                alt={selectedProfile.username ?? "user"}
-                                                className="h-5 w-5 rounded-full object-cover ring-1 ring-white/30"
-                                            />
+                                            return (
+                                                <div className="group/dots flex-shrink-0 flex items-center pl-1">
+                                                    {colors.map((c, index) => (
+                                                        <div
+                                                            key={`infobar-color-${index}`}
+                                                            className="transition-all duration-300 rounded-full"
+                                                            style={{
+                                                                width: 22,
+                                                                height: 22,
+                                                                backgroundColor: c,
+                                                                border: '1px solid rgba(255,255,255,0.15)',
+                                                                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                                                                marginLeft: index > 0 ? -6 : 0,
+                                                                zIndex: 5 - index,
+                                                            }}
+                                                            title={c}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Название */}
+                                        {selected.title && (
+                                            <span className="text-xs font-semibold text-white truncate max-w-[200px]" title={selected.title}>
+                                                {selected.title}
+                                            </span>
                                         )}
-                                        <span className="text-white font-medium text-xs">{selectedProfile?.username ?? "user"}</span>
-                                    </Link>
 
-                                    {/* Модель */}
-                                    <span className="font-mono text-xs uppercase tracking-wider text-white/70">
-                                        {formatModelName(selected.model)}
-                                    </span>
+                                        {/* Кнопка Промт */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPrompt(true)}
+                                            className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 transition hover:bg-white/30 text-white font-medium text-xs"
+                                        >
+                                            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                                <line x1="16" y1="13" x2="8" y2="13" />
+                                                <line x1="16" y1="17" x2="8" y2="17" />
+                                            </svg>
+                                            Промт
+                                        </button>
+
+                                        {/* Автор */}
+                                        <Link
+                                            href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`}
+                                            className="flex items-center gap-2 transition hover:opacity-80"
+                                        >
+                                            {selectedProfile?.avatar_url && (
+                                                <img
+                                                    src={selectedProfile.avatar_url}
+                                                    alt={selectedProfile.username ?? "user"}
+                                                    className="h-5 w-5 rounded-full object-cover ring-1 ring-white/30"
+                                                />
+                                            )}
+                                            <span className="text-white font-medium text-xs">{selectedProfile?.username ?? "user"}</span>
+                                        </Link>
+
+                                        {/* Модель */}
+                                        <span className="font-mono text-xs uppercase tracking-wider text-white/70">
+                                            {formatModelName(selected.model)}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            </div>{/* Close inner relative wrapper */}
+                        </div>{/* Close outer wrapper */}
 
                         {/* Кнопки справа от модалки — поделиться + лайк + инфо */}
                         <div className="hidden sm:flex flex-col items-center self-stretch gap-2" onClick={(e) => e.stopPropagation()}>

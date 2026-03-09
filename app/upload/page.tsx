@@ -506,8 +506,11 @@ export default function UploadPage() {
             colors: videoColors.length ? videoColors.slice(0, 5) : null,
           }),
         });
-        if (!startRes.ok) throw new Error('Не удалось получить URL загрузки видео');
+
         const startData = await startRes.json();
+        if (!startRes.ok) {
+          throw new Error(startData.error || 'Не удалось получить URL загрузки видео');
+        }
 
         const uploadRes = await fetch(startData.url, {
           method: 'PUT',

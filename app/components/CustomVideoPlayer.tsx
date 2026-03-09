@@ -17,6 +17,7 @@ type CustomVideoPlayerProps = {
     videoRef?: React.RefObject<HTMLVideoElement | null>;
     className?: string;
     roundedClass?: string;
+    onPlayChange?: (playing: boolean) => void;
 };
 
 function formatTime(sec: number): string {
@@ -39,6 +40,7 @@ export default function CustomVideoPlayer({
     videoRef: externalRef,
     className = "",
     roundedClass = "",
+    onPlayChange,
 }: CustomVideoPlayerProps) {
     const internalRef = useRef<HTMLVideoElement>(null);
     const videoEl = externalRef ?? internalRef;
@@ -118,8 +120,8 @@ export default function CustomVideoPlayer({
         const v = videoEl.current;
         if (!v) return;
 
-        const onPlay = () => setIsPlaying(true);
-        const onPause = () => setIsPlaying(false);
+        const onPlay = () => { setIsPlaying(true); onPlayChange?.(true); };
+        const onPause = () => { setIsPlaying(false); onPlayChange?.(false); };
         const onDurationChange = () => setDuration(v.duration || 0);
         const onLoadedMeta = () => {
             setDuration(v.duration || 0);
