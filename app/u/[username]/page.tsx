@@ -46,6 +46,7 @@ const normImage = (im: any) => {
     prompt: im?.prompt ?? null,
     colors: im?.colors ?? null,
     model: im?.model ?? null,
+    aspect_ratio: im?.aspect_ratio ?? null,
     tags: im?.tags ?? null,
     images_count: im?.images_count ?? null,
   };
@@ -81,28 +82,31 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
   const avatar = profile.avatar_url || '/placeholder.png';
 
-  // Загружаем полные данные видео для VideoFeedClient
-  const films = await selectSafe(
-    supa,
-    'films',
-    'id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, status',
-    [(q: any) => q.eq('author_id', profile.id)],
-    { column: 'created_at', ascending: false },
-    120
-  );
+  let videosForFeed: any[] = [];
+  if (tab === 'video') {
+    // Загружаем полные данные видео для VideoFeedClient
+    const films = await selectSafe(
+      supa,
+      'films',
+      'id, author_id, title, description, prompt, playback_id, created_at, model, aspect_ratio, genres, mood, colors, colors_preview, status',
+      [(q: any) => q.eq('author_id', profile.id)],
+      { column: 'created_at', ascending: false },
+      120
+    );
 
-  // Добавляем profiles для совместимости с VideoFeedClient
-  const videosForFeed = films.map((f: any) => ({
-    ...f,
-    profiles: { username: profile.username, avatar_url: profile.avatar_url }
-  }));
+    // Добавляем profiles для совместимости с VideoFeedClient
+    videosForFeed = films.map((f: any) => ({
+      ...f,
+      profiles: { username: profile.username, avatar_url: profile.avatar_url }
+    }));
+  }
 
   let images: any[] = [];
   if (tab === 'images') {
     const img_meta = await selectSafe(
       supa,
       'images_meta',
-      'id, user_id, path, title, description, created_at, prompt, colors, model, tags, images_count',
+      'id, user_id, path, title, description, created_at, prompt, colors, model, aspect_ratio, tags, images_count',
       [(q: any) => q.eq('user_id', profile.id)],
       { column: 'created_at', ascending: false },
       120

@@ -99,7 +99,7 @@ export default async function ImageViewByIdPage({ params }: Props) {
   const { data, error } = await supabase
     .from('images_meta')
     .select(
-      'id, path, title, description, prompt, created_at, user_id, colors, accent_colors, model, tags, profiles:profiles(username, avatar_url)'
+      'id, path, title, description, prompt, created_at, user_id, colors, accent_colors, model, aspect_ratio, tags, profiles:profiles(username, avatar_url)'
     )
     .eq('id', params.id)
     .maybeSingle();
@@ -119,6 +119,7 @@ export default async function ImageViewByIdPage({ params }: Props) {
   const colors: string[] = (data as any).colors ?? [];
   const accentColors: string[] = ((data as any).accent_colors ?? []).filter((c: string) => c && c.trim());
   const modelLabel = formatModelName((data as any).model);
+  const aspectRatio = (data as any).aspect_ratio;
   const tags: string[] = (data as any).tags ?? [];
   const dateLabel = data.created_at ? formatDate(data.created_at) : null;
 
@@ -206,6 +207,13 @@ export default async function ImageViewByIdPage({ params }: Props) {
                 {modelLabel && (
                   <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
                     {modelLabel}
+                  </span>
+                )}
+
+                {/* Формат */}
+                {aspectRatio && (
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                    {aspectRatio}
                   </span>
                 )}
 

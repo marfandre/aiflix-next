@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAspectRatioString } from '@/app/utils/aspectRatio';
 
 // Если используешь проверку подписи Mux — оставь/добавь её здесь.
 // Ниже — упрощённый вариант без валидации подписи, чтобы не мешал типам.
@@ -86,6 +87,15 @@ export async function POST(req: NextRequest) {
 
       if (playback_id) patch.playback_id = playback_id;
       patch.status = 'ready';
+
+      if (data?.aspect_ratio) {
+        patch.aspect_ratio = data.aspect_ratio;
+      } else if (data?.tracks && Array.isArray(data.tracks)) {
+        const videoTrack = data.tracks.find((t: any) => t.type === 'video');
+        if (videoTrack && videoTrack.max_width && videoTrack.max_height) {
+          patch.aspect_ratio = getAspectRatioString(videoTrack.max_width, videoTrack.max_height);
+        }
+      }
 
       // Обновляем видео. Сначала пытаемся найти по asset_id (штатный случай)
       let { data: updatedFilm, error } = await supa
@@ -258,7 +268,9 @@ export async function POST(req: NextRequest) {
             console.error('Color mode classification error (using default "static"):', classifyErr);
           }
 
-          // === Сохраняем все цвета + color_mode в БД ===
+          // Авто-Тегирование (Imagga) отключено на бэкенде: теперь оно происходит на фронтенде перед загрузкой.
+
+          // === Сохраняем все данные в БД ===
           // Проверяем: если пользователь уже задал свои цвета на странице загрузки — не перезаписываем их
           const { data: existingFilm } = await supa
             .from('films')
@@ -271,14 +283,13 @@ export async function POST(req: NextRequest) {
           await supa
             .from('films')
             .update({
-              // Если пользователь уже задал цвета при загрузке — оставляем их
               colors: userAlreadySetColors ? existingFilm.colors : (baseColors.length > 0 ? baseColors : null),
               colors_preview: previewColors.length > 0 ? previewColors : null,
               color_mode: colorMode,
             })
             .eq('id', updatedFilm.id);
 
-          console.log(`Colors saved for film ${updatedFilm.id}: base=${baseColors.length}, preview=${previewColors.length}, mode=${colorMode}`);
+          console.log(`Metadata saved for film ${updatedFilm.id}: base=${baseColors.length}, preview=${previewColors.length}, mode=${colorMode}`);
         } catch (colorErr) {
           console.error('Color extraction error:', colorErr);
         }

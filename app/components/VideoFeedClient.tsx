@@ -32,6 +32,7 @@ type VideoRow = {
     colors_full_interval?: number | null; // Интервал между кадрами в секундах
     color_mode?: string | null; // 'dynamic' | 'static' | 'none'
     status?: string | null;
+    aspect_ratio?: string | null;
     profiles:
     | { username: string | null; avatar_url: string | null }[]
     | { username: string | null; avatar_url: string | null }
@@ -182,7 +183,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
             // Получаем видео
             const { data: filmsData, error } = await supa
                 .from("films")
-                .select("id, author_id, title, description, prompt, playback_id, created_at, model, genres, mood, colors, colors_preview, colors_full, colors_full_interval, color_mode, status")
+                .select("id, author_id, title, description, prompt, playback_id, created_at, model, aspect_ratio, genres, mood, colors, colors_preview, colors_full, colors_full_interval, color_mode, status")
                 .order("created_at", { ascending: false })
                 .limit(60);
 
@@ -698,33 +699,39 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 <div
                                     className={`hidden sm:flex overflow-hidden transition-all duration-300 ease-in-out ${showPrompt ? 'max-w-[340px] opacity-100' : 'max-w-0 opacity-0'}`}
                                 >
-                                    <div className="w-[340px] h-full bg-neutral-900/70 backdrop-blur-xl rounded-l-xl p-6 flex flex-col gap-5 text-white overflow-y-auto scrollbar-thin" style={{ maxHeight: '90vh' }}>
-                                        {/* Промт */}
+                                    <div className="w-[340px] h-full bg-neutral-900/70 backdrop-blur-xl rounded-l-xl p-6 flex flex-col gap-5 text-white overflow-y-auto scrollbar-thin z-20" style={{ maxHeight: '90vh' }}>
+                                        {/* Prompt */}
                                         {selected.prompt && (
-                                            <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative">
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative group/prompt">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Промт</h3>
                                                     <button
                                                         type="button"
                                                         onClick={() => {
                                                             navigator.clipboard.writeText(selected.prompt || '');
+                                                            const icon = document.getElementById('copy-prompt-icon');
+                                                            const check = document.getElementById('copy-prompt-check');
+                                                            if (icon && check) { icon.classList.add('hidden'); check.classList.remove('hidden'); setTimeout(() => { icon.classList.remove('hidden'); check.classList.add('hidden'); }, 1500); }
                                                         }}
                                                         className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
                                                         title="Скопировать промт"
                                                     >
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                        <svg id="copy-prompt-icon" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                                                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                                                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                                                         </svg>
+                                                        <svg id="copy-prompt-check" className="h-4 w-4 hidden text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                            <polyline points="20 6 9 17 4 12" />
+                                                        </svg>
                                                     </button>
                                                 </div>
-                                                <div className="max-h-[110px] overflow-y-auto pr-1 scrollbar-thin">
+                                                <div className="max-h-[150px] overflow-y-auto pr-1 scrollbar-thin">
                                                     <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
                                                 </div>
                                             </div>
                                         )}
 
-                                        {/* Описание */}
+                                        {/* Description */}
                                         {selected.description && (
                                             <div>
                                                 <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Описание</h3>
@@ -741,22 +748,37 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
                                         <hr className="border-white/10" />
 
-                                        {/* Автор */}
-                                        <div>
-                                            <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Автор</h3>
-                                            <Link href={`/u/${encodeURIComponent(selectedProfile?.username ?? "user")}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
-                                                {selectedProfile?.avatar_url && <img src={selectedProfile.avatar_url} alt={selectedProfile.username ?? "user"} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
-                                                <span className="text-sm text-white font-medium">{selectedProfile?.username ?? "user"}</span>
-                                            </Link>
-                                        </div>
+                                        {/* Author */}
+                                        {(() => {
+                                            const p = Array.isArray(selected.profiles) ? selected.profiles[0] : selected.profiles;
+                                            const nick = p?.username ?? "user";
+                                            const avatar = p?.avatar_url ?? null;
+                                            return (
+                                                <div>
+                                                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Автор</h3>
+                                                    <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
+                                                        {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
+                                                        <span className="text-sm text-white font-medium">{nick}</span>
+                                                    </Link>
+                                                </div>
+                                            );
+                                        })()}
 
-                                        {/* Модель */}
+                                        {/* Model */}
                                         <div>
                                             <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Модель</h3>
                                             <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{formatModelName(selected.model)}</span>
                                         </div>
 
-                                        {/* Дата */}
+                                        {/* Format */}
+                                        {selected.aspect_ratio && (
+                                            <div>
+                                                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Формат</h3>
+                                                <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{selected.aspect_ratio}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Date */}
                                         {selected.created_at && (
                                             <div>
                                                 <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Дата</h3>
@@ -770,7 +792,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                 <div className="relative flex flex-1">
                                     {/* Color circles — spine (когда панель открыта), привязаны к левому краю картинки */}
                                     {showPrompt && selected.colors && selected.colors.length > 0 && (
-                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full flex-col gap-2 hidden sm:flex items-end z-10" style={{ paddingRight: '4px' }}>
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full flex-col gap-2 hidden sm:flex items-end z-30" style={{ paddingRight: '4px' }}>
                                             {selected.colors.slice(0, 5).map((c, index) => {
                                                 const isHovered = modalHoveredColor === index;
                                                 return (

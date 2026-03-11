@@ -53,7 +53,7 @@ export default async function FilmPage({ params, searchParams }: Props) {
   const { data: film } = await supa
     .from('films')
     .select(
-      'id,title,description,playback_id,created_at,model,genres,mood'
+      'id,title,description,playback_id,created_at,model,aspect_ratio,genres,mood'
     )
     .eq('id', params.id)
     .maybeSingle();
@@ -123,6 +123,9 @@ export default async function FilmPage({ params, searchParams }: Props) {
   const rawMood = (film as any).mood as string | null | undefined;
   const moodLabel = rawMood ? rawMood.trim() : null;
 
+  // ---- Формат ----
+  const aspectRatio = (film as any).aspect_ratio as string | null | undefined;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <Link href={backHref} className="text-blue-600 hover:underline">
@@ -154,6 +157,13 @@ export default async function FilmPage({ params, searchParams }: Props) {
             <p>
               Модель:{' '}
               <span className="font-medium">{modelLabel}</span>
+            </p>
+          )}
+
+          {aspectRatio && (
+            <p>
+              Формат:{' '}
+              <span className="font-medium">{aspectRatio}</span>
             </p>
           )}
 

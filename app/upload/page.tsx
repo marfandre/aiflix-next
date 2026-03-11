@@ -5,6 +5,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import TagSelector from '../components/TagSelector';
 import ColorPickerOverlay, { ColorMarker } from '../components/ColorPickerOverlay';
 import { getColorAtPosition } from '../utils/getColorAtPosition';
+import { getAspectRatioString } from '../utils/aspectRatio';
 
 const supabase = createClientComponentClient();
 
@@ -85,6 +86,29 @@ async function extractColorsFromFile(file: File): Promise<ExtractedPalette | nul
   } catch (err) {
     console.error('extractColorsFromFile API error:', err);
     return null;
+  }
+}
+
+async function extractTagsFromFile(file: File): Promise<string[]> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/tags/generate', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      console.error('Tags API error', await res.text());
+      return [];
+    }
+
+    const data = await res.json();
+    return data.tags ?? [];
+  } catch (err) {
+    console.error('extractTagsFromFile API error:', err);
+    return [];
   }
 }
 
@@ -181,7 +205,7 @@ function extractFrameColors(video: HTMLVideoElement, time: number): Promise<{ bl
 }
 
 // Извлечение кадров из видео: 3 кадра (25%, 50%, 75%) → merge в 5 цветов
-async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: string | null; colors: string[] }> {
+async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: string | null; colors: string[]; videoBlob: Blob | null }> {
   return new Promise(async (resolve) => {
     const video = document.createElement('video');
     video.preload = 'auto';
@@ -215,30 +239,34 @@ async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: st
 
         // Извлекаем цвета из 3 кадров последовательно
         const allColors: string[] = [];
-        for (const time of sampleTimes) {
+        let previewBlob: Blob | null = null;
+        for (let i = 0; i < sampleTimes.length; i++) {
+          const time = sampleTimes[i];
           const result = await extractFrameColors(video, time);
           allColors.push(...result.colors);
+          if (i === 1) { // Mid time (50%)
+            previewBlob = result.blob;
+          }
         }
 
         URL.revokeObjectURL(objectUrl);
 
         if (allColors.length === 0) {
-          resolve({ previewUrl, colors: [] });
+          resolve({ previewUrl, colors: [], videoBlob: previewBlob });
           return;
         }
 
-        // Выбираем 5 самых разнообразных цветов
         const finalColors = selectDiverseColors(allColors, 5);
-        resolve({ previewUrl, colors: finalColors });
+        resolve({ previewUrl, colors: finalColors, videoBlob: previewBlob });
       } catch {
         URL.revokeObjectURL(objectUrl);
-        resolve({ previewUrl: null, colors: [] });
+        resolve({ previewUrl: null, colors: [], videoBlob: null });
       }
     };
 
     video.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      resolve({ previewUrl: null, colors: [] });
+      resolve({ previewUrl: null, colors: [], videoBlob: null });
     };
 
     video.load();
@@ -254,6 +282,9 @@ type LocalImage = {
   accentColors: string[];  // Акцентные цвета
   basePalette: string[];
   colorPositions: ColorMarker[];  // Координаты маркеров
+  aspectRatio: string | null;     // Соотношение сторон (px:px)
+  tags: string[];                 // Авто-теги от ИИ
+  isTagging?: boolean;            // В процессе ли генерация тегов
 };
 
 export default function UploadPage() {
@@ -327,6 +358,8 @@ export default function UploadPage() {
   const [isVideoColorsLoading, setIsVideoColorsLoading] = useState(false); // загрузка цветов видео
   const [isEditingVideoColors, setIsEditingVideoColors] = useState(false); // редактирование цветов видео
   const [selectedVideoColorIdx, setSelectedVideoColorIdx] = useState<number | null>(null); // выбранный цвет для замены
+  const [videoTags, setVideoTags] = useState<string[]>([]); // авто-теги видео
+  const [isVideoTagging, setIsVideoTagging] = useState(false); // состояние загрузки тегов
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -378,44 +411,76 @@ export default function UploadPage() {
 
     const newLocalImages: LocalImage[] = [];
 
-    for (const f of files) {
-      // Фильтруем только изображения
-      if (!f.type.startsWith('image/')) continue;
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
-      const url = URL.createObjectURL(f);
-      try {
-        const paletteResult = await extractColorsFromFile(f);
-        const fullPalette = paletteResult?.colors ?? [];
-        const main = fullPalette.slice(0, 5);
-        const weights = paletteResult?.colorWeights?.slice(0, 5) ?? [];
-        const names = paletteResult?.colorNames?.slice(0, 5) ?? [];
-        const positions = paletteResult?.colorPositions?.slice(0, 5) ?? [];
-        // Акценты не определяем автоматически — пользователь добавит сам через кнопку Accent
+    const parsedImages = await Promise.all(
+      imageFiles.map(async (f) => {
+        const url = URL.createObjectURL(f);
+        try {
+          let aspectRatio: string | null = null;
+          try {
+            const imgObj = new Image();
+            imgObj.src = url;
+            await new Promise((resolve) => {
+              imgObj.onload = () => {
+                aspectRatio = getAspectRatioString(imgObj.width, imgObj.height);
+                resolve(null);
+              };
+              imgObj.onerror = () => resolve(null);
+            });
+          } catch (e) { }
 
-        newLocalImages.push({
-          file: f,
-          previewUrl: url,
-          basePalette: fullPalette,
-          mainColors: main,
-          colorWeights: weights,
-          colorNames: names,
-          accentColors: [], // Пустой — пользователь добавит сам
-          colorPositions: positions,
-        });
-      } catch (err) {
-        console.error('Ошибка при предпросчёте палитры', err);
-        newLocalImages.push({
-          file: f,
-          previewUrl: url,
-          basePalette: [],
-          mainColors: [],
-          colorWeights: [],
-          colorNames: [],
-          accentColors: [],
-          colorPositions: [],
-        });
-      }
-    }
+          const paletteResult = await extractColorsFromFile(f);
+          const fullPalette = paletteResult?.colors ?? [];
+          const main = fullPalette.slice(0, 5);
+          const weights = paletteResult?.colorWeights?.slice(0, 5) ?? [];
+          const names = paletteResult?.colorNames?.slice(0, 5) ?? [];
+          const positions = paletteResult?.colorPositions?.slice(0, 5) ?? [];
+
+          const imgObj: LocalImage = {
+            file: f,
+            previewUrl: url,
+            basePalette: fullPalette,
+            mainColors: main,
+            colorWeights: weights,
+            colorNames: names,
+            accentColors: [],
+            colorPositions: positions,
+            aspectRatio,
+            tags: [],
+            isTagging: true,
+          };
+
+          // Fetch tags asynchronously
+          extractTagsFromFile(f).then(tags => {
+            setImages(current => current.map(img =>
+              img.previewUrl === url
+                ? { ...img, tags, isTagging: false }
+                : img
+            ));
+          });
+
+          return imgObj;
+        } catch (err) {
+          console.error('Ошибка при предпросчёте палитры', err);
+          return {
+            file: f,
+            previewUrl: url,
+            basePalette: [],
+            mainColors: [],
+            colorWeights: [],
+            colorNames: [],
+            accentColors: [],
+            colorPositions: [],
+            aspectRatio: null,
+            tags: [],
+            isTagging: false,
+          } as LocalImage;
+        }
+      })
+    );
+
+    newLocalImages.push(...parsedImages);
 
     if (newLocalImages.length === 0) {
       setIsPaletteLoading(false);
@@ -533,7 +598,7 @@ export default function UploadPage() {
       } else {
         // ---------- IMAGE (карусель) ----------
         // 1) Заливаем каждый файл в storage
-        const uploaded: { path: string; colors: string[]; colorWeights: number[]; colorNames: string[]; accentColors: string[]; colorPositions: ColorMarker[] }[] = [];
+        const uploaded: { path: string; colors: string[]; colorWeights: number[]; colorNames: string[]; accentColors: string[]; colorPositions: ColorMarker[]; aspectRatio: string | null }[] = [];
 
         for (const img of images) {
           const startRes = await fetch('/api/images/start', {
@@ -591,6 +656,7 @@ export default function UploadPage() {
             colorNames: colorNamesToSave,
             accentColors: accentColorsToSave,
             colorPositions: colorPositionsToSave,
+            aspectRatio: img.aspectRatio || null,
           });
         }
 
@@ -773,6 +839,54 @@ export default function UploadPage() {
                     maxTags={10}
                     placeholder="Добавить тег..."
                   />
+
+                  {/* Блок Авто-Тегов (только для картинок) */}
+                  {type === 'image' && currentImage && (
+                    <div className="mt-2 min-h-[24px]">
+                      {currentImage.isTagging ? (
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>ИИ подбирает теги...</span>
+                        </div>
+                      ) : currentImage.tags && currentImage.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          <span className="text-[11px] font-medium text-blue-500 uppercase tracking-wider mr-1">AI-Теги:</span>
+                          {currentImage.tags.map(t => {
+                            // Проверяем, добавлен ли тег (как строка или как tag_id:en)
+                            const isAdded = selectedTags.some(st =>
+                              st === t || st === `${t}:en` || st.startsWith(`${t}:`)
+                            );
+                            return (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => {
+                                  if (isAdded) {
+                                    // Удаляем тег в любом формате
+                                    setSelectedTags(selectedTags.filter(st =>
+                                      st !== t && st !== `${t}:en` && !st.startsWith(`${t}:`)
+                                    ));
+                                  } else if (selectedTags.length < 10) {
+                                    // Добавляем в формате tag:en для единообразия с TagSelector
+                                    setSelectedTags([...selectedTags, `${t}:en`]);
+                                  }
+                                }}
+                                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${isAdded
+                                  ? 'bg-blue-50 border-blue-200 text-blue-600'
+                                  : 'bg-white border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-500'
+                                  }`}
+                              >
+                                {isAdded ? `✓ ${t}` : `+ ${t}`}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
 
                 {/* Модель */}
@@ -853,16 +967,30 @@ export default function UploadPage() {
                           setSuccess(null);
                           setVideoPreviewUrl(null);
                           setVideoColors([]);
+                          setVideoTags([]);
                           setIsEditingVideoColors(false);
                           setSelectedVideoColorIdx(null);
                           if (newFile) {
                             setIsVideoColorsLoading(true);
+                            setIsVideoTagging(true);
                             try {
-                              const { previewUrl, colors } = await extractColorsFromVideo(newFile);
+                              const { previewUrl, colors, videoBlob } = await extractColorsFromVideo(newFile);
                               setVideoPreviewUrl(previewUrl);
                               setVideoColors(colors);
+
+                              if (videoBlob) {
+                                // Extract tags from the generated video preview blob
+                                const fakeFile = new File([videoBlob], 'preview.jpg', { type: 'image/jpeg' });
+                                extractTagsFromFile(fakeFile).then(tags => {
+                                  setVideoTags(tags);
+                                  setIsVideoTagging(false);
+                                });
+                              } else {
+                                setIsVideoTagging(false);
+                              }
                             } catch (err) {
                               console.error('Error extracting video colors:', err);
+                              setIsVideoTagging(false);
                             } finally {
                               setIsVideoColorsLoading(false);
                             }
@@ -1042,7 +1170,6 @@ export default function UploadPage() {
                             className="relative w-full rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden"
                             style={{
                               width: 340,
-                              aspectRatio: '340/420',
                             }}
                           >
                             <ColorPickerOverlay

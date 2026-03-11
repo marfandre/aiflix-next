@@ -41,6 +41,7 @@ type ImageRow = {
   accent_colors?: string[] | null;
   color_positions?: ColorPosition[] | null;
   model?: string | null;
+  aspect_ratio?: string | null;
   tags?: string[] | null;
   images_count?: number | null;
   profiles:
@@ -186,7 +187,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       let query = supa
         .from("images_meta")
         .select(
-          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, tags, images_count, profiles(username, avatar_url)"
+          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, profiles(username, avatar_url)"
         )
         .order("created_at", { ascending: false })
         .limit(60);
@@ -321,7 +322,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       // Подгружаем свежие данные изображения из БД
       const { data: freshData, error: freshError } = await supa
         .from("images_meta")
-        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, tags, images_count, profiles(username, avatar_url)")
+        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, profiles(username, avatar_url)")
         .eq("id", im.id)
         .single();
 
@@ -907,6 +908,14 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
                       <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Модель</h3>
                       <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{formatModelName(selected.model)}</span>
                     </div>
+
+                    {/* Format */}
+                    {selected.aspect_ratio && (
+                      <div>
+                        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Формат</h3>
+                        <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{selected.aspect_ratio}</span>
+                      </div>
+                    )}
 
                     {/* Tags */}
                     {selected.tags && selected.tags.length > 0 && (

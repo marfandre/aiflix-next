@@ -14,6 +14,7 @@ type IncomingImage = {
   colorNames?: string[] | null;  // NTC названия цветов для поиска
   accentColors?: string[] | null; // Акцентные цвета
   colorPositions?: { hex: string; x: number; y: number }[] | null; // Координаты цветов
+  aspectRatio?: string | null; // Соотношение сторон
 };
 
 // ---- ТЕ ЖЕ КОРЗИНЫ, ЧТО И В media-search (AI-оптимизированные) ----
@@ -248,6 +249,7 @@ export async function POST(req: Request) {
         fourth_color: bucket3 ?? null,
         fifth_color: bucket4 ?? null,
 
+        aspect_ratio: img.aspectRatio ?? null,
         model: modelToSave,
         tags: tagsToSave,
       };

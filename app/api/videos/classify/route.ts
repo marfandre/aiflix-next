@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Запускаем классификацию
-        const result = await classifyColorMode(playbackId, allColors, allColors);
+        const result = await classifyColorMode(playbackId);
 
         // Сохраняем color_mode в базу
         const { createClient } = await import('@supabase/supabase-js');
