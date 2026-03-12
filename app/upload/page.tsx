@@ -204,8 +204,23 @@ function extractFrameColors(video: HTMLVideoElement, time: number): Promise<{ bl
   });
 }
 
-// Извлечение кадров из видео: 3 кадра (25%, 50%, 75%) → merge в 5 цветов
-async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: string | null; colors: string[]; videoBlob: Blob | null }> {
+// Данные о кадре видео (время + цвета)
+interface VideoFrame {
+  time: number;       // секунда кадра
+  percent: number;    // процент длительности (25, 50, 75)
+  colors: string[];
+}
+
+// Извлечение кадров из видео: 3 кадра (25%, 50%, 75%) → merge в 5 цветов + данные покадрово
+// Возвращает videoObjectUrl (не revoke!) для воспроизведения
+async function extractColorsFromVideo(videoFile: File): Promise<{
+  previewUrl: string | null;
+  videoObjectUrl: string;
+  colors: string[];
+  videoBlob: Blob | null;
+  frames: VideoFrame[];
+  duration: number;
+}> {
   return new Promise(async (resolve) => {
     const video = document.createElement('video');
     video.preload = 'auto';
@@ -219,13 +234,14 @@ async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: st
       try {
         const duration = video.duration;
         // 3 точки: 25%, 50%, 75% длительности
+        const samplePercents = [25, 50, 75];
         const sampleTimes = [
           Math.max(0.5, duration * 0.25),
           Math.max(1, duration * 0.5),
           Math.max(1.5, duration * 0.75),
         ];
 
-        // Превью — с середины видео
+        // Превью — с середины видео (для тегирования и фоллбека)
         const midTime = sampleTimes[1];
         video.currentTime = midTime;
         await new Promise<void>((res) => { video.onseeked = () => res(); });
@@ -240,33 +256,42 @@ async function extractColorsFromVideo(videoFile: File): Promise<{ previewUrl: st
         // Извлекаем цвета из 3 кадров последовательно
         const allColors: string[] = [];
         let previewBlob: Blob | null = null;
+        const frames: VideoFrame[] = [];
+
         for (let i = 0; i < sampleTimes.length; i++) {
           const time = sampleTimes[i];
           const result = await extractFrameColors(video, time);
           allColors.push(...result.colors);
-          if (i === 1) { // Mid time (50%)
+
+          if (i === 1) {
             previewBlob = result.blob;
           }
+
+          frames.push({
+            time,
+            percent: samplePercents[i],
+            colors: result.colors.slice(0, 5),
+          });
         }
 
-        URL.revokeObjectURL(objectUrl);
+        // НЕ revoke objectUrl — он нужен для <video> плеера
 
         if (allColors.length === 0) {
-          resolve({ previewUrl, colors: [], videoBlob: previewBlob });
+          resolve({ previewUrl, videoObjectUrl: objectUrl, colors: [], videoBlob: previewBlob, frames, duration });
           return;
         }
 
         const finalColors = selectDiverseColors(allColors, 5);
-        resolve({ previewUrl, colors: finalColors, videoBlob: previewBlob });
+        resolve({ previewUrl, videoObjectUrl: objectUrl, colors: finalColors, videoBlob: previewBlob, frames, duration });
       } catch {
         URL.revokeObjectURL(objectUrl);
-        resolve({ previewUrl: null, colors: [], videoBlob: null });
+        resolve({ previewUrl: null, videoObjectUrl: '', colors: [], videoBlob: null, frames: [], duration: 0 });
       }
     };
 
     video.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      resolve({ previewUrl: null, colors: [], videoBlob: null });
+      resolve({ previewUrl: null, videoObjectUrl: '', colors: [], videoBlob: null, frames: [], duration: 0 });
     };
 
     video.load();
@@ -353,13 +378,39 @@ export default function UploadPage() {
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState(''); // промт для картинок
   const [file, setFile] = useState<File | null>(null); // используется только для видео
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null); // превью кадра видео
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null); // превью кадра видео (data URL)
+  const [videoObjectUrl, setVideoObjectUrl] = useState<string | null>(null); // object URL для воспроизведения
+  const [videoDuration, setVideoDuration] = useState(0); // длительность видео в секундах
   const [videoColors, setVideoColors] = useState<string[]>([]); // цвета видео
   const [isVideoColorsLoading, setIsVideoColorsLoading] = useState(false); // загрузка цветов видео
   const [isEditingVideoColors, setIsEditingVideoColors] = useState(false); // редактирование цветов видео
   const [selectedVideoColorIdx, setSelectedVideoColorIdx] = useState<number | null>(null); // выбранный цвет для замены
+  const [videoFrames, setVideoFrames] = useState<VideoFrame[]>([]); // кадры с покадровыми цветами
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false); // воспроизводится ли видео
+  const [videoProgress, setVideoProgress] = useState(0); // прогресс 0-1
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRafRef = useRef<number>(0); // requestAnimationFrame ID
   const [videoTags, setVideoTags] = useState<string[]>([]); // авто-теги видео
   const [isVideoTagging, setIsVideoTagging] = useState(false); // состояние загрузки тегов
+
+  // requestAnimationFrame loop для плавного прогресса таймлайна
+  useEffect(() => {
+    if (!isVideoPlaying) {
+      cancelAnimationFrame(videoRafRef.current);
+      return;
+    }
+
+    const tick = () => {
+      const v = videoRef.current;
+      if (v && v.duration) {
+        setVideoProgress(v.currentTime / v.duration);
+      }
+      videoRafRef.current = requestAnimationFrame(tick);
+    };
+    videoRafRef.current = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(videoRafRef.current);
+  }, [isVideoPlaying]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -589,8 +640,14 @@ export default function UploadPage() {
         setDescription('');
         setPrompt('');
         setFile(null);
+        if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
         setVideoPreviewUrl(null);
+        setVideoObjectUrl(null);
         setVideoColors([]);
+        setVideoFrames([]);
+        setVideoDuration(0);
+        setIsVideoPlaying(false);
+        setVideoProgress(0);
         setIsEditingVideoColors(false);
         setSelectedVideoColorIdx(null);
         setModel('');
@@ -787,14 +844,12 @@ export default function UploadPage() {
                     onClick={() => {
                       setType('video');
                       setFile(null);
-                      // чистим состояние картинок
-                      images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
-                      setImages([]);
-                      setCurrentIndex(0);
+                      // Сбрасываем палитру/редактирование, но НЕ удаляем картинки
                       setIsPaletteLoading(false);
                       setIsEditingPalette(false);
                       setDraftColors(null);
                       setSelectedIndex(null);
+                      setSelectedTags([]);
                       setError(null);
                       setSuccess(null);
                     }}
@@ -808,6 +863,7 @@ export default function UploadPage() {
                     onClick={() => {
                       setType('image');
                       setFile(null);
+                      setSelectedTags([]);
                       setError(null);
                       setSuccess(null);
                     }}
@@ -953,10 +1009,10 @@ export default function UploadPage() {
               {type === 'video' && (
                 <div className="flex-1 flex flex-col items-center">
                   <div
-                    className="relative w-full max-w-[340px] rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden cursor-pointer hover:border-gray-300 hover:shadow-md transition-all"
-                    style={{ aspectRatio: '9/16' }}
+                    className={`relative w-full max-w-[340px] rounded-3xl border-2 border-dashed bg-white shadow-sm overflow-hidden transition-all ${videoObjectUrl ? 'border-transparent border-dashed-none' : 'border-gray-200 cursor-pointer hover:border-gray-300 hover:shadow-md'}`}
+                    style={videoObjectUrl ? {} : { aspectRatio: '9/16' }}
                     onClick={() => {
-                      if (type === 'video') {
+                      if (!videoObjectUrl) {
                         const input = document.createElement('input');
                         input.type = 'file';
                         input.accept = 'video/mp4,video/webm';
@@ -965,21 +1021,30 @@ export default function UploadPage() {
                           setFile(newFile);
                           setError(null);
                           setSuccess(null);
+                          // Revoke old object URL
+                          if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
                           setVideoPreviewUrl(null);
+                          setVideoObjectUrl(null);
                           setVideoColors([]);
+                          setVideoFrames([]);
                           setVideoTags([]);
                           setIsEditingVideoColors(false);
                           setSelectedVideoColorIdx(null);
+                          setIsVideoPlaying(false);
+                          setVideoProgress(0);
+                          setVideoDuration(0);
                           if (newFile) {
                             setIsVideoColorsLoading(true);
                             setIsVideoTagging(true);
                             try {
-                              const { previewUrl, colors, videoBlob } = await extractColorsFromVideo(newFile);
+                              const { previewUrl, videoObjectUrl: objUrl, colors, videoBlob, frames, duration } = await extractColorsFromVideo(newFile);
                               setVideoPreviewUrl(previewUrl);
+                              setVideoObjectUrl(objUrl);
                               setVideoColors(colors);
+                              setVideoFrames(frames);
+                              setVideoDuration(duration);
 
                               if (videoBlob) {
-                                // Extract tags from the generated video preview blob
                                 const fakeFile = new File([videoBlob], 'preview.jpg', { type: 'image/jpeg' });
                                 extractTagsFromFile(fakeFile).then(tags => {
                                   setVideoTags(tags);
@@ -997,27 +1062,56 @@ export default function UploadPage() {
                           }
                         };
                         input.click();
-                      } else {
-                        fileInputRef.current?.click();
                       }
                     }}
                   >
                     {/* Контент внутри карточки */}
                     {
-                      videoPreviewUrl ? (
+                      videoObjectUrl ? (
                         <>
-                          <img
-                            src={videoPreviewUrl}
-                            alt="Превью видео"
-                            className="absolute inset-0 w-full h-full object-cover"
+                          <video
+                            ref={videoRef}
+                            src={videoObjectUrl}
+                            className="w-full rounded-3xl"
+                            style={{ display: 'block' }}
+                            muted
+                            playsInline
+                            loop
+                            onPlay={() => setIsVideoPlaying(true)}
+                            onPause={() => setIsVideoPlaying(false)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const v = videoRef.current;
+                              if (!v) return;
+                              if (v.paused) v.play();
+                              else v.pause();
+                            }}
                           />
-                          {/* Пипетка — оверлей поверх превью */}
+                          {/* Play/Pause overlay */}
+                          {!isVideoPlaying && (
+                            <div
+                              className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-3xl cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                videoRef.current?.play();
+                              }}
+                            >
+                              <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white/90 shadow-lg backdrop-blur-sm">
+                                <svg className="w-6 h-6 text-gray-800 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                          {/* Пипетка — оверлей поверх видео */}
                           {isEditingVideoColors && selectedVideoColorIdx !== null && (
                             <div
-                              className="absolute inset-0 z-10"
+                              className="absolute inset-0 z-10 rounded-3xl"
                               style={{ cursor: 'crosshair' }}
                               onClick={async (e) => {
-                                e.stopPropagation(); // не открываем файлпикер
+                                e.stopPropagation();
+                                // Pause video for color picking
+                                videoRef.current?.pause();
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const x = (e.clientX - rect.left) / rect.width;
                                 const y = (e.clientY - rect.top) / rect.height;
@@ -1032,7 +1126,6 @@ export default function UploadPage() {
                                 }
                               }}
                             >
-                              {/* Подсказка */}
                               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-white text-xs font-medium backdrop-blur-sm">
                                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M2 22l1-1h3l9-9" />
@@ -1060,6 +1153,81 @@ export default function UploadPage() {
                         </div>
                       )}
                   </div>
+
+                  {/* Таймлайн с цветовыми метками */}
+                  {videoObjectUrl && videoFrames.length > 0 && (
+                    <div className="mt-3 w-full max-w-[340px]">
+                      <div
+                        className="relative h-8 flex items-center cursor-pointer group"
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                          const v = videoRef.current;
+                          if (v && v.duration) {
+                            v.currentTime = x * v.duration;
+                            setVideoProgress(x);
+                          }
+                        }}
+                      >
+                        {/* Линия таймлайна (фон) */}
+                        <div className="absolute left-0 right-0 h-1 rounded-full bg-gray-200" />
+                        {/* Прогресс */}
+                        <div
+                          className="absolute left-0 h-1 rounded-full bg-gray-400"
+                          style={{ width: `${videoProgress * 100}%` }}
+                        />
+                        {/* Ползунок прогресса */}
+                        <div
+                          className="absolute w-3 h-3 rounded-full bg-white border-2 border-gray-400 shadow-sm -translate-x-1/2 opacity-0 group-hover:opacity-100"
+                          style={{ left: `${videoProgress * 100}%` }}
+                        />
+                        {/* Цветовые метки на таймлайне */}
+                        {videoFrames.map((frame, idx) => {
+                          const pos = frame.percent / 100;
+                          // Берём доминантный цвет кадра
+                          const mainColor = frame.colors[0] || '#888';
+                          return (
+                            <div
+                              key={idx}
+                              className="absolute -translate-x-1/2 flex flex-col items-center group/marker"
+                              style={{ left: `${pos * 100}%` }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const v = videoRef.current;
+                                if (v) {
+                                  v.currentTime = frame.time;
+                                  v.pause();
+                                  setVideoProgress(pos);
+                                }
+                              }}
+                            >
+                              {/* Метка-кружок */}
+                              <div
+                                className="w-4 h-4 rounded-full border-2 border-white shadow-md hover:scale-125 transition-transform cursor-pointer"
+                                style={{ backgroundColor: mainColor }}
+                                title={`${frame.percent}% — ${frame.colors.join(', ')}`}
+                              />
+                              {/* Тултип с цветами при наведении */}
+                              <div className="absolute top-6 hidden group-hover/marker:flex items-center gap-0.5 bg-white rounded-full px-1.5 py-1 shadow-lg border border-gray-100 z-10">
+                                {frame.colors.slice(0, 4).map((c, ci) => (
+                                  <span
+                                    key={ci}
+                                    className="block rounded-full"
+                                    style={{ backgroundColor: c, width: 10, height: 10 }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Время */}
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                        <span>{videoDuration > 0 ? `${Math.floor(videoProgress * videoDuration)}с` : '0с'}</span>
+                        <span>{videoDuration > 0 ? `${Math.floor(videoDuration)}с` : ''}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Палитра цветов видео (редактируемая) */}
                   {videoColors.length > 0 && (
