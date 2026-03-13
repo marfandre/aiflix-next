@@ -392,6 +392,12 @@ export default function UploadPage() {
   const videoRafRef = useRef<number>(0); // requestAnimationFrame ID
   const [videoTags, setVideoTags] = useState<string[]>([]); // авто-теги видео
   const [isVideoTagging, setIsVideoTagging] = useState(false); // состояние загрузки тегов
+  const [videoDraftColors, setVideoDraftColors] = useState<string[] | null>(null); // черновые цвета видео
+  const [videoAccentColors, setVideoAccentColors] = useState<string[]>([]); // акцентные цвета видео
+  const [selectedVideoAccentIdx, setSelectedVideoAccentIdx] = useState<number | null>(null); // выбранный акцент
+  const [showVideoAccentSlots, setShowVideoAccentSlots] = useState(false); // показывать акцентные слоты
+  const [selectedVideoPaletteColor, setSelectedVideoPaletteColor] = useState<string | null>(null); // выбранный базовый для оттенков
+  const [showVideoShades, setShowVideoShades] = useState(false); // показывать оттенки
 
   // requestAnimationFrame loop для плавного прогресса таймлайна
   useEffect(() => {
@@ -447,10 +453,15 @@ export default function UploadPage() {
     isEditingPalette && draftColors
       ? draftColors
       : (type === 'video'
-        ? videoColors
+        ? (isEditingVideoColors && videoDraftColors ? videoDraftColors : videoColors)
         : (currentImage?.mainColors ?? []));
   const displayMainColors = mainColors.slice(0, 5);
   const displayAccentColors = currentImage?.accentColors ?? [];
+
+  // Все цвета из кадров видео (для панели "Из видео")
+  const videoBasePalette: string[] = Array.from(
+    new Set(videoFrames.flatMap(f => f.colors))
+  );
 
   // Общая функция обработки файлов (для input и paste)
   async function processFiles(files: File[]) {
@@ -650,6 +661,12 @@ export default function UploadPage() {
         setVideoProgress(0);
         setIsEditingVideoColors(false);
         setSelectedVideoColorIdx(null);
+        setVideoDraftColors(null);
+        setVideoAccentColors([]);
+        setSelectedVideoAccentIdx(null);
+        setShowVideoAccentSlots(false);
+        setSelectedVideoPaletteColor(null);
+        setShowVideoShades(false);
         setModel('');
         setSelectedTags([]);
       } else {
@@ -853,8 +870,9 @@ export default function UploadPage() {
                       setError(null);
                       setSuccess(null);
                     }}
-                    className={`rounded px-4 py-2 text-sm font-medium transition-colors ${type === 'video' ? 'bg-black text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${type === 'video' ? 'text-white shadow-sm' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                       }`}
+                    style={type === 'video' ? { backgroundColor: '#1E3A5F' } : undefined}
                   >
                     Видео
                   </button>
@@ -867,8 +885,9 @@ export default function UploadPage() {
                       setError(null);
                       setSuccess(null);
                     }}
-                    className={`rounded px-4 py-2 text-sm font-medium transition-colors ${type === 'image' ? 'bg-black text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${type === 'image' ? 'text-white shadow-sm' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                       }`}
+                    style={type === 'image' ? { backgroundColor: '#1E3A5F' } : undefined}
                   >
                     Картинка
                   </button>
@@ -1087,22 +1106,7 @@ export default function UploadPage() {
                               else v.pause();
                             }}
                           />
-                          {/* Play/Pause overlay */}
-                          {!isVideoPlaying && (
-                            <div
-                              className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-3xl cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                videoRef.current?.play();
-                              }}
-                            >
-                              <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white/90 shadow-lg backdrop-blur-sm">
-                                <svg className="w-6 h-6 text-gray-800 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
+                          {/* Play/Pause overlay removed — button moved to timeline */}
                           {/* Пипетка — оверлей поверх видео */}
                           {isEditingVideoColors && selectedVideoColorIdx !== null && (
                             <div
@@ -1157,8 +1161,30 @@ export default function UploadPage() {
                   {/* Таймлайн с цветовыми метками */}
                   {videoObjectUrl && videoFrames.length > 0 && (
                     <div className="mt-3 w-full max-w-[340px]">
+                      <div className="flex items-center gap-2">
+                        {/* Play/Pause кнопка */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const v = videoRef.current;
+                            if (!v) return;
+                            if (v.paused) v.play();
+                            else v.pause();
+                          }}
+                          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition"
+                        >
+                          {isVideoPlaying ? (
+                            <svg className="w-3.5 h-3.5 text-gray-700" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3.5 h-3.5 text-gray-700 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          )}
+                        </button>
                       <div
-                        className="relative h-8 flex items-center cursor-pointer group"
+                        className="relative h-8 flex-1 flex items-center cursor-pointer group"
                         onClick={(e) => {
                           const rect = e.currentTarget.getBoundingClientRect();
                           const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -1186,6 +1212,7 @@ export default function UploadPage() {
                           const pos = frame.percent / 100;
                           // Берём доминантный цвет кадра
                           const mainColor = frame.colors[0] || '#888';
+                          const isSelected = videoColors.includes(mainColor);
                           return (
                             <div
                               key={idx}
@@ -1209,48 +1236,42 @@ export default function UploadPage() {
                               />
                               {/* Тултип с цветами при наведении */}
                               <div className="absolute top-6 hidden group-hover/marker:flex items-center gap-0.5 bg-white rounded-full px-1.5 py-1 shadow-lg border border-gray-100 z-10">
-                                {frame.colors.slice(0, 4).map((c, ci) => (
-                                  <span
-                                    key={ci}
-                                    className="block rounded-full"
-                                    style={{ backgroundColor: c, width: 10, height: 10 }}
-                                  />
-                                ))}
+                                {frame.colors.slice(0, 5).map((c, ci) => {
+                                  const picked = videoColors.includes(c);
+                                  return (
+                                    <span
+                                      key={ci}
+                                      className={`block rounded-full ${picked ? 'bg-gray-200 p-[3px]' : ''}`}
+                                      style={picked
+                                        ? { width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                                        : { backgroundColor: c, width: 10, height: 10 }
+                                      }
+                                    >
+                                      {picked && (
+                                        <span className="block rounded-full w-full h-full" style={{ backgroundColor: c }} />
+                                      )}
+                                    </span>
+                                  );
+                                })}
                               </div>
                             </div>
                           );
                         })}
                       </div>
+                      </div>
                       {/* Время */}
-                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 pl-10">
                         <span>{videoDuration > 0 ? `${Math.floor(videoProgress * videoDuration)}с` : '0с'}</span>
                         <span>{videoDuration > 0 ? `${Math.floor(videoDuration)}с` : ''}</span>
                       </div>
                     </div>
                   )}
 
-                  {/* Палитра цветов видео (редактируемая) */}
+                  {/* Палитра цветов видео */}
                   {videoColors.length > 0 && (
-                    <div className="mt-4 w-full max-w-[340px]">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500">Цвета ({videoColors.slice(0, 5).length}/5)</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsEditingVideoColors(!isEditingVideoColors);
-                            setSelectedVideoColorIdx(null);
-                          }}
-                          className={`text-xs font-medium px-2 py-1 rounded-md transition ${isEditingVideoColors
-                            ? 'bg-black text-white'
-                            : 'text-gray-500 hover:bg-gray-100'
-                            }`}
-                        >
-                          {isEditingVideoColors ? 'Готово' : 'Изменить'}
-                        </button>
-                      </div>
-
+                    <div className="relative mt-4 flex items-center justify-center">
                       <div className="flex items-center justify-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm border border-gray-100">
-                        {videoColors.slice(0, 5).map((c, index) => {
+                        {(isEditingVideoColors && videoDraftColors ? videoDraftColors : videoColors).slice(0, 5).map((c, index) => {
                           const isSelected = isEditingVideoColors && selectedVideoColorIdx === index;
                           return (
                             <button
@@ -1259,6 +1280,7 @@ export default function UploadPage() {
                               onClick={() => {
                                 if (!isEditingVideoColors) return;
                                 setSelectedVideoColorIdx(index);
+                                setSelectedVideoAccentIdx(null);
                               }}
                               className={`flex items-center justify-center rounded-full transition-all ${isSelected
                                 ? 'ring-2 ring-black ring-offset-2 scale-110'
@@ -1278,30 +1300,295 @@ export default function UploadPage() {
                             </button>
                           );
                         })}
+
+                        {/* Акцентные цвета видео */}
+                        {showVideoAccentSlots && (
+                          <>
+                            <span className="mx-1 h-4 w-px bg-gray-200" />
+                            {[0, 1, 2].map((slotIdx) => {
+                              const accentColor = videoAccentColors[slotIdx];
+                              const isAccentSelected = isEditingVideoColors && selectedVideoAccentIdx === slotIdx;
+                              return (
+                                <button
+                                  key={`vaccent-${slotIdx}`}
+                                  type="button"
+                                  onClick={() => {
+                                    if (!isEditingVideoColors) return;
+                                    if (isAccentSelected && accentColor) {
+                                      setVideoAccentColors(prev => prev.filter((_, i) => i !== slotIdx));
+                                      setSelectedVideoAccentIdx(null);
+                                    } else {
+                                      setSelectedVideoAccentIdx(slotIdx);
+                                      setSelectedVideoColorIdx(null);
+                                    }
+                                  }}
+                                  className={`flex items-center justify-center rounded-full transition-all ${isAccentSelected
+                                    ? 'ring-2 ring-blue-500 ring-offset-1 scale-110'
+                                    : accentColor
+                                      ? 'border border-gray-200 hover:scale-105'
+                                      : 'border-2 border-dashed border-gray-300 hover:border-gray-400'
+                                    }`}
+                                  style={{ width: 22, height: 22 }}
+                                  title={accentColor || 'Добавить акцент'}
+                                >
+                                  {accentColor ? (
+                                    <span className="block rounded-full" style={{ backgroundColor: accentColor, width: isAccentSelected ? 22 : 18, height: isAccentSelected ? 22 : 18 }} />
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">+</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </>
+                        )}
                       </div>
 
-                      {/* Палитра замены */}
-                      {isEditingVideoColors && selectedVideoColorIdx !== null && (
-                        <div className="mt-3 flex flex-wrap gap-1.5 justify-center rounded-xl bg-gray-50 p-3 border border-gray-100">
-                          {COLOR_PALETTE.map((pc) => (
-                            <button
-                              key={pc.id}
-                              type="button"
-                              onClick={() => {
-                                const newColors = [...videoColors];
-                                newColors[selectedVideoColorIdx] = pc.hex;
-                                setVideoColors(newColors);
-                                setSelectedVideoColorIdx(null);
-                              }}
-                              className="rounded-full border border-gray-200 hover:scale-110 transition-transform"
-                              style={{ width: 26, height: 26, backgroundColor: pc.hex }}
-                              title={pc.label}
-                            />
-                          ))}
-                        </div>
+                      {/* Кнопка редактирования (карандаш) */}
+                      {!isEditingVideoColors && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingVideoColors(true);
+                            setVideoDraftColors([...videoColors.slice(0, 5)]);
+                            setSelectedVideoColorIdx(0);
+                            setSelectedVideoAccentIdx(null);
+                          }}
+                          className="absolute -right-12 top-1/2 -translate-y-1/2 rounded-full bg-white p-2 text-gray-500 shadow border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition"
+                          title="Редактировать цвета"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                            <path d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
+                          </svg>
+                        </button>
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Панель редактирования цветов видео (3-я колонка) */}
+              {type === 'video' && isEditingVideoColors && (
+                <div className="flex-1 min-w-[300px] animate-in slide-in-from-right-4 fade-in duration-300">
+                  <div className="sticky top-6 w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between border-b pb-3">
+                      <span className="text-sm font-semibold text-gray-700">
+                        Палитра для замены
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedVideoColorIdx != null && videoDraftColors) {
+                              const next = [...videoDraftColors];
+                              next.splice(selectedVideoColorIdx, 1);
+                              setVideoDraftColors(next.length ? next : []);
+                              if (!next.length) setSelectedVideoColorIdx(null);
+                              else setSelectedVideoColorIdx(Math.min(selectedVideoColorIdx, next.length - 1));
+                            } else if (selectedVideoAccentIdx != null) {
+                              setVideoAccentColors(prev => prev.filter((_, i) => i !== selectedVideoAccentIdx));
+                              setSelectedVideoAccentIdx(null);
+                            }
+                          }}
+                          className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
+                          title="Удалить выбранный цвет"
+                        >
+                          Удалить
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (videoDraftColors) {
+                              setVideoColors(videoDraftColors.slice(0, 5));
+                            }
+                            setIsEditingVideoColors(false);
+                            setVideoDraftColors(null);
+                            setSelectedVideoColorIdx(null);
+                            setSelectedVideoAccentIdx(null);
+                            if (!videoAccentColors.length) setShowVideoAccentSlots(false);
+                          }}
+                          className="flex items-center gap-1 rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition"
+                        >
+                          ✓ Применить
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Цвета из видео + Пипетка + Accent */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-gray-500">Из видео:</span>
+                        <div className="flex items-center gap-3">
+                          {'EyeDropper' in window && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (selectedVideoColorIdx == null && selectedVideoAccentIdx == null) return;
+                                try {
+                                  // @ts-ignore
+                                  const eyeDropper = new window.EyeDropper();
+                                  const result = await eyeDropper.open();
+                                  if (result?.sRGBHex) {
+                                    const hex = result.sRGBHex.toUpperCase();
+                                    if (selectedVideoColorIdx != null) {
+                                      setVideoDraftColors(prev => {
+                                        if (!prev) return prev;
+                                        const next = [...prev];
+                                        next[selectedVideoColorIdx] = hex;
+                                        return next;
+                                      });
+                                    } else if (selectedVideoAccentIdx != null) {
+                                      setVideoAccentColors(prev => {
+                                        const next = [...prev];
+                                        next[selectedVideoAccentIdx] = hex;
+                                        return next.slice(0, 3);
+                                      });
+                                    }
+                                  }
+                                } catch (e) { }
+                              }}
+                              disabled={selectedVideoColorIdx == null && selectedVideoAccentIdx == null}
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                                <path d="m2 22 1-1h3l9-9" />
+                                <path d="M3 21v-3l9-9" />
+                                <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z" />
+                              </svg>
+                              Пипетка
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowVideoAccentSlots(!showVideoAccentSlots)}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition ${showVideoAccentSlots
+                              ? 'bg-purple-50 border-purple-300 text-purple-700'
+                              : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50'
+                              }`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clipRule="evenodd" />
+                            </svg>
+                            Accent
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {videoBasePalette.map((c, index) => (
+                          <button
+                            key={c + index}
+                            type="button"
+                            onClick={() => {
+                              if (selectedVideoColorIdx != null) {
+                                setVideoDraftColors(prev => {
+                                  if (!prev) return prev;
+                                  const next = [...prev];
+                                  next[selectedVideoColorIdx] = c;
+                                  return next;
+                                });
+                              } else if (selectedVideoAccentIdx != null) {
+                                setVideoAccentColors(prev => {
+                                  const next = [...prev];
+                                  next[selectedVideoAccentIdx] = c;
+                                  return next.slice(0, 3);
+                                });
+                              }
+                            }}
+                            title={c}
+                            className="h-6 w-6 rounded-full border border-gray-200 hover:border-gray-400 hover:scale-110 transition shadow-sm"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Базовые цвета */}
+                    <div className="border-t pt-3">
+                      <span className="mb-2 block text-xs text-gray-500">Базовые цвета:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {COLOR_PALETTE.map((color) => {
+                          const isColorSelected = selectedVideoPaletteColor === color.id;
+                          return (
+                            <button
+                              key={color.id}
+                              type="button"
+                              className={`h-7 w-7 rounded-full transition-all border border-gray-200 flex items-center justify-center ${isColorSelected ? 'ring-2 ring-gray-900 ring-offset-1 scale-110' : 'hover:scale-110'}`}
+                              style={{ backgroundColor: color.hex }}
+                              onClick={() => {
+                                if (isColorSelected) {
+                                  setSelectedVideoPaletteColor(null);
+                                } else {
+                                  setSelectedVideoPaletteColor(color.id);
+                                }
+                                if (selectedVideoColorIdx != null) {
+                                  setVideoDraftColors(prev => {
+                                    if (!prev) return prev;
+                                    const next = [...prev];
+                                    next[selectedVideoColorIdx] = color.hex;
+                                    return next;
+                                  });
+                                } else if (selectedVideoAccentIdx != null) {
+                                  setVideoAccentColors(prev => {
+                                    const next = [...prev];
+                                    next[selectedVideoAccentIdx] = color.hex;
+                                    return next.slice(0, 3);
+                                  });
+                                }
+                              }}
+                              title={color.label}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Оттенки */}
+                    {selectedVideoPaletteColor && showVideoShades && COLOR_SHADES[selectedVideoPaletteColor] && (
+                      <div className="mt-3 animate-in fade-in slide-in-from-top-1">
+                        <span className="mb-2 block text-xs text-gray-500">Оттенки {COLOR_PALETTE.find(c => c.id === selectedVideoPaletteColor)?.label}:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {COLOR_SHADES[selectedVideoPaletteColor].map((shadeHex) => (
+                            <button
+                              key={shadeHex}
+                              type="button"
+                              className="h-6 w-6 rounded-full border border-gray-100 hover:scale-110 transition-transform shadow-sm"
+                              style={{ backgroundColor: shadeHex }}
+                              onClick={() => {
+                                if (selectedVideoColorIdx != null) {
+                                  setVideoDraftColors(prev => {
+                                    if (!prev) return prev;
+                                    const next = [...prev];
+                                    next[selectedVideoColorIdx] = shadeHex;
+                                    return next;
+                                  });
+                                } else if (selectedVideoAccentIdx != null) {
+                                  setVideoAccentColors(prev => {
+                                    const next = [...prev];
+                                    next[selectedVideoAccentIdx] = shadeHex;
+                                    return next.slice(0, 3);
+                                  });
+                                }
+                              }}
+                              title={shadeHex}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Кнопка показа оттенков */}
+                    {selectedVideoPaletteColor && !showVideoShades && COLOR_SHADES[selectedVideoPaletteColor] && (
+                      <button
+                        type="button"
+                        onClick={() => setShowVideoShades(true)}
+                        className="mt-2 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                        </svg>
+                        Показать оттенки
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
