@@ -458,8 +458,8 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
             700: 3,
             500: 2
           }}
-          className="flex -ml-3 w-auto"
-          columnClassName="pl-3 bg-clip-padding"
+          className="flex -ml-1.5 w-auto"
+          columnClassName="pl-1.5 bg-clip-padding"
         >
           {images.map((im) => {
             const p = Array.isArray(im.profiles) ? im.profiles[0] : im.profiles;
@@ -474,7 +474,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
             return (
               <div
                 key={im.id}
-                className="group relative mb-3"
+                className="group relative mb-1.5"
               >
                 <button
                   type="button"
