@@ -501,8 +501,8 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                         700: 3,
                         500: 2
                     }}
-                    className="flex -ml-1.5 w-auto"
-                    columnClassName="pl-1.5 bg-clip-padding"
+                    className="flex -ml-1 w-auto"
+                    columnClassName="pl-1 bg-clip-padding"
                 >
                     {videos.map((v) => {
                         const p = Array.isArray(v.profiles) ? v.profiles[0] : v.profiles;
@@ -513,7 +513,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                         return (
                             <div
                                 key={v.id}
-                                className="group relative mb-1.5"
+                                className="group relative mb-1"
                                 onMouseEnter={() => {
                                     setHoveredVideoId(v.id);
                                     // Запускаем анимацию капсулы сразу вместе с WebP
