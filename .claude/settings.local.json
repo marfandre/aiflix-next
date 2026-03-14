@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Bash(npx tsc:*)",
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npm ls:*)",
+      "Bash(find /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/node_modules/@huggingface/transformers -type f \\\\\\(-name *clip* -o -path */models/clip* \\\\\\))",
+      "Bash(find /c/Users/Андрей/Downloads/aiflix_mvp/aiflix -type f -name *.js -o -name *.md)",
+      "Bash(xargs grep:*)",
+      "Bash(find /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/src -type f -name *.js -o -name *.ts -o -name *.jsx -o -name *.tsx)",
+      "Bash(npx tsx:*)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(source .env.local)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 10 \"$NEXT_PUBLIC_SUPABASE_URL/rest/v1/\" -H \"apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY\")",
+      "Bash(grep -l \"images_meta\\\\|films\" /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/migrations/*.sql)",
+      "Bash(curl -s \"http://localhost:3000/api/semantic-search?q=test\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{time_total}s\" \"http://localhost:3000/api/semantic-search?q=blue+ocean&type=images&limit=30\")",
+      "Bash(curl -s \"http://localhost:3000/api/semantic-search?q=blue+ocean&type=images&limit=30\")",
+      "Bash(curl -s -w \"\\\\nHTTP_CODE: %{http_code}\\\\nTIME: %{time_total}s\\\\n\" \"http://localhost:3000/api/semantic-search?q=blue+ocean&type=images&limit=5\")",
+      "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(''''/dev/stdin'''',''''utf8''''\\);const j=JSON.parse\\(d\\);j.images.forEach\\(\\(i,n\\)=>console.log\\(n+1,i.similarity.toFixed\\(3\\),i.path.split\\(''''/''''\\).pop\\(\\).substring\\(0,50\\)\\)\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/semantic-search?q=stairs&type=images&limit=10\")",
+      "Bash(node -e \"const j=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''C:/Users/Андрей/AppData/Local/Temp/sr2.json'',''utf8''\\)\\);j.images.forEach\\(\\(i,n\\)=>console.log\\(\\(n+1\\)+''. sim=''+i.similarity.toFixed\\(3\\)+'' tags=''+\\(i.tags||[]\\).join\\('',''\\)+'' path=''+i.path.split\\(''/''\\).pop\\(\\).substring\\(0,60\\)\\)\\)\")",
+      "Bash(curl -s -w \"\\\\nHTTP: %{http_code}\" \"http://localhost:3000/api/media-search?types=images&colorMode=simple&hexColors=%23651FFF\")",
+      "Bash(curl -s \"http://localhost:3000/api/media-search?types=images&colorMode=simple&hexColors=%2300E5FF\")",
+      "Bash(node -e \"const j=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''C:/Users/Андрей/AppData/Local/Temp/color.json'',''utf8''\\)\\);\\(j.images||[]\\).forEach\\(\\(i,n\\)=>console.log\\(\\(n+1\\)+''. colors=''+\\(i.colors||[]\\).join\\('',''\\)+'' tags=''+\\(i.tags||[]\\).join\\('',''\\)\\)\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/media-search?types=images&colorMode=simple&hexColors=%23D500F9\")",
+      "Bash(node -e \"const j=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''C:/Users/Андрей/AppData/Local/Temp/purple.json'',''utf8''\\)\\);\\(j.images||[]\\).forEach\\(\\(i,n\\)=>console.log\\(\\(n+1\\)+''. colors=''+\\(i.colors||[]\\).join\\('',''\\)+'' tags=''+\\(i.tags||[]\\).join\\('',''\\)+'' path=''+i.path.split\\(''/''\\).pop\\(\\).substring\\(0,50\\)\\)\\)\")",
+      "Bash(grep -r 'CREATE TABLE' /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/migrations/*.sql)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npx next:*)"
+    ]
+  }
+}
