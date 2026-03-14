@@ -5,10 +5,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getTextEmbedding } from "@/lib/clipEmbedding";
-
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+// Dynamic import to avoid bundling onnxruntime-node (404MB) into serverless function
+async function getTextEmbedding(text: string) {
+  const { getTextEmbedding: fn } = await import("@/lib/clipEmbedding");
+  return fn(text);
+}
 
 // Трекинг состояния модели
 let modelReady = false;
