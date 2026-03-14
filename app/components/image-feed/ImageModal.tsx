@@ -287,7 +287,7 @@ export default function ImageModal({
         {/* Bottom sheet */}
         <div
           ref={sheetRef}
-          className="relative bg-neutral-900/80 backdrop-blur-xl rounded-t-2xl transition-[max-height] duration-300 ease-out flex-shrink-0 flex flex-col overflow-hidden"
+          className="relative bg-neutral-900 rounded-t-2xl transition-[max-height] duration-300 ease-out flex-shrink-0 flex flex-col overflow-hidden"
           style={{
             maxHeight: sheetExpanded ? '70vh' : '110px',
             transform: sheetDragOffset !== 0
@@ -421,11 +421,15 @@ export default function ImageModal({
                           key={`sheet-${c}-${index}`}
                           type="button"
                           onClick={() => setModalHoveredColor(isActive ? null : index)}
-                          className={`rounded-full transition-all duration-150 ${isActive ? 'ring-2 ring-white scale-110' : 'ring-1 ring-white/30'}`}
+                          className={`rounded-full transition-all duration-150 flex-shrink-0 ${isActive ? 'ring-2 ring-white scale-110' : 'ring-1 ring-white/30'}`}
                           style={{ backgroundColor: c, width: 32, height: 32 }}
                         />
                       );
                     })}
+                    {/* Hex code of selected color */}
+                    {modalHoveredColor !== null && currentColors[modalHoveredColor] && (
+                      <span className="text-xs font-mono text-white/70 ml-1 uppercase">{currentColors[modalHoveredColor]}</span>
+                    )}
                     {/* Accent colors */}
                     {selected.accent_colors && selected.accent_colors.length > 0 && (
                       <>
