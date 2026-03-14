@@ -120,6 +120,7 @@ export default function ImageModal({
     if (sheetExpanded) {
       if (delta < -threshold) {
         setSheetExpanded(false);
+        setModalHoveredColor(null); // Reset color marker when collapsing
       }
     } else {
       if (delta > threshold) {
@@ -147,7 +148,7 @@ export default function ImageModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3 left-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
+          className="absolute top-3 right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -155,7 +156,7 @@ export default function ImageModal({
         </button>
 
         {/* Like button */}
-        <div className="absolute top-3 right-3 z-30">
+        <div className="absolute top-3 left-3 z-30">
           <LikeButton
             target="image"
             id={selected.id}
@@ -226,9 +227,9 @@ export default function ImageModal({
         {/* Bottom sheet */}
         <div
           ref={sheetRef}
-          className="relative bg-neutral-900 rounded-t-2xl transition-all duration-300 ease-out flex-shrink-0"
+          className="relative bg-neutral-900 rounded-t-2xl transition-all duration-300 ease-out flex-shrink-0 flex flex-col"
           style={{
-            maxHeight: sheetExpanded ? '65vh' : '120px',
+            maxHeight: sheetExpanded ? '70vh' : '120px',
             transform: sheetDragOffset !== 0
               ? `translateY(${sheetExpanded ? Math.max(0, -sheetDragOffset) : Math.max(0, -sheetDragOffset * 0.3)}px)`
               : undefined,
@@ -254,7 +255,7 @@ export default function ImageModal({
                 <span className="text-sm text-white font-medium truncate">{nick}</span>
               </Link>
 
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Share */}
                 <button
                   type="button"
@@ -262,11 +263,11 @@ export default function ImageModal({
                   className={`flex h-9 w-9 items-center justify-center rounded-full transition ${copied ? 'bg-green-500/80 text-white' : 'bg-white/10 text-white/70'}`}
                 >
                   {copied ? (
-                    <svg className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <svg className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                       <polyline points="15 3 21 3 21 9" />
                       <line x1="10" y1="14" x2="21" y2="3" />
@@ -277,10 +278,15 @@ export default function ImageModal({
                 {/* Info toggle */}
                 <button
                   type="button"
-                  onClick={() => setSheetExpanded(v => !v)}
+                  onClick={() => {
+                    setSheetExpanded(v => {
+                      if (v) setModalHoveredColor(null); // Reset color marker when collapsing
+                      return !v;
+                    });
+                  }}
                   className={`flex h-9 w-9 items-center justify-center rounded-full transition ${sheetExpanded ? 'bg-white/25 text-white' : 'bg-white/10 text-white/70'}`}
                 >
-                  <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="16" x2="12" y2="12" />
                     <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -289,14 +295,14 @@ export default function ImageModal({
               </div>
             </div>
 
-            {/* Prompt preview (1 line, truncated) */}
-            {selected.prompt && (
+            {/* Prompt preview (1 line, truncated) — hidden when expanded */}
+            {selected.prompt && !sheetExpanded && (
               <p className="text-[13px] text-white/60 truncate">{selected.prompt}</p>
             )}
           </div>
 
           {/* Expanded content */}
-          <div className={`overflow-y-auto transition-all duration-300 ${sheetExpanded ? 'max-h-[50vh] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+          <div className={`transition-all duration-300 ${sheetExpanded ? 'flex-1 overflow-y-auto opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
             <div className="px-4 pb-6 flex flex-col gap-4">
               {/* Separator */}
               <hr className="border-white/10" />
