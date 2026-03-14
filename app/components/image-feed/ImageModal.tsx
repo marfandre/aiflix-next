@@ -210,16 +210,6 @@ export default function ImageModal({
           </svg>
         </button>
 
-        {/* Like button */}
-        <div className="absolute top-3 left-3 z-30">
-          <LikeButton
-            target="image"
-            id={selected.id}
-            userId={userId}
-            ownerId={selected.user_id}
-            className="!h-9 !w-9 !rounded-full !bg-black/50 !text-white !backdrop-blur-sm [&_svg]:!h-5 [&_svg]:!w-5"
-          />
-        </div>
 
         {/* Image area — takes remaining space */}
         <div
@@ -316,6 +306,14 @@ export default function ImageModal({
               </Link>
 
               <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Like */}
+                <LikeButton
+                  target="image"
+                  id={selected.id}
+                  userId={userId}
+                  ownerId={selected.user_id}
+                  className="!h-9 !w-9 !rounded-full !bg-white/10 !text-white/70 [&_svg]:!h-5 [&_svg]:!w-5"
+                />
                 {/* Share */}
                 <button
                   type="button"
