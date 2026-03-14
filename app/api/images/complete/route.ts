@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { createClient as createService } from "@supabase/supabase-js";
+// import { getImageEmbedding } from "@/lib/clipEmbedding"; // TODO: вернуть когда понадобится кнопка "Похожие"
 
 type IncomingImage = {
   path?: string;
@@ -269,6 +270,9 @@ export async function POST(req: Request) {
     }
 
     const ids = (data ?? []).map((r: any) => r.id);
+
+    // TODO: CLIP-эмбеддинги отключены. Вернуть когда понадобится кнопка "Похожие"
+
     return NextResponse.json({ ids });
   } catch (err: any) {
     console.error("images/complete fatal:", err);

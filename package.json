@@ -8,6 +8,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "@mux/mux-node": "^8.5.0",
     "@mux/mux-player": "^3.6.1",
     "@mux/mux-player-react": "^3.6.1",

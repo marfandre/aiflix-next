@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAspectRatioString } from '@/app/utils/aspectRatio';
+// import { getImageEmbedding } from '@/lib/clipEmbedding'; // TODO: вернуть для кнопки "Похожие"
 
 // Если используешь проверку подписи Mux — оставь/добавь её здесь.
 // Ниже — упрощённый вариант без валидации подписи, чтобы не мешал типам.
@@ -270,6 +271,21 @@ export async function POST(req: NextRequest) {
 
           // Авто-Тегирование (Imagga) отключено на бэкенде: теперь оно происходит на фронтенде перед загрузкой.
 
+          // === Генерируем NTC-имена цветов для поиска ===
+          let colorNames: string[] = [];
+          try {
+            const namer = (await import('color-namer')).default;
+            const finalColors = baseColors.length > 0 ? baseColors : [];
+            colorNames = finalColors.map((hex) => {
+              try {
+                const result = namer(hex);
+                return result.ntc[0]?.name ?? '';
+              } catch { return ''; }
+            }).filter(Boolean);
+          } catch (namerErr) {
+            console.error('color-namer import error:', namerErr);
+          }
+
           // === Сохраняем все данные в БД ===
           // Проверяем: если пользователь уже задал свои цвета на странице загрузки — не перезаписываем их
           const { data: existingFilm } = await supa
@@ -280,16 +296,34 @@ export async function POST(req: NextRequest) {
 
           const userAlreadySetColors = existingFilm?.colors && existingFilm.colors.length > 0;
 
+          const colorsToSave = userAlreadySetColors ? existingFilm.colors : (baseColors.length > 0 ? baseColors : null);
+
+          // Если пользователь задал свои цвета — генерируем NTC-имена для них
+          if (userAlreadySetColors && existingFilm.colors) {
+            try {
+              const namer = (await import('color-namer')).default;
+              colorNames = existingFilm.colors.map((hex: string) => {
+                try {
+                  const result = namer(hex);
+                  return result.ntc[0]?.name ?? '';
+                } catch { return ''; }
+              }).filter(Boolean);
+            } catch { /* already logged */ }
+          }
+
           await supa
             .from('films')
             .update({
-              colors: userAlreadySetColors ? existingFilm.colors : (baseColors.length > 0 ? baseColors : null),
+              colors: colorsToSave,
               colors_preview: previewColors.length > 0 ? previewColors : null,
               color_mode: colorMode,
+              color_names: colorNames.length > 0 ? colorNames : null,
             })
             .eq('id', updatedFilm.id);
 
           console.log(`Metadata saved for film ${updatedFilm.id}: base=${baseColors.length}, preview=${previewColors.length}, mode=${colorMode}`);
+
+          // TODO: CLIP-эмбеддинг отключён. Вернуть для кнопки "Похожие"
         } catch (colorErr) {
           console.error('Color extraction error:', colorErr);
         }

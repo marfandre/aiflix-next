@@ -569,12 +569,14 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                     {/* Hover overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                                    {/* Цветовой кружок (палитра) */}
+                                    {/* Цветовой кружок (палитра) — кликабельный */}
                                     {v.color_mode !== 'none' && (v.colors ?? []).length > 0 && (() => {
                                         const staticColors = (v.colors ?? []).slice(0, 5);
                                         if (staticColors.length === 0) return null;
 
-                                        const size = 20;
+                                        const isExpanded = expandedChartId === v.id;
+                                        const baseSize = isExpanded ? 64 : 20;
+                                        const size = baseSize;
                                         const cx = size / 2;
                                         const cy = size / 2;
                                         const r = size / 2;
@@ -592,15 +594,33 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                         };
 
                                         return (
-                                            <div
-                                                className="absolute bottom-2 right-2 z-20 rounded-full"
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setExpandedChartId(isExpanded ? null : v.id);
+                                                }}
+                                                className="absolute bottom-2 right-2 z-20 rounded-full transition-all duration-300 cursor-pointer"
                                                 style={{
                                                     width: size,
                                                     height: size,
-                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                                    boxShadow: isExpanded
+                                                        ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.3)'
+                                                        : '0 1px 3px rgba(0,0,0,0.3)',
                                                 }}
+                                                title={`Нажмите чтобы ${isExpanded ? 'свернуть' : 'увеличить'}`}
                                             >
                                                 <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
+                                                    {isExpanded && (
+                                                        <defs>
+                                                            <linearGradient id={`gloss-v-${v.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                                                <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+                                                                <stop offset="40%" stopColor="rgba(255,255,255,0.1)" />
+                                                                <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+                                                                <stop offset="100%" stopColor="rgba(0,0,0,0.15)" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                    )}
                                                     {staticColors.map((color, i) => (
                                                         <path
                                                             key={i}
@@ -608,16 +628,19 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
                                                             fill={color}
                                                         />
                                                     ))}
+                                                    {isExpanded && (
+                                                        <circle cx={cx} cy={cy} r={r} fill={`url(#gloss-v-${v.id})`} pointerEvents="none" />
+                                                    )}
                                                     <circle
                                                         cx={cx}
                                                         cy={cy}
                                                         r={r - 0.5}
                                                         fill="none"
-                                                        stroke="rgba(255,255,255,0.5)"
+                                                        stroke={isExpanded ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)"}
                                                         strokeWidth={1}
                                                     />
                                                 </svg>
-                                            </div>
+                                            </button>
                                         );
                                     })()}
                                 </button>

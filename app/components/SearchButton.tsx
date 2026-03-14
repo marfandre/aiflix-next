@@ -10,6 +10,7 @@ type SearchResultFilm = {
   id: string;
   title: string | null;
   genres: string[] | null;
+  similarity?: number;
 };
 
 type SearchResultImage = {
@@ -17,11 +18,14 @@ type SearchResultImage = {
   title: string | null;
   colors: string[] | null;
   path: string | null;
+  similarity?: number;
 };
 
 type SearchResponse = {
   films?: SearchResultFilm[];
   images?: SearchResultImage[];
+  query?: string;
+  total?: number;
 };
 
 // Полные данные изображения для детального просмотра
@@ -78,19 +82,19 @@ const MODEL_SEARCH_KEYS: Record<string, string> = {
 
 // Палитра цветов для выбора (соответствует корзинам в БД)
 const COLOR_PALETTE = [
-  { id: 'red', hex: '#FF1744', label: 'Красный' },      // Более яркий, неоновый красный
-  { id: 'orange', hex: '#FF6D00', label: 'Оранжевый' }, // Насыщенный оранжевый
-  { id: 'yellow', hex: '#FFEA00', label: 'Жёлтый' },    // Яркий солнечный жёлтый
-  { id: 'green', hex: '#00E676', label: 'Зелёный' },    // Неоновый зелёный
-  { id: 'teal', hex: '#1DE9B6', label: 'Бирюзовый' },   // Яркий бирюзовый
-  { id: 'cyan', hex: '#00E5FF', label: 'Голубой' },     // Неоновый голубой
-  { id: 'blue', hex: '#2979FF', label: 'Синий' },       // Насыщенный синий
-  { id: 'indigo', hex: '#651FFF', label: 'Индиго' },    // Электрический индиго
-  { id: 'purple', hex: '#D500F9', label: 'Фиолетовый' },// Неоновый фиолетовый
-  { id: 'pink', hex: '#FF4081', label: 'Розовый' },     // Яркий розовый
-  { id: 'brown', hex: '#8D6E63', label: 'Коричневый' }, // Тёплый коричневый
-  { id: 'black', hex: '#121212', label: 'Чёрный' },     // Глубокий чёрный
-  { id: 'white', hex: '#FAFAFA', label: 'Белый' },      // Мягкий белый
+  { id: 'red', hex: '#FF1744', label: 'Красный', en: 'red' },
+  { id: 'orange', hex: '#FF6D00', label: 'Оранжевый', en: 'orange' },
+  { id: 'yellow', hex: '#FFEA00', label: 'Жёлтый', en: 'yellow' },
+  { id: 'green', hex: '#00E676', label: 'Зелёный', en: 'green' },
+  { id: 'teal', hex: '#1DE9B6', label: 'Бирюзовый', en: 'teal' },
+  { id: 'cyan', hex: '#00E5FF', label: 'Голубой', en: 'cyan' },
+  { id: 'blue', hex: '#2979FF', label: 'Синий', en: 'blue' },
+  { id: 'indigo', hex: '#651FFF', label: 'Индиго', en: 'indigo' },
+  { id: 'purple', hex: '#D500F9', label: 'Фиолетовый', en: 'purple' },
+  { id: 'pink', hex: '#FF4081', label: 'Розовый', en: 'pink' },
+  { id: 'brown', hex: '#8D6E63', label: 'Коричневый', en: 'brown' },
+  { id: 'black', hex: '#121212', label: 'Чёрный', en: 'black' },
+  { id: 'white', hex: '#FAFAFA', label: 'Белый', en: 'white' },
 ];
 
 // Оттенки для AI-контента: более насыщенные, с неоновыми акцентами
@@ -151,6 +155,32 @@ function mapHexToBucket(hex: string): string | null {
   return bestId;
 }
 
+/** Маппинг hex → английское название цвета для CLIP-запроса */
+function hexToEnglishColorName(hex: string): string {
+  // Сначала проверяем точное совпадение с палитрой
+  const exact = COLOR_PALETTE.find((c) => c.hex.toLowerCase() === hex.toLowerCase());
+  if (exact) return exact.en;
+
+  // Проверяем оттенки — находим какому базовому цвету принадлежит оттенок
+  for (const [baseId, shades] of Object.entries(COLOR_SHADES)) {
+    if (shades.some((s) => s.toLowerCase() === hex.toLowerCase())) {
+      const base = COLOR_PALETTE.find((c) => c.id === baseId);
+      // Для оттенков добавляем "light"/"dark" в зависимости от позиции
+      const idx = shades.findIndex((s) => s.toLowerCase() === hex.toLowerCase());
+      if (base) {
+        if (idx <= 1) return `light ${base.en}`;
+        if (idx >= 5) return `dark ${base.en}`;
+        return base.en;
+      }
+    }
+  }
+
+  // Фолбек: ближайший по RGB
+  const bucket = mapHexToBucket(hex);
+  const fallback = COLOR_PALETTE.find((c) => c.id === bucket);
+  return fallback?.en ?? 'colorful';
+}
+
 export default function SearchButton() {
   const [open, setOpen] = useState(false);
   const [includeVideo, setIncludeVideo] = useState(false);
@@ -158,6 +188,10 @@ export default function SearchButton() {
 
   // === ТЕГИ (жанры + атмосфера + сцена) ===
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // === СЕМАНТИЧЕСКИЙ ПОИСК (CLIP) ===
+  const [semanticQuery, setSemanticQuery] = useState('');
+  const [semanticLoading, setSemanticLoading] = useState(false);
 
   // === ЦВЕТОВОЙ ПОИСК ===
   const [colorPickerMode, setColorPickerMode] = useState<ColorPickerMode>('palette');
@@ -227,6 +261,57 @@ export default function SearchButton() {
   }
 
 
+  // Семантический поиск через CLIP (с автоматическим retry при загрузке модели)
+  async function handleSemanticSearch() {
+    if (!semanticQuery.trim()) return;
+    setError(null);
+    setResults(null);
+    setSemanticLoading(true);
+
+    try {
+      const params = new URLSearchParams();
+      params.set('q', semanticQuery.trim());
+
+      if (includeVideo && !includeImages) params.set('type', 'videos');
+      else if (includeImages && !includeVideo) params.set('type', 'images');
+      else params.set('type', 'all');
+
+      params.set('limit', '30');
+
+      // Retry loop: если модель ещё грузится (503), ждём и повторяем
+      let lastRes: Response | null = null;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const res = await fetch(`/api/semantic-search?${params.toString()}`);
+        lastRes = res;
+
+        if (res.status === 503) {
+          // Модель загружается — ждём и повторяем
+          const retryAfter = Number(res.headers.get('Retry-After') ?? 5);
+          setError(`AI модель загружается... (${attempt + 1}/6)`);
+          await new Promise((r) => setTimeout(r, retryAfter * 1000));
+          setError(null);
+          continue;
+        }
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || 'Ошибка семантического поиска');
+        }
+
+        const data = (await res.json()) as SearchResponse;
+        setResults(data);
+        return; // успех
+      }
+
+      throw new Error('AI модель не загрузилась. Попробуйте ещё раз.');
+    } catch (e: any) {
+      console.error('semantic search error', e);
+      setError(e?.message ?? 'Ошибка семантического поиска');
+    } finally {
+      setSemanticLoading(false);
+    }
+  }
+
   async function handleSearch() {
     setError(null);
     setResults(null);
@@ -240,15 +325,20 @@ export default function SearchButton() {
       return;
     }
 
+    // === ОБЫЧНЫЙ ПОИСК (теги, модели, цвета через CIEDE2000) ===
     const params = new URLSearchParams();
     params.set('types', types.join(','));
 
-    // Теги (жанры + атмосфера + сцена)
+    // Цвета → CIEDE2000 (точный цветовой поиск через /api/media-search)
+    if (simpleSelectedColors.length) {
+      params.set('colorMode', 'simple');
+      params.set('hexColors', simpleSelectedColors.join(','));
+    }
+
     if (selectedTags.length) {
       params.set('tags', selectedTags.join(','));
     }
 
-    // Модели
     if (selectedModels.length) {
       const normalizedModels = selectedModels
         .map((label) => MODEL_SEARCH_KEYS[label] ?? label)
@@ -257,13 +347,6 @@ export default function SearchButton() {
       if (normalizedModels.length) {
         params.set('models', normalizedModels.join(','));
       }
-    }
-
-    // === ЦВЕТА ===
-    // Ищем по hex-кодам
-    if (simpleSelectedColors.length) {
-      params.set('colorMode', 'simple');
-      params.set('hexColors', simpleSelectedColors.join(','));
     }
 
     setLoading(true);
@@ -284,6 +367,7 @@ export default function SearchButton() {
   }
 
   function resetAll() {
+    setSemanticQuery('');
     setSelectedTags([]);
     setModelInput('');
     setSelectedModels([]);
@@ -512,9 +596,9 @@ export default function SearchButton() {
                 {/* Заголовок */}
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">Поиск по цветам и жанрам</h2>
+                    <h2 className="text-base font-semibold text-gray-900">Поиск</h2>
                     <p className="mt-1 text-xs text-gray-500">
-                      Настрой фильтры, а мы покажем подходящие видео и картинки.
+                      Настрой фильтры по цветам, тегам и моделям.
                     </p>
                   </div>
                   <button
@@ -527,6 +611,8 @@ export default function SearchButton() {
                     </svg>
                   </button>
                 </div>
+
+                {/* TODO: AI-поиск (CLIP) убран. Вернуть когда будет поиск по промптам */}
 
                 {/* Переключатель типов */}
                 <div className="mt-4 flex items-center gap-2 text-xs">
@@ -845,10 +931,10 @@ export default function SearchButton() {
                       <button
                         type="button"
                         onClick={handleSearch}
-                        disabled={loading}
+                        disabled={loading || semanticLoading}
                         className="rounded-full bg-gray-900 px-3 py-1 text-xs text-white hover:bg-gray-800 disabled:opacity-50"
                       >
-                        {loading ? 'Ищем…' : 'Найти'}
+                        {loading || semanticLoading ? 'Ищем…' : 'Найти'}
                       </button>
                     </div>
                   </div>
@@ -871,10 +957,15 @@ export default function SearchButton() {
                       <ul className="space-y-2">
                         {results.films.map((f) => (
                           <li key={f.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex items-center gap-2">
                               <div className="truncate font-medium text-gray-900">
                                 {(f.title ?? '').trim() || 'Без названия'}
                               </div>
+                              {f.similarity != null && (
+                                <span className="shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                                  {Math.round(f.similarity * 100)}%
+                                </span>
+                              )}
                             </div>
                             <Link href={`/film/${f.id}`} className="ml-3 shrink-0 text-xs font-medium text-blue-600 hover:underline">
                               Открыть

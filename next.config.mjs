@@ -4,6 +4,11 @@ import path from 'path';
 const nextConfig = {
   experimental: {
     serverActions: { allowedOrigins: ['*'] },
+    serverComponentsExternalPackages: [
+      '@huggingface/transformers',
+      'onnxruntime-node',
+      'sharp',
+    ],
   },
   images: {
     remotePatterns: [

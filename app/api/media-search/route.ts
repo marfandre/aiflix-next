@@ -334,6 +334,8 @@ export async function GET(req: NextRequest) {
     title: string | null;
     genres: string[] | null;
     model: string | null;
+    colors: string[] | null;
+    color_names: string[] | null;
   };
 
   type ImageRow = {
@@ -356,11 +358,21 @@ export async function GET(req: NextRequest) {
 
   // ---------- FILMS ----------
   if (includeVideo) {
-    let q = supabase
+    const searchHexColorsForFilms: string[] = hexColorsParam
+      ? hexColorsParam.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean)
+      : [];
+    const useFilmColorSearch = colorMode === "simple" && searchHexColorsForFilms.length > 0;
+
+    let q: any = supabase
       .from("films")
-      .select("id, title, genres, model")
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .select("id, title, genres, model, colors, color_names")
+      .order("created_at", { ascending: false });
+
+    if (!useFilmColorSearch) {
+      q = q.limit(50);
+    } else {
+      q = q.not("colors", "is", null).limit(500);
+    }
 
     if (genresParam) {
       const genres = genresParam.split(",").map((g) => g.trim().toLowerCase()).filter(Boolean);
@@ -377,12 +389,87 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Теги для видео
+    if (tagsParam) {
+      const tags = tagsParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+      if (tags.length) {
+        q = q.overlaps("tags", tags);
+      }
+    }
+
     const { data, error } = await q;
     if (error) {
       console.error("media-search films error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    films.push(...((data as FilmRow[]) ?? []));
+
+    let resultFilms = (data as FilmRow[]) ?? [];
+
+    // === ЦВЕТОВОЙ ПОИСК ДЛЯ ВИДЕО (hue-family) ===
+    if (useFilmColorSearch && resultFilms.length > 0) {
+      const scoredFilms: { film: FilmRow; score: number }[] = [];
+
+      // Определяем hue-семейства для искомых цветов
+      const searchFamilies = searchHexColorsForFilms.map((hex) => {
+        const lab = hexToLab(hex);
+        if (!lab) return null;
+        const chroma = labChroma(lab);
+        if (chroma < 10) return { hue: 0, range: 360, achromatic: true, lab };
+        const hue = Math.atan2(lab.b, lab.a) * 180 / Math.PI;
+        return { hue, range: 30, achromatic: false, lab };
+      });
+
+      for (const film of resultFilms) {
+        const filmColors = (film.colors || []).map((c) => c.toLowerCase());
+        if (filmColors.length === 0) continue;
+
+        let allMatch = true;
+        let totalScore = 0;
+
+        for (let si = 0; si < searchFamilies.length; si++) {
+          const family = searchFamilies[si];
+          if (!family) { allMatch = false; break; }
+
+          let bestScore = Infinity;
+          let found = false;
+
+          for (let i = 0; i < filmColors.length; i++) {
+            const lab = hexToLab(filmColors[i]);
+            if (!lab) continue;
+            const chroma = labChroma(lab);
+
+            if (family.achromatic) {
+              if (chroma > 25) continue;
+              const lDiff = Math.abs(lab.L - family.lab.L);
+              if (lDiff > 40) continue;
+              const score = lDiff + i * 0.5;
+              if (score < bestScore) { bestScore = score; found = true; }
+            } else {
+              if (chroma < 12) continue;
+              const hue = Math.atan2(lab.b, lab.a) * 180 / Math.PI;
+              let hueDiff = Math.abs(hue - family.hue);
+              if (hueDiff > 180) hueDiff = 360 - hueDiff;
+              if (hueDiff > family.range) continue;
+              const chromaPenalty = chroma < 15 ? (15 - chroma) * 0.5 : 0;
+              const score = hueDiff + chromaPenalty + i * 0.5;
+              if (score < bestScore) { bestScore = score; found = true; }
+            }
+          }
+
+          if (!found) { allMatch = false; break; }
+          totalScore += bestScore;
+        }
+
+        if (allMatch) {
+          scoredFilms.push({ film, score: totalScore / searchHexColorsForFilms.length });
+        }
+      }
+
+      scoredFilms.sort((a, b) => a.score - b.score);
+      resultFilms = scoredFilms.slice(0, 50).map((s) => s.film);
+    }
+
+    films.push(...resultFilms);
   }
 
   // ---------- IMAGES ----------
@@ -456,186 +543,64 @@ export async function GET(req: NextRequest) {
 
     let resultImages = (data as ImageRow[]) ?? [];
 
-    // === ПРИОРИТЕТНЫЙ МЕТОД: NTC-based поиск по названиям цветов ===
-    // Получаем NTC названия + соседние цвета (distance < 2.0) для расширенного поиска
+    // === ЦВЕТОВОЙ ПОИСК ДЛЯ КАРТИНОК ===
+    // Ищем по СЕМЕЙСТВУ ОТТЕНКА (hue family), а не по точному hex.
+    // Пользователь нажимает "фиолетовый" → ищем всё с фиолетовым hue,
+    // независимо от яркости и насыщенности.
     if (useDirectColorSearch && resultImages.length > 0) {
-      // Получаем NTC названия и соседей для искомых цветов
-      const searchColorNamesSet = new Set<string>();
 
-      searchHexColors.forEach((hex) => {
-        try {
-          const result = namer(hex);
-          // Берём все NTC цвета с distance < 2.0 (визуально почти одинаковые)
-          result.ntc.forEach((color) => {
-            if (color.distance < 2.0) {
-              searchColorNamesSet.add(color.name.toLowerCase());
-            }
-          });
-        } catch {
-          // ignore
-        }
-      });
+      // Определяем hue-семейство для искомого цвета
+      function getHueFamily(hex: string): { hueCenter: number; hueRange: number; isAchromatic: boolean } | null {
+        const lab = hexToLab(hex);
+        if (!lab) return null;
+        const chroma = labChroma(lab);
 
-      const searchColorNames = Array.from(searchColorNamesSet);
-      console.log(`NTC search: looking for colors: ${searchColorNames.join(', ')}`);
-
-      if (searchColorNames.length > 0) {
-        // Фильтруем картинки по NTC названиям (включая соседей)
-        const ntcFilteredImages = resultImages.filter((img) => {
-          const imgColorNames = (img as any).color_names || [];
-          if (!Array.isArray(imgColorNames) || imgColorNames.length === 0) {
-            return false;
-          }
-
-          // Хотя бы один из искомых цветов должен быть в палитре картинки
-          return searchColorNames.some((searchName) =>
-            imgColorNames.some((imgName: string) =>
-              imgName.toLowerCase() === searchName
-            )
-          );
-        });
-
-        // Если нашли результаты по NTC — используем их
-        if (ntcFilteredImages.length > 0) {
-          resultImages = ntcFilteredImages;
-          console.log(`NTC search found ${ntcFilteredImages.length} results`);
-          // Пропускаем CIEDE2000 поиск — NTC дал результаты
-        } else {
-          // NTC не дал результатов — используем CIEDE2000 как fallback
-          console.log(`NTC search found no results. Falling back to CIEDE2000.`);
-        }
-      }
-    }
-
-    // === FALLBACK: CIE Lab + CIEDE2000 СРАВНЕНИЕ ЦВЕТОВ ===
-    // Используется когда NTC не дал результатов (старые картинки без color_names)
-    if (useDirectColorSearch && resultImages.length > 0) {
-      /**
-       * CIEDE2000 - самый точный алгоритм сравнения цветов
-       * CIE Lab масштаб: L = 0-100, Chroma = 0-130, Delta E = 0-100
-       */
-
-      // Пороги насыщенности (Chroma) в масштабе CIE Lab
-      const CHROMA_SATURATED = 50;  // Выше = насыщенный цвет
-      const CHROMA_MUTED = 25;      // Ниже = приглушённый цвет
-
-      /**
-       * Сравнивает два цвета используя CIEDE2000
-       */
-      function compareColors(searchHex: string, imageHex: string): { match: boolean; score: number } {
-        const lab1 = hexToLab(searchHex);
-        const lab2 = hexToLab(imageHex);
-        if (!lab1 || !lab2) return { match: false, score: Infinity };
-
-        const chroma1 = labChroma(lab1);
-        const chroma2 = labChroma(lab2);
-
-        // === ПРОВЕРКА ПО LIGHTNESS (L) ===
-        // CIE Lab: L от 0 до 100
-        // Тёмный цвет (L < 35) НЕ матчится со светлым (L > 75)
-        const L_DARK = 35;
-        const L_LIGHT = 75;
-
-        if (lab1.L < L_DARK && lab2.L > L_LIGHT) {
-          return { match: false, score: Infinity };
-        }
-        if (lab1.L > L_LIGHT && lab2.L < L_DARK) {
-          return { match: false, score: Infinity };
+        // Чёрный/белый/серый — ахроматический поиск (по яркости)
+        if (chroma < 10) {
+          return { hueCenter: 0, hueRange: 360, isAchromatic: true };
         }
 
-        // Большая разница в яркости (> 30) = не матч
-        const lDiff = Math.abs(lab1.L - lab2.L);
-        if (lDiff > 30) {
-          return { match: false, score: Infinity };
-        }
-
-        // === ПРОВЕРКА ПО CHROMA (насыщенность) ===
-        // Адаптивный порог CIEDE2000 (УЖЕСТОЧЁННЫЙ):
-        // - Насыщенный цвет (C > 50): порог 7 — очень строго
-        // - Средний (25-50): порог 10 — строго
-        // - Приглушённый (C < 25): порог 15 — умеренно
-        let deltaEThreshold: number;
-        if (chroma1 > CHROMA_SATURATED) {
-          deltaEThreshold = 7;
-        } else if (chroma1 > CHROMA_MUTED) {
-          deltaEThreshold = 10;
-        } else {
-          deltaEThreshold = 15;
-        }
-
-        // === КЛЮЧЕВАЯ ПРОВЕРКА 1: Hue angle (оттенок) ===
-        // Если оттенок отличается больше чем на 25° — это разные цвета
-        // Оранжевый Hue ≈ 50-60°, Бежевый Hue ≈ 70-90°
-        const hue1 = Math.atan2(lab1.b, lab1.a) * 180 / Math.PI;
-        const hue2 = Math.atan2(lab2.b, lab2.a) * 180 / Math.PI;
-        let hueDiff = Math.abs(hue1 - hue2);
-        if (hueDiff > 180) hueDiff = 360 - hueDiff; // Учитываем цикличность
-
-        // Для насыщенных цветов — строгая проверка Hue
-        if (chroma1 > 30 && chroma2 > 15 && hueDiff > 25) {
-          return { match: false, score: Infinity };
-        }
-
-        // === КЛЮЧЕВАЯ ПРОВЕРКА 2: относительная разница в Chroma ===
-        // Если Chroma отличается больше чем на 30% — это разные "типы" цвета
-        const maxChroma = Math.max(chroma1, chroma2);
-        const chromaRatio = Math.abs(chroma1 - chroma2) / maxChroma;
-        if (chromaRatio > 0.3) {
-          return { match: false, score: Infinity };
-        }
-
-        // Насыщенный цвет НЕ матчится с очень приглушённым
-        if (chroma1 > CHROMA_SATURATED && chroma2 < CHROMA_MUTED * 0.5) {
-          return { match: false, score: Infinity };
-        }
-
-        // Приглушённый не матчится с очень насыщенным
-        if (chroma1 < CHROMA_MUTED * 0.7 && chroma2 > CHROMA_SATURATED * 1.5) {
-          return { match: false, score: Infinity };
-        }
-
-        // Вычисляем CIEDE2000
-        const dE = deltaE2000(lab1, lab2);
-
-        if (dE > deltaEThreshold) {
-          return { match: false, score: Infinity };
-        }
-
-        // Score: Delta E + штраф за разницу в Chroma и L
-        const chromaDiff = Math.abs(chroma1 - chroma2);
-        const score = dE + chromaDiff * 0.1 + lDiff * 0.05;
-
-        return { match: true, score };
+        const hue = Math.atan2(lab.b, lab.a) * 180 / Math.PI;
+        // Диапазон hue: ±30° для хроматических цветов
+        return { hueCenter: hue, hueRange: 30, isAchromatic: false };
       }
 
-      /**
-       * Находит лучшее совпадение для искомого цвета среди палитры картинки
-       * Учитывает позицию цвета (первые цвета = доминантные = важнее)
-       */
-      function findBestMatch(searchHex: string, imageColors: string[]): { match: boolean; score: number } {
-        let bestScore = Infinity;
-        let hasMatch = false;
+      // Проверяет, принадлежит ли цвет изображения к семейству искомого
+      function matchesHueFamily(
+        imgHex: string,
+        family: { hueCenter: number; hueRange: number; isAchromatic: boolean },
+        searchLab: { L: number; a: number; b: number }
+      ): { match: boolean; score: number } {
+        const lab = hexToLab(imgHex);
+        if (!lab) return { match: false, score: Infinity };
 
-        for (let i = 0; i < imageColors.length; i++) {
-          const result = compareColors(searchHex, imageColors[i]);
-          if (result.match) {
-            // Бонус для доминантных цветов (первые в палитре)
-            // Позиция 0 = бонус 0, позиция 4 = штраф 2
-            const positionPenalty = i * 0.5;
-            const adjustedScore = result.score + positionPenalty;
+        const chroma = labChroma(lab);
 
-            if (adjustedScore < bestScore) {
-              bestScore = adjustedScore;
-              hasMatch = true;
-            }
-          }
+        if (family.isAchromatic) {
+          // Ахроматический поиск: ищем серые/чёрные/белые
+          // Цвет изображения должен быть тоже малохроматичным
+          if (chroma > 25) return { match: false, score: Infinity };
+          // Score по близости яркости
+          const lDiff = Math.abs(lab.L - searchLab.L);
+          if (lDiff > 40) return { match: false, score: Infinity };
+          return { match: true, score: lDiff };
         }
 
-        return { match: hasMatch, score: bestScore };
+        // Хроматический поиск: проверяем hue-семейство
+        // Цвет изображения должен быть достаточно хроматичным (не серый)
+        if (chroma < 12) return { match: false, score: Infinity };
+
+        const hue = Math.atan2(lab.b, lab.a) * 180 / Math.PI;
+        let hueDiff = Math.abs(hue - family.hueCenter);
+        if (hueDiff > 180) hueDiff = 360 - hueDiff;
+
+        if (hueDiff > family.hueRange) return { match: false, score: Infinity };
+
+        // Score: hueDiff (главный) + штраф за низкую насыщенность
+        const chromaPenalty = chroma < 15 ? (15 - chroma) * 0.5 : 0;
+        return { match: true, score: hueDiff + chromaPenalty };
       }
 
-      // Фильтруем и считаем score для каждой картинки
-      // Score учитывает вес цвета — больший вес = лучший результат
       const scoredImages: { img: ImageRow; score: number }[] = [];
 
       for (const img of resultImages) {
@@ -643,20 +608,25 @@ export async function GET(req: NextRequest) {
         const imgWeights = img.color_weights || [];
         if (imgColors.length === 0) continue;
 
-        // Для каждого искомого цвета — проверяем есть ли похожий в картинке
         let allColorsMatch = true;
         let totalScore = 0;
         let totalWeight = 0;
 
         for (const searchHex of searchHexColors) {
-          // Найти индекс совпадающего цвета для получения веса
+          const family = getHueFamily(searchHex);
+          const searchLab = hexToLab(searchHex);
+          if (!family || !searchLab) { allColorsMatch = false; break; }
+
+          let bestScore = Infinity;
           let bestMatchIndex = -1;
-          let bestMatchScore = Infinity;
 
           for (let i = 0; i < imgColors.length; i++) {
-            const result = compareColors(searchHex, imgColors[i]);
-            if (result.match && result.score < bestMatchScore) {
-              bestMatchScore = result.score;
+            const result = matchesHueFamily(imgColors[i], family, searchLab);
+            if (!result.match) continue;
+
+            const score = result.score + i * 0.5; // штраф за позицию
+            if (score < bestScore) {
+              bestScore = score;
               bestMatchIndex = i;
             }
           }
@@ -666,29 +636,21 @@ export async function GET(req: NextRequest) {
             break;
           }
 
-          // Вес цвета (если есть) или fallback по позиции
           const weight = imgWeights[bestMatchIndex] ?? (100 - bestMatchIndex * 20);
           totalWeight += weight;
-          totalScore += bestMatchScore;
+          totalScore += bestScore;
         }
 
         if (allColorsMatch) {
-          // Совмещаем deltaE score и вес (weight) для финального скора
-          // Высокий вес = низкий score (лучше)
-          const avgDeltaE = totalScore / searchHexColors.length;
+          const avgScore = totalScore / searchHexColors.length;
           const avgWeight = totalWeight / searchHexColors.length;
-          // Инвертируем вес: 100 → 0, 0 → 100
           const weightScore = 100 - avgWeight;
-          // Финальный скор: вес важнее чем deltaE
-          const finalScore = weightScore * 2 + avgDeltaE;
+          const finalScore = weightScore * 2 + avgScore;
           scoredImages.push({ img, score: finalScore });
         }
       }
 
-      // Сортируем по близости (лучшие совпадения первыми)
       scoredImages.sort((a, b) => a.score - b.score);
-
-      // Берём топ-50 результатов
       resultImages = scoredImages.slice(0, 50).map((s) => s.img);
     }
 
