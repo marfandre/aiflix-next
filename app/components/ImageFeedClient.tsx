@@ -253,6 +253,8 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
           userId={userId}
           publicImageUrl={publicImageUrl}
           onClose={closeModal}
+          images={images}
+          onNavigate={openImage}
         />
       )}
     </>

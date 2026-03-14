@@ -15,10 +15,13 @@ type Props = {
   userId: string | null;
   publicImageUrl: (path: string) => string;
   onClose: () => void;
+  images?: ImageRow[];
+  onNavigate?: (image: ImageRow) => void;
 };
 
 export default function ImageModal({
   selected, variants, variantsLoading, tagsMap, userId, publicImageUrl, onClose,
+  images, onNavigate,
 }: Props) {
   const [slideIndex, setSlideIndex] = useState(0);
   const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
@@ -35,6 +38,11 @@ export default function ImageModal({
   const touchStartY = useRef<number | null>(null);
   const touchCurrentY = useRef<number | null>(null);
   const [sheetDragOffset, setSheetDragOffset] = useState(0);
+
+  // Horizontal swipe for image navigation
+  const imgTouchStartX = useRef<number | null>(null);
+  const imgTouchStartY = useRef<number | null>(null);
+  const imgSwiping = useRef(false);
 
   const currentVariant: ImageVariant | null =
     variants.length ? variants[slideIndex] ?? variants[0] : null;
@@ -88,7 +96,54 @@ export default function ImageModal({
   const nick: string = profile?.username ?? "user";
   const avatar: string | null = profile?.avatar_url ?? null;
 
-  // --- Mobile swipe handlers ---
+  // --- Navigate to prev/next image ---
+  const currentIndex = images ? images.findIndex(im => im.id === selected.id) : -1;
+  const hasPrev = currentIndex > 0;
+  const hasNext = images ? currentIndex < images.length - 1 : false;
+
+  const goToImage = useCallback((direction: 'prev' | 'next') => {
+    if (!images || !onNavigate) return;
+    const idx = images.findIndex(im => im.id === selected.id);
+    const targetIdx = direction === 'prev' ? idx - 1 : idx + 1;
+    if (targetIdx >= 0 && targetIdx < images.length) {
+      setSheetExpanded(false);
+      setModalHoveredColor(null);
+      onNavigate(images[targetIdx]);
+    }
+  }, [images, onNavigate, selected.id]);
+
+  // --- Image horizontal swipe handlers ---
+  const handleImgTouchStart = useCallback((e: React.TouchEvent) => {
+    imgTouchStartX.current = e.touches[0].clientX;
+    imgTouchStartY.current = e.touches[0].clientY;
+    imgSwiping.current = false;
+  }, []);
+
+  const handleImgTouchMove = useCallback((e: React.TouchEvent) => {
+    if (imgTouchStartX.current === null || imgTouchStartY.current === null) return;
+    const dx = Math.abs(e.touches[0].clientX - imgTouchStartX.current);
+    const dy = Math.abs(e.touches[0].clientY - imgTouchStartY.current);
+    // If horizontal movement is dominant, mark as swiping
+    if (dx > dy && dx > 10) imgSwiping.current = true;
+  }, []);
+
+  const handleImgTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (imgTouchStartX.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const deltaX = imgTouchStartX.current - endX;
+    const threshold = 60;
+
+    if (imgSwiping.current) {
+      if (deltaX > threshold) goToImage('next');
+      else if (deltaX < -threshold) goToImage('prev');
+    }
+
+    imgTouchStartX.current = null;
+    imgTouchStartY.current = null;
+    imgSwiping.current = false;
+  }, [goToImage]);
+
+  // --- Bottom sheet swipe handlers ---
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchCurrentY.current = e.touches[0].clientY;
@@ -167,7 +222,12 @@ export default function ImageModal({
         </div>
 
         {/* Image area — takes remaining space */}
-        <div className={`relative flex items-center justify-center flex-1 transition-all duration-300 ${sheetExpanded ? 'pb-0' : 'pb-0'}`}>
+        <div
+          className="relative flex items-center justify-center flex-1 min-h-0"
+          onTouchStart={handleImgTouchStart}
+          onTouchMove={handleImgTouchMove}
+          onTouchEnd={handleImgTouchEnd}
+        >
           {currentVariant ? (
             <>
               <div className="relative inline-flex w-full h-full items-center justify-center">
@@ -227,9 +287,9 @@ export default function ImageModal({
         {/* Bottom sheet */}
         <div
           ref={sheetRef}
-          className="relative bg-neutral-900 rounded-t-2xl transition-all duration-300 ease-out flex-shrink-0 flex flex-col"
+          className="relative bg-neutral-900 rounded-t-2xl transition-[max-height] duration-300 ease-out flex-shrink-0 flex flex-col overflow-hidden"
           style={{
-            maxHeight: sheetExpanded ? '70vh' : '120px',
+            maxHeight: sheetExpanded ? '70vh' : '110px',
             transform: sheetDragOffset !== 0
               ? `translateY(${sheetExpanded ? Math.max(0, -sheetDragOffset) : Math.max(0, -sheetDragOffset * 0.3)}px)`
               : undefined,
@@ -302,8 +362,9 @@ export default function ImageModal({
           </div>
 
           {/* Expanded content */}
-          <div className={`transition-all duration-300 ${sheetExpanded ? 'flex-1 overflow-y-auto opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-            <div className="px-4 pb-6 flex flex-col gap-4">
+          {sheetExpanded && (
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+            <div className="px-4 pb-8 flex flex-col gap-4">
               {/* Separator */}
               <hr className="border-white/10" />
 
@@ -417,6 +478,7 @@ export default function ImageModal({
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
 
