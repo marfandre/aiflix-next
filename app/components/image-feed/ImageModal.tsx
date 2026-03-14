@@ -287,7 +287,7 @@ export default function ImageModal({
         {/* Bottom sheet */}
         <div
           ref={sheetRef}
-          className="relative bg-neutral-900 rounded-t-2xl transition-[max-height] duration-300 ease-out flex-shrink-0 flex flex-col overflow-hidden"
+          className="relative bg-neutral-900/80 backdrop-blur-xl rounded-t-2xl transition-[max-height] duration-300 ease-out flex-shrink-0 flex flex-col overflow-hidden"
           style={{
             maxHeight: sheetExpanded ? '70vh' : '110px',
             transform: sheetDragOffset !== 0
