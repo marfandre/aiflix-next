@@ -384,7 +384,7 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
         </button>
 
         {/* Video area — plain <video> with hls.js source setup, no overlay divs */}
-        <div className="relative flex items-center justify-center flex-1 min-h-0 px-3">
+        <div className={`relative flex items-center justify-center flex-1 min-h-0 px-3 overflow-hidden transition-[border-radius] duration-300 ${sheetExpanded ? "" : "rounded-2xl"}`}>
           {selected.playback_id ? (
             <MobileVideo
               playbackId={selected.playback_id}
