@@ -256,6 +256,7 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
             <div className="w-full h-full flex items-center justify-center">
               <CustomVideoPlayer
                 src={`https://stream.mux.com/${selected.playback_id}/low.mp4`}
+                hlsSrc={`https://stream.mux.com/${selected.playback_id}.m3u8`}
                 poster={muxPoster(selected.playback_id)}
                 colors={selected.colors ?? undefined}
                 colorInterval={1}

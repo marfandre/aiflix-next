@@ -95,6 +95,31 @@ export default function CustomVideoPlayer({
         }
     }, [videoEl]);
 
+    // ----- HLS.js for non-Safari browsers -----
+    useEffect(() => {
+        const v = videoEl.current;
+        if (!v || !hlsSrc) return;
+
+        // Safari supports HLS natively via <source>
+        if (v.canPlayType('application/vnd.apple.mpegURL')) return;
+
+        let hls: any;
+        const init = async () => {
+            const Hls = (await import('hls.js')).default;
+            if (Hls.isSupported()) {
+                hls = new Hls({ maxBufferLength: 30 });
+                hls.loadSource(hlsSrc);
+                hls.attachMedia(v);
+            }
+            // else fallback to mp4 <source> already in DOM
+        };
+        init();
+
+        return () => {
+            try { if (hls?.destroy) hls.destroy(); } catch {}
+        };
+    }, [videoEl, hlsSrc]);
+
     // ----- Smart autoplay with sound -----
     useEffect(() => {
         const v = videoEl.current;
@@ -111,7 +136,7 @@ export default function CustomVideoPlayer({
             }
         };
 
-        const timer = setTimeout(tryPlay, 100);
+        const timer = setTimeout(tryPlay, 300);
         return () => clearTimeout(timer);
     }, [videoEl]);
 
