@@ -39,10 +39,11 @@ export default function ImageModal({
   const touchCurrentY = useRef<number | null>(null);
   const [sheetDragOffset, setSheetDragOffset] = useState(0);
 
-  // Horizontal swipe for image navigation
-  const imgTouchStartX = useRef<number | null>(null);
-  const imgTouchStartY = useRef<number | null>(null);
-  const imgSwiping = useRef(false);
+  // Swipe gestures (horizontal = navigate, vertical down = close)
+  const [swipeOffset, setSwipeOffset] = useState({ x: 0, y: 0 });
+  const [swipeClosing, setSwipeClosing] = useState(false);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const swipeDir = useRef<"horizontal" | "vertical" | null>(null);
 
   const currentVariant: ImageVariant | null =
     variants.length ? variants[slideIndex] ?? variants[0] : null;
@@ -112,36 +113,58 @@ export default function ImageModal({
     }
   }, [images, onNavigate, selected.id]);
 
-  // --- Image horizontal swipe handlers ---
+  // --- Image swipe handlers (with visual feedback + swipe-down-to-close) ---
   const handleImgTouchStart = useCallback((e: React.TouchEvent) => {
-    imgTouchStartX.current = e.touches[0].clientX;
-    imgTouchStartY.current = e.touches[0].clientY;
-    imgSwiping.current = false;
+    const t = e.touches[0];
+    swipeStart.current = { x: t.clientX, y: t.clientY };
+    swipeDir.current = null;
+    setSwipeOffset({ x: 0, y: 0 });
   }, []);
 
   const handleImgTouchMove = useCallback((e: React.TouchEvent) => {
-    if (imgTouchStartX.current === null || imgTouchStartY.current === null) return;
-    const dx = Math.abs(e.touches[0].clientX - imgTouchStartX.current);
-    const dy = Math.abs(e.touches[0].clientY - imgTouchStartY.current);
-    // If horizontal movement is dominant, mark as swiping
-    if (dx > dy && dx > 10) imgSwiping.current = true;
-  }, []);
+    if (!swipeStart.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - swipeStart.current.x;
+    const dy = t.clientY - swipeStart.current.y;
 
-  const handleImgTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (imgTouchStartX.current === null) return;
-    const endX = e.changedTouches[0].clientX;
-    const deltaX = imgTouchStartX.current - endX;
-    const threshold = 60;
-
-    if (imgSwiping.current) {
-      if (deltaX > threshold) goToImage('next');
-      else if (deltaX < -threshold) goToImage('prev');
+    // Lock direction after 10px movement
+    if (!swipeDir.current) {
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        swipeDir.current = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+      } else {
+        return;
+      }
     }
 
-    imgTouchStartX.current = null;
-    imgTouchStartY.current = null;
-    imgSwiping.current = false;
-  }, [goToImage]);
+    if (swipeDir.current === "horizontal") {
+      const resist = (dx > 0 && !hasPrev) || (dx < 0 && !hasNext) ? 0.3 : 1;
+      setSwipeOffset({ x: dx * resist, y: 0 });
+    } else {
+      // Only swipe down
+      setSwipeOffset({ x: 0, y: Math.max(0, dy) });
+    }
+  }, [hasPrev, hasNext]);
+
+  const handleImgTouchEnd = useCallback(() => {
+    if (!swipeStart.current) return;
+    const { x: ox, y: oy } = swipeOffset;
+    const threshold = 80;
+
+    if (swipeDir.current === "horizontal") {
+      if (ox < -threshold && hasNext) goToImage('next');
+      else if (ox > threshold && hasPrev) goToImage('prev');
+    } else if (swipeDir.current === "vertical") {
+      if (oy > threshold) {
+        setSwipeClosing(true);
+        setTimeout(onClose, 200);
+        return;
+      }
+    }
+
+    swipeStart.current = null;
+    swipeDir.current = null;
+    setSwipeOffset({ x: 0, y: 0 });
+  }, [swipeOffset, hasPrev, hasNext, goToImage, onClose]);
 
   // --- Bottom sheet swipe handlers ---
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -236,7 +259,23 @@ export default function ImageModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
 
       {/* ==================== MOBILE VERSION ==================== */}
-      <div className="sm:hidden fixed inset-0 z-50 flex flex-col bg-black" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="sm:hidden fixed inset-0 z-50 flex flex-col bg-black"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          transform: swipeClosing
+            ? "translateY(100%)"
+            : swipeOffset.y > 0
+              ? `translateY(${swipeOffset.y}px)`
+              : undefined,
+          opacity: swipeOffset.y > 0 ? Math.max(0.3, 1 - swipeOffset.y / 400) : 1,
+          transition: swipeClosing
+            ? "transform 0.2s ease-out, opacity 0.2s ease-out"
+            : swipeDir.current === "vertical"
+              ? "none"
+              : "transform 0.3s ease-out, opacity 0.3s ease-out",
+        }}
+      >
         {/* Close button */}
         <button
           type="button"
@@ -255,6 +294,11 @@ export default function ImageModal({
           onTouchStart={handleImgTouchStart}
           onTouchMove={handleImgTouchMove}
           onTouchEnd={handleImgTouchEnd}
+          style={{
+            transform: swipeOffset.x !== 0 ? `translateX(${swipeOffset.x}px)` : undefined,
+            opacity: swipeOffset.x !== 0 ? Math.max(0.5, 1 - Math.abs(swipeOffset.x) / 400) : 1,
+            transition: swipeDir.current === "horizontal" ? "none" : "transform 0.3s ease-out, opacity 0.3s ease-out",
+          }}
         >
           {currentVariant ? (
             <>
