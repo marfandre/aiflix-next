@@ -15,12 +15,13 @@ type Props = {
 
 /** Plain <video> with hls.js source — no overlay divs, works on Android */
 function MobileVideo({
-  playbackId, poster, onPlayChange, onLoadedMetadata,
+  playbackId, poster, onPlayChange, onLoadedMetadata, rounded = true,
 }: {
   playbackId: string;
   poster: string;
   onPlayChange: (playing: boolean) => void;
   onLoadedMetadata: () => void;
+  rounded?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +118,7 @@ function MobileVideo({
         loop
         playsInline
         preload="metadata"
-        className="w-full h-full rounded-2xl"
+        className={`w-full h-full transition-[border-radius] duration-300 ${rounded ? "rounded-2xl" : ""}`}
         style={{ objectFit: "contain" }}
         onClick={togglePlay}
         onPlay={() => onPlayChange(true)}
@@ -390,6 +391,7 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
               poster={muxPoster(selected.playback_id)}
               onPlayChange={setModalPlaying}
               onLoadedMetadata={handleVideoMetadata}
+              rounded={!sheetExpanded}
             />
           ) : (
             <div className="flex items-center justify-center text-center text-gray-400 p-8">
