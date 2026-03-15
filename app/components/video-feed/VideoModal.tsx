@@ -118,11 +118,10 @@ function MobileVideo({
         loop
         playsInline
         preload="metadata"
-        className="max-w-full max-h-full"
+        className="w-full h-full"
         style={{
           objectFit: "contain",
           borderRadius: rounded ? 16 : 0,
-          overflow: "hidden",
           transition: "border-radius 0.3s",
         }}
         onClick={togglePlay}
@@ -395,7 +394,7 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
               playbackId={selected.playback_id}
               poster={muxPoster(selected.playback_id)}
               onPlayChange={setModalPlaying}
-              onLoadedMetadata={handleVideoMetadata}
+              onLoadedMetadata={() => {}}
               rounded={!sheetExpanded}
             />
           ) : (
