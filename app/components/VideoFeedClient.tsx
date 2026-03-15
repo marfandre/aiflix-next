@@ -163,8 +163,13 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
       {selected && (
         <VideoModal
           selected={selected}
+          videos={videos}
           userId={userId}
           onClose={closeModal}
+          onNavigate={(v) => {
+            setSelected(v);
+            window.history.replaceState({ videoId: v.id }, "", `/film/${v.id}`);
+          }}
         />
       )}
     </>

@@ -9,8 +9,10 @@ import type { VideoRow } from "./types";
 
 type Props = {
   selected: VideoRow;
+  videos?: VideoRow[];
   userId: string | null;
   onClose: () => void;
+  onNavigate?: (video: VideoRow) => void;
 };
 
 /** Plain <video> with hls.js source — no overlay divs, works on Android */
@@ -150,7 +152,7 @@ function MobileVideo({
   );
 }
 
-export default function VideoModal({ selected, userId, onClose }: Props) {
+export default function VideoModal({ selected, videos, userId, onClose, onNavigate }: Props) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [copied, setCopied] = useState(false);
   const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
@@ -173,6 +175,73 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
   // Mobile timeline refs
   const mobTimelineRef = useRef<HTMLDivElement | null>(null);
   const mobFillRef = useRef<HTMLDivElement | null>(null);
+
+  // --- Mobile video swipe gestures (left/right = navigate, down = close) ---
+  const [swipeOffset, setSwipeOffset] = useState({ x: 0, y: 0 });
+  const [swipeClosing, setSwipeClosing] = useState(false);
+  const videoSwipeStart = useRef<{ x: number; y: number; time: number } | null>(null);
+  const videoSwipeDir = useRef<"horizontal" | "vertical" | null>(null);
+
+  const currentIndex = videos ? videos.findIndex(v => v.id === selected.id) : -1;
+  const hasPrev = currentIndex > 0;
+  const hasNext = videos ? currentIndex < videos.length - 1 : false;
+
+  const handleVideoTouchStart = useCallback((e: React.TouchEvent) => {
+    // Don't interfere with bottom sheet touches
+    const t = e.touches[0];
+    videoSwipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+    videoSwipeDir.current = null;
+    setSwipeOffset({ x: 0, y: 0 });
+  }, []);
+
+  const handleVideoTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!videoSwipeStart.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - videoSwipeStart.current.x;
+    const dy = t.clientY - videoSwipeStart.current.y;
+
+    // Lock direction after 10px movement
+    if (!videoSwipeDir.current) {
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        videoSwipeDir.current = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+      } else {
+        return;
+      }
+    }
+
+    if (videoSwipeDir.current === "horizontal") {
+      // Resist if no video in that direction
+      const resist = (dx > 0 && !hasPrev) || (dx < 0 && !hasNext) ? 0.3 : 1;
+      setSwipeOffset({ x: dx * resist, y: 0 });
+    } else {
+      // Only allow swipe down (dy > 0)
+      setSwipeOffset({ x: 0, y: Math.max(0, dy) });
+    }
+  }, [hasPrev, hasNext]);
+
+  const handleVideoTouchEnd = useCallback(() => {
+    if (!videoSwipeStart.current) return;
+    const { x: ox, y: oy } = swipeOffset;
+    const threshold = 80;
+
+    if (videoSwipeDir.current === "horizontal") {
+      if (ox < -threshold && hasNext && videos && onNavigate) {
+        onNavigate(videos[currentIndex + 1]);
+      } else if (ox > threshold && hasPrev && videos && onNavigate) {
+        onNavigate(videos[currentIndex - 1]);
+      }
+    } else if (videoSwipeDir.current === "vertical") {
+      if (oy > threshold) {
+        setSwipeClosing(true);
+        setTimeout(onClose, 200);
+        return;
+      }
+    }
+
+    videoSwipeStart.current = null;
+    videoSwipeDir.current = null;
+    setSwipeOffset({ x: 0, y: 0 });
+  }, [swipeOffset, hasPrev, hasNext, videos, currentIndex, onNavigate, onClose]);
 
   // Mouse idle detection (desktop)
   const [mouseIdle, setMouseIdle] = useState(false);
@@ -375,7 +444,23 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
 
       {/* ==================== MOBILE VERSION ==================== */}
-      <div className="sm:hidden fixed inset-0 z-50 flex flex-col bg-black" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="sm:hidden fixed inset-0 z-50 flex flex-col bg-black"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          transform: swipeClosing
+            ? "translateY(100%)"
+            : swipeOffset.y > 0
+              ? `translateY(${swipeOffset.y}px)`
+              : undefined,
+          opacity: swipeOffset.y > 0 ? Math.max(0.3, 1 - swipeOffset.y / 400) : 1,
+          transition: swipeClosing
+            ? "transform 0.2s ease-out, opacity 0.2s ease-out"
+            : videoSwipeDir.current === "vertical"
+              ? "none"
+              : "transform 0.3s ease-out, opacity 0.3s ease-out",
+        }}
+      >
         {/* Close button */}
         <button
           type="button"
@@ -387,8 +472,18 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
           </svg>
         </button>
 
-        {/* Video area — plain <video> with hls.js source setup, no overlay divs */}
-        <div className="relative flex items-center justify-center flex-1 min-h-0 px-3">
+        {/* Video area with swipe gestures */}
+        <div
+          className="relative flex items-center justify-center flex-1 min-h-0 px-3"
+          onTouchStart={handleVideoTouchStart}
+          onTouchMove={handleVideoTouchMove}
+          onTouchEnd={handleVideoTouchEnd}
+          style={{
+            transform: swipeOffset.x !== 0 ? `translateX(${swipeOffset.x}px)` : undefined,
+            opacity: swipeOffset.x !== 0 ? Math.max(0.5, 1 - Math.abs(swipeOffset.x) / 400) : 1,
+            transition: videoSwipeDir.current === "horizontal" ? "none" : "transform 0.3s ease-out, opacity 0.3s ease-out",
+          }}
+        >
           {selected.playback_id ? (
             <MobileVideo
               playbackId={selected.playback_id}
