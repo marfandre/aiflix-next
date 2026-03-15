@@ -115,6 +115,25 @@ const COLOR_SHADES: Record<string, string[]> = {
 };
 
 type ColorPickerMode = 'palette' | 'wheel';
+type ColorMapView = 'spectrum' | 'heatmap' | 'bubbles';
+type ColorMapEntry = { hex: string; count: number; h: number; s: number; l: number };
+
+function hexToHslMap(hex: string): { h: number; s: number; l: number } {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return { h: h * 360, s, l };
+}
 
 // Функция маппинга произвольного HEX → ближайший bucket
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -200,6 +219,12 @@ export default function SearchButton() {
 
   // Простой режим: массив выбранных цветов (hex-коды)
   const [simpleSelectedColors, setSimpleSelectedColors] = useState<string[]>([]);
+
+  // Цветовая карта
+  const [colorMapView, setColorMapView] = useState<ColorMapView>('spectrum');
+  const [colorMapData, setColorMapData] = useState<ColorMapEntry[]>([]);
+  const [colorMapLoading, setColorMapLoading] = useState(false);
+  const [colorMapLoaded, setColorMapLoaded] = useState(false);
 
 
   // Модели
@@ -790,13 +815,53 @@ export default function SearchButton() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setColorPickerMode('wheel')}
+                          onClick={() => {
+                            setColorPickerMode('wheel');
+                            if (!colorMapLoaded) {
+                              setColorMapLoading(true);
+                              (async () => {
+                                try {
+                                  let allRows: { colors: string[] | null }[] = [];
+                                  let from = 0;
+                                  const pageSize = 1000;
+                                  while (true) {
+                                    const { data, error } = await supa
+                                      .from('images_meta')
+                                      .select('colors')
+                                      .not('colors', 'is', null)
+                                      .range(from, from + pageSize - 1);
+                                    if (error || !data || data.length === 0) break;
+                                    allRows = allRows.concat(data);
+                                    if (data.length < pageSize) break;
+                                    from += pageSize;
+                                  }
+                                  const counts: Record<string, number> = {};
+                                  for (const row of allRows) {
+                                    for (const hex of (row.colors ?? [])) {
+                                      if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) continue;
+                                      const n = hex.toUpperCase();
+                                      counts[n] = (counts[n] || 0) + 1;
+                                    }
+                                  }
+                                  const entries: ColorMapEntry[] = Object.entries(counts)
+                                    .map(([hex, count]) => {
+                                      const hsl = hexToHslMap(hex);
+                                      return { hex, count, h: Math.round(hsl.h), s: Math.round(hsl.s * 100), l: Math.round(hsl.l * 100) };
+                                    })
+                                    .sort((a, b) => a.h - b.h || b.count - a.count);
+                                  setColorMapData(entries);
+                                  setColorMapLoaded(true);
+                                } catch {}
+                                setColorMapLoading(false);
+                              })();
+                            }
+                          }}
                           className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${colorPickerMode === 'wheel'
                             ? 'bg-gray-900 text-white'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                         >
-                          Точный цвет
+                          Цветовая карта
                         </button>
                       </div>
 
@@ -877,36 +942,339 @@ export default function SearchButton() {
                         </div>
                       )}
 
-                      {/* Color Picker */}
+                      {/* Цветовая карта */}
                       {colorPickerMode === 'wheel' && (
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="color"
-                              value={pickerPreviewColor}
-                              className="h-12 w-12 cursor-pointer rounded-lg border-2 border-gray-200 bg-white"
-                              onChange={(e) => setPickerPreviewColor(e.target.value.toUpperCase())}
-                              title="Выберите цвет"
-                            />
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[11px] text-gray-600 font-mono">{pickerPreviewColor}</span>
+                        <div className="flex flex-col gap-3">
+                          {/* Переключатель вариантов */}
+                          <div className="flex justify-center gap-1.5">
+                            {([
+                              ['spectrum', 'Спектр'],
+                              ['heatmap', 'Тепловая'],
+                              ['bubbles', 'Пузырьки'],
+                            ] as [ColorMapView, string][]).map(([key, label]) => (
                               <button
+                                key={key}
                                 type="button"
-                                onClick={() => {
-                                  if (!simpleSelectedColors.includes(pickerPreviewColor) && simpleSelectedColors.length < 5) {
-                                    handleSimpleColorClick(pickerPreviewColor);
-                                  }
-                                }}
-                                disabled={simpleSelectedColors.includes(pickerPreviewColor) || simpleSelectedColors.length >= 5}
-                                className="rounded bg-gray-900 px-3 py-1 text-[11px] text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                onClick={() => setColorMapView(key)}
+                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium transition ${
+                                  colorMapView === key
+                                    ? 'bg-gray-800 text-white'
+                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                }`}
                               >
-                                Добавить
+                                {label}
                               </button>
-                            </div>
+                            ))}
                           </div>
-                          <p className="mt-2 text-center text-[10px] text-gray-400">
-                            Выберите цвет, затем нажмите «Добавить»
-                          </p>
+
+                          {colorMapLoading && (
+                            <div className="flex justify-center py-6">
+                              <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
+                            </div>
+                          )}
+
+                          {!colorMapLoading && colorMapData.length === 0 && colorMapLoaded && (
+                            <p className="text-center text-xs text-gray-400 py-4">Нет данных о цветах</p>
+                          )}
+
+                          {!colorMapLoading && colorMapData.length > 0 && (
+                            <>
+                              {/* === ВАРИАНТ 1: СПЕКТР (непрерывный) === */}
+                              {colorMapView === 'spectrum' && (() => {
+                                // Группируем цвета в 36 сегментов по 10° оттенка
+                                const SEGMENTS = 36;
+                                const segSize = 360 / SEGMENTS;
+                                const segments: { colors: ColorMapEntry[]; totalCount: number; avgHex: string }[] =
+                                  Array.from({ length: SEGMENTS }, () => ({ colors: [], totalCount: 0, avgHex: '' }));
+
+                                for (const c of colorMapData) {
+                                  const idx = Math.min(Math.floor(c.h / segSize), SEGMENTS - 1);
+                                  segments[idx].colors.push(c);
+                                  segments[idx].totalCount += c.count;
+                                }
+
+                                // Для каждого сегмента вычисляем взвешенный средний цвет
+                                for (const seg of segments) {
+                                  if (seg.colors.length === 0) continue;
+                                  let rSum = 0, gSum = 0, bSum = 0, wSum = 0;
+                                  for (const c of seg.colors) {
+                                    const rr = parseInt(c.hex.slice(1, 3), 16);
+                                    const gg = parseInt(c.hex.slice(3, 5), 16);
+                                    const bb = parseInt(c.hex.slice(5, 7), 16);
+                                    rSum += rr * c.count; gSum += gg * c.count; bSum += bb * c.count;
+                                    wSum += c.count;
+                                  }
+                                  const toH = (v: number) => Math.round(v / wSum).toString(16).padStart(2, '0');
+                                  seg.avgHex = `#${toH(rSum)}${toH(gSum)}${toH(bSum)}`;
+                                }
+
+                                // Заполняем пустые сегменты интерполяцией соседних
+                                const filled = segments.map(s => s.avgHex || '');
+                                for (let i = 0; i < SEGMENTS; i++) {
+                                  if (filled[i]) continue;
+                                  // Найти ближайший заполненный слева и справа
+                                  let left = -1, right = -1;
+                                  for (let d = 1; d < SEGMENTS; d++) {
+                                    if (left < 0 && filled[(i - d + SEGMENTS) % SEGMENTS]) left = (i - d + SEGMENTS) % SEGMENTS;
+                                    if (right < 0 && filled[(i + d) % SEGMENTS]) right = (i + d) % SEGMENTS;
+                                    if (left >= 0 && right >= 0) break;
+                                  }
+                                  if (left >= 0 && right >= 0) {
+                                    const lc = filled[left], rc = filled[right];
+                                    const dL = ((i - left) + SEGMENTS) % SEGMENTS;
+                                    const dR = ((right - i) + SEGMENTS) % SEGMENTS;
+                                    const t = dL / (dL + dR);
+                                    const lerp = (a: number, b: number) => Math.round(a + (b - a) * t);
+                                    const lr = parseInt(lc.slice(1, 3), 16), lg = parseInt(lc.slice(3, 5), 16), lb = parseInt(lc.slice(5, 7), 16);
+                                    const rr = parseInt(rc.slice(1, 3), 16), rg = parseInt(rc.slice(3, 5), 16), rb = parseInt(rc.slice(5, 7), 16);
+                                    filled[i] = `#${lerp(lr, rr).toString(16).padStart(2, '0')}${lerp(lg, rg).toString(16).padStart(2, '0')}${lerp(lb, rb).toString(16).padStart(2, '0')}`;
+                                  } else if (left >= 0) {
+                                    filled[i] = filled[left];
+                                  } else if (right >= 0) {
+                                    filled[i] = filled[right];
+                                  }
+                                }
+
+                                const maxCount = Math.max(...segments.map(s => s.totalCount), 1);
+                                const gradientStops = filled.map((hex, i) => `${hex || '#333'} ${(i / SEGMENTS) * 100}%`).join(', ');
+
+                                return (
+                                  <div className="flex flex-col gap-2">
+                                    {/* Непрерывная спектр-полоса из реальных цветов */}
+                                    <div
+                                      className="relative w-full rounded-xl overflow-hidden cursor-pointer"
+                                      style={{
+                                        background: `linear-gradient(to right, ${gradientStops})`,
+                                        height: 48,
+                                      }}
+                                    >
+                                      {/* Полупрозрачные столбики высоты = количество контента */}
+                                      <div className="absolute inset-0 flex">
+                                        {segments.map((seg, i) => (
+                                          <button
+                                            key={i}
+                                            type="button"
+                                            className="relative h-full hover:brightness-125 transition-all"
+                                            style={{
+                                              flex: 1,
+                                              background: seg.totalCount > 0
+                                                ? `linear-gradient(to top, ${seg.avgHex || filled[i]} ${Math.round((seg.totalCount / maxCount) * 100)}%, transparent ${Math.round((seg.totalCount / maxCount) * 100)}%)`
+                                                : 'transparent',
+                                              opacity: seg.totalCount > 0 ? 1 : 0.3,
+                                            }}
+                                            title={seg.totalCount > 0 ? `${seg.colors.length} цветов, ${seg.totalCount} изобр.` : 'Нет контента'}
+                                            onClick={() => {
+                                              // Берём самый популярный цвет в сегменте
+                                              const best = seg.colors.sort((a, b) => b.count - a.count)[0];
+                                              if (best && !simpleSelectedColors.includes(best.hex) && simpleSelectedColors.length < 5) {
+                                                handleSimpleColorClick(best.hex);
+                                              }
+                                            }}
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Вторая строка — развёрнутая полоса с плавным градиентом */}
+                                    <div
+                                      className="w-full rounded-lg overflow-hidden"
+                                      style={{
+                                        background: `linear-gradient(to right, ${gradientStops})`,
+                                        height: 18,
+                                      }}
+                                    />
+
+                                    {/* Интерактивные сегменты-кнопки под полосой */}
+                                    <div className="flex gap-[1px] w-full">
+                                      {segments.filter(s => s.totalCount > 0).map((seg, i) => {
+                                        const best = seg.colors.sort((a, b) => b.count - a.count)[0];
+                                        const h = 14 + (seg.totalCount / maxCount) * 22;
+                                        return (
+                                          <button
+                                            key={i}
+                                            type="button"
+                                            onClick={() => {
+                                              if (best && !simpleSelectedColors.includes(best.hex) && simpleSelectedColors.length < 5) {
+                                                handleSimpleColorClick(best.hex);
+                                              }
+                                            }}
+                                            className="rounded-sm transition-transform hover:scale-y-150 hover:z-10"
+                                            style={{
+                                              flex: seg.totalCount,
+                                              height: h,
+                                              backgroundColor: best?.hex || '#999',
+                                            }}
+                                            title={`${best?.hex} — ${seg.totalCount} изобр.`}
+                                          />
+                                        );
+                                      })}
+                                    </div>
+
+                                    <p className="text-center text-[10px] text-gray-400">
+                                      Высота = количество контента. Нажмите на участок, чтобы искать по цвету.
+                                    </p>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* === ВАРИАНТ 2: ТЕПЛОВАЯ КАРТА === */}
+                              {colorMapView === 'heatmap' && (() => {
+                                // Группируем по 12 секторам оттенка × 5 уровней светлоты
+                                const HUE_SEGMENTS = 12;
+                                const LIGHT_SEGMENTS = 5;
+                                const grid: { count: number; totalHex: string[]; dominantHex: string }[][] = Array.from(
+                                  { length: LIGHT_SEGMENTS },
+                                  () => Array.from({ length: HUE_SEGMENTS }, () => ({ count: 0, totalHex: [], dominantHex: '#000' }))
+                                );
+
+                                const maxCellCount = { value: 0 };
+
+                                for (const c of colorMapData) {
+                                  const hIdx = Math.min(Math.floor(c.h / (360 / HUE_SEGMENTS)), HUE_SEGMENTS - 1);
+                                  const lIdx = Math.min(Math.floor(c.l / (100 / LIGHT_SEGMENTS)), LIGHT_SEGMENTS - 1);
+                                  // Инвертируем: тёмные внизу, светлые вверху
+                                  const lRow = LIGHT_SEGMENTS - 1 - lIdx;
+                                  grid[lRow][hIdx].count += c.count;
+                                  grid[lRow][hIdx].totalHex.push(c.hex);
+                                  if (c.count > 0) {
+                                    // Доминантный = с наибольшим количеством
+                                    const existing = grid[lRow][hIdx];
+                                    if (!existing.dominantHex || existing.dominantHex === '#000') {
+                                      existing.dominantHex = c.hex;
+                                    }
+                                  }
+                                  if (grid[lRow][hIdx].count > maxCellCount.value) {
+                                    maxCellCount.value = grid[lRow][hIdx].count;
+                                  }
+                                }
+
+                                // Для каждой ячейки выберем наиболее частый цвет
+                                for (const row of grid) {
+                                  for (const cell of row) {
+                                    if (cell.totalHex.length > 0) {
+                                      // Берём медианный цвет из списка
+                                      cell.dominantHex = cell.totalHex[Math.floor(cell.totalHex.length / 2)];
+                                    }
+                                  }
+                                }
+
+                                const hueLabels = ['Кр', 'Ор', 'Жл', 'Зл', 'Зл', 'Бр', 'Гл', 'Сн', 'Ин', 'Фл', 'Рз', 'Рз'];
+
+                                return (
+                                  <div className="flex flex-col gap-1.5">
+                                    <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${HUE_SEGMENTS}, 1fr)` }}>
+                                      {grid.flat().map((cell, i) => {
+                                        const hIdx = i % HUE_SEGMENTS;
+                                        const intensity = maxCellCount.value > 0 ? cell.count / maxCellCount.value : 0;
+                                        return (
+                                          <button
+                                            key={i}
+                                            type="button"
+                                            onClick={() => {
+                                              if (cell.count > 0 && cell.dominantHex !== '#000' && !simpleSelectedColors.includes(cell.dominantHex) && simpleSelectedColors.length < 5) {
+                                                handleSimpleColorClick(cell.dominantHex);
+                                              }
+                                            }}
+                                            className="aspect-square rounded-sm transition-transform hover:scale-110 hover:z-10"
+                                            style={{
+                                              backgroundColor: cell.count > 0 ? cell.dominantHex : '#F3F4F6',
+                                              opacity: cell.count > 0 ? 0.3 + intensity * 0.7 : 0.3,
+                                              boxShadow: cell.count > 0 ? `inset 0 0 0 1px rgba(255,255,255,0.2)` : 'none',
+                                            }}
+                                            title={cell.count > 0 ? `${cell.dominantHex} — ${cell.count} изобр.` : hueLabels[hIdx]}
+                                          />
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="flex justify-between px-0.5">
+                                      {hueLabels.map((l, i) => (
+                                        <span key={i} className="text-[8px] text-gray-400">{l}</span>
+                                      ))}
+                                    </div>
+                                    <p className="text-center text-[10px] text-gray-400">
+                                      Яркость ячейки = количество контента. По горизонтали — оттенок, по вертикали — светлота.
+                                    </p>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* === ВАРИАНТ 3: ПУЗЫРЬКИ === */}
+                              {colorMapView === 'bubbles' && (() => {
+                                const maxCount = Math.max(...colorMapData.map(c => c.count));
+                                // Группируем по hue-секторам для кластеризации
+                                const HUE_GROUPS = [
+                                  { label: 'Красные', from: 345, to: 15 },
+                                  { label: 'Оранжевые', from: 15, to: 45 },
+                                  { label: 'Жёлтые', from: 45, to: 70 },
+                                  { label: 'Зелёные', from: 70, to: 160 },
+                                  { label: 'Бирюзовые', from: 160, to: 200 },
+                                  { label: 'Синие', from: 200, to: 260 },
+                                  { label: 'Фиолетовые', from: 260, to: 310 },
+                                  { label: 'Розовые', from: 310, to: 345 },
+                                ];
+
+                                const inRange = (h: number, from: number, to: number) => {
+                                  if (from > to) return h >= from || h < to; // wrap around (красные)
+                                  return h >= from && h < to;
+                                };
+
+                                // Группируем + берём топ-5 по каждой группе
+                                const groups = HUE_GROUPS.map(g => ({
+                                  label: g.label,
+                                  colors: colorMapData
+                                    .filter(c => inRange(c.h, g.from, g.to) && c.s > 10)
+                                    .sort((a, b) => b.count - a.count)
+                                    .slice(0, 6),
+                                })).filter(g => g.colors.length > 0);
+
+                                // Добавляем нейтральные (s <= 10)
+                                const neutrals = colorMapData
+                                  .filter(c => c.s <= 10)
+                                  .sort((a, b) => b.count - a.count)
+                                  .slice(0, 6);
+                                if (neutrals.length > 0) {
+                                  groups.push({ label: 'Нейтральные', colors: neutrals });
+                                }
+
+                                return (
+                                  <div className="flex flex-col gap-3">
+                                    {groups.map(g => (
+                                      <div key={g.label}>
+                                        <div className="mb-1 text-[10px] font-medium text-gray-500">{g.label}</div>
+                                        <div className="flex flex-wrap items-end gap-1.5">
+                                          {g.colors.map((c, i) => {
+                                            const size = 18 + (c.count / maxCount) * 30;
+                                            return (
+                                              <button
+                                                key={c.hex + i}
+                                                type="button"
+                                                onClick={() => {
+                                                  if (!simpleSelectedColors.includes(c.hex) && simpleSelectedColors.length < 5) {
+                                                    handleSimpleColorClick(c.hex);
+                                                  }
+                                                }}
+                                                className="rounded-full border border-white/50 transition-transform hover:scale-125 hover:z-10"
+                                                style={{
+                                                  backgroundColor: c.hex,
+                                                  width: size,
+                                                  height: size,
+                                                  boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                                                }}
+                                                title={`${c.hex} — ${c.count} изобр.`}
+                                              />
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    <p className="text-center text-[10px] text-gray-400">
+                                      Размер пузырька = популярность цвета. Нажмите для поиска.
+                                    </p>
+                                  </div>
+                                );
+                              })()}
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

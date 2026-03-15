@@ -34,7 +34,11 @@
       "Bash(npx next:*)",
       "Bash(node -e \"const Hls = require\\(''hls.js''\\); console.log\\(''hls.js version:'', Hls.version || ''loaded''\\); console.log\\(''isSupported:'', typeof Hls.isSupported === ''function'' ? ''yes'' : ''no''\\)\")",
       "Bash(ls -la /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/.env*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(curl -s http://localhost:3000/api/colors/map)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://tavfxeskxlqnfdzgfmnq.supabase.co/rest/v1/images_meta?select=colors&colors=not.is.null&limit=1\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhdmZ4ZXNreGxxbmZkemdmbW5xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTg1NDg1OSwiZXhwIjoyMDc1NDMwODU5fQ.EJcuobYzGF4TEwpQ2-ybyStlhzL7xb_W0YVfRw18jHI\")",
+      "Bash(node -e \"const {createClient}=require\\(''@supabase/supabase-js''\\); const s=createClient\\(''https://tavfxeskxlqnfdzgfmnq.supabase.co'',''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhdmZ4ZXNreGxxbmZkemdmbW5xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTg1NDg1OSwiZXhwIjoyMDc1NDMwODU5fQ.EJcuobYzGF4TEwpQ2-ybyStlhzL7xb_W0YVfRw18jHI''\\); s.from\\(''images_meta''\\).select\\(''colors''\\).not\\(''colors'',''is'',null\\).limit\\(2\\).then\\(r=>console.log\\(JSON.stringify\\(r.data?.[0]??r.error\\)\\)\\).catch\\(e=>console.log\\(''ERR:'',e.message\\)\\)\")",
+      "Bash(node -e \"fetch\\(''https://tavfxeskxlqnfdzgfmnq.supabase.co/rest/v1/images_meta?select=colors&colors=not.is.null&limit=1'',{headers:{''apikey'':''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhdmZ4ZXNreGxxbmZkemdmbW5xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTg1NDg1OSwiZXhwIjoyMDc1NDMwODU5fQ.EJcuobYzGF4TEwpQ2-ybyStlhzL7xb_W0YVfRw18jHI''}}\\).then\\(r=>r.json\\(\\)\\).then\\(d=>console.log\\(JSON.stringify\\(d\\).slice\\(0,200\\)\\)\\).catch\\(e=>console.log\\(''ERR:'',e.message,e.cause\\)\\)\")"
     ]
   }
 }
