@@ -13,6 +13,89 @@ type Props = {
   onClose: () => void;
 };
 
+/** Plain <video> with hls.js source — no overlay divs, works on Android */
+function MobileVideo({
+  playbackId, poster, videoRef, onPlayChange, onLoadedMetadata,
+}: {
+  playbackId: string;
+  poster: string;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  onPlayChange: (playing: boolean) => void;
+  onLoadedMetadata: () => void;
+}) {
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let hls: any;
+    const hlsUrl = `https://stream.mux.com/${playbackId}.m3u8`;
+    const mp4Url = `https://stream.mux.com/${playbackId}/low.mp4`;
+
+    const tryAutoplay = async () => {
+      try {
+        video.muted = true;
+        await video.play();
+      } catch { /* user will tap play */ }
+    };
+
+    const setup = async () => {
+      // Safari: native HLS
+      if (video.canPlayType('application/vnd.apple.mpegURL')) {
+        video.src = hlsUrl;
+        video.addEventListener('canplay', () => tryAutoplay(), { once: true });
+        return;
+      }
+
+      // Chrome/Firefox: hls.js
+      try {
+        const Hls = (await import('hls.js')).default;
+        if (Hls.isSupported()) {
+          hls = new Hls({ maxBufferLength: 30 });
+          hls.loadSource(hlsUrl);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => tryAutoplay());
+          hls.on(Hls.Events.ERROR, (_: any, data: any) => {
+            if (data.fatal) {
+              hls.destroy();
+              hls = null;
+              // fallback to mp4
+              video.src = mp4Url;
+              video.addEventListener('canplay', () => tryAutoplay(), { once: true });
+            }
+          });
+          return;
+        }
+      } catch { /* hls.js import failed */ }
+
+      // Last fallback: mp4
+      video.src = mp4Url;
+      video.addEventListener('canplay', () => tryAutoplay(), { once: true });
+    };
+
+    setup();
+
+    return () => {
+      try { if (hls?.destroy) hls.destroy(); } catch {}
+    };
+  }, [playbackId, videoRef]);
+
+  return (
+    <video
+      ref={videoRef as React.RefObject<HTMLVideoElement>}
+      poster={poster}
+      loop
+      playsInline
+      controls
+      preload="metadata"
+      className="max-w-full max-h-full rounded-2xl"
+      style={{ objectFit: "contain" }}
+      onPlay={() => onPlayChange(true)}
+      onPause={() => onPlayChange(false)}
+      onLoadedMetadata={onLoadedMetadata}
+    />
+  );
+}
+
 export default function VideoModal({ selected, userId, onClose }: Props) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -250,22 +333,14 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
           </svg>
         </button>
 
-        {/* Video area — simple <video> for mobile, no overlay divs */}
+        {/* Video area — plain <video> with hls.js source setup, no overlay divs */}
         <div className="relative flex items-center justify-center flex-1 min-h-0 px-3">
           {selected.playback_id ? (
-            <video
-              ref={modalVideoRef}
-              src={`https://stream.mux.com/${selected.playback_id}/low.mp4`}
+            <MobileVideo
+              playbackId={selected.playback_id}
               poster={muxPoster(selected.playback_id)}
-              loop
-              playsInline
-              autoPlay
-              muted
-              controls
-              className="max-w-full max-h-full rounded-2xl"
-              style={{ objectFit: "contain" }}
-              onPlay={() => setModalPlaying(true)}
-              onPause={() => setModalPlaying(false)}
+              videoRef={modalVideoRef}
+              onPlayChange={setModalPlaying}
               onLoadedMetadata={handleVideoMetadata}
             />
           ) : (
