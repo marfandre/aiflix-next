@@ -111,14 +111,14 @@ function MobileVideo({
   }, []);
 
   return (
-    <>
+    <div className={`relative max-w-full max-h-full overflow-hidden transition-[border-radius] duration-300 ${rounded ? "rounded-2xl" : ""}`}>
       <video
         ref={ref}
         poster={poster}
         loop
         playsInline
         preload="metadata"
-        className={`w-full h-full transition-[border-radius] duration-300 ${rounded ? "rounded-2xl" : ""}`}
+        className="w-full h-full"
         style={{ objectFit: "contain" }}
         onClick={togglePlay}
         onPlay={() => onPlayChange(true)}
@@ -142,7 +142,7 @@ function MobileVideo({
         )}
       </button>
       {error && <div className="absolute bottom-4 left-4 right-4 text-center text-red-400 text-sm bg-black/80 rounded-lg px-3 py-2">{error}</div>}
-    </>
+    </div>
   );
 }
 
@@ -384,7 +384,7 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
         </button>
 
         {/* Video area — plain <video> with hls.js source setup, no overlay divs */}
-        <div className={`relative flex items-center justify-center flex-1 min-h-0 px-3 overflow-hidden transition-[border-radius] duration-300 ${sheetExpanded ? "" : "rounded-2xl"}`}>
+        <div className="relative flex items-center justify-center flex-1 min-h-0 px-3">
           {selected.playback_id ? (
             <MobileVideo
               playbackId={selected.playback_id}
