@@ -250,24 +250,24 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
           </svg>
         </button>
 
-        {/* Video area — px-3 for side margins so edges are visible */}
+        {/* Video area — simple <video> for mobile, no overlay divs */}
         <div className="relative flex items-center justify-center flex-1 min-h-0 px-3">
           {selected.playback_id ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <CustomVideoPlayer
-                src={`https://stream.mux.com/${selected.playback_id}/low.mp4`}
-                hlsSrc={`https://stream.mux.com/${selected.playback_id}.m3u8`}
-                poster={muxPoster(selected.playback_id)}
-                colors={selected.colors ?? undefined}
-                colorInterval={1}
-                maxHeight="100%"
-                videoRef={modalVideoRef}
-                className="w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-contain"
-                roundedClass="rounded-2xl"
-                onPlayChange={setModalPlaying}
-                onLoadedMetadata={handleVideoMetadata}
-              />
-            </div>
+            <video
+              ref={modalVideoRef}
+              src={`https://stream.mux.com/${selected.playback_id}/low.mp4`}
+              poster={muxPoster(selected.playback_id)}
+              loop
+              playsInline
+              autoPlay
+              muted
+              controls
+              className="max-w-full max-h-full rounded-2xl"
+              style={{ objectFit: "contain" }}
+              onPlay={() => setModalPlaying(true)}
+              onPause={() => setModalPlaying(false)}
+              onLoadedMetadata={handleVideoMetadata}
+            />
           ) : (
             <div className="flex items-center justify-center text-center text-gray-400 p-8">
               {selected.status === "processing" ? (
