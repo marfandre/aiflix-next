@@ -188,6 +188,44 @@ export default function ImageModal({
     setSheetDragOffset(0);
   }, [sheetExpanded]);
 
+  // Track actual rendered image bounds for accurate color markers
+  const imgContainerRef = useRef<HTMLDivElement>(null);
+  const [imgBounds, setImgBounds] = useState<{ ox: number; oy: number; w: number; h: number } | null>(null);
+
+  const recalcImgBounds = useCallback(() => {
+    const img = imageRef.current;
+    const container = imgContainerRef.current;
+    if (!img || !container) { setImgBounds(null); return; }
+
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (!nw || !nh) { setImgBounds(null); return; }
+
+    const scale = Math.min(cw / nw, ch / nh);
+    const rw = nw * scale;
+    const rh = nh * scale;
+    const ox = (cw - rw) / 2;
+    const oy = (ch - rh) / 2;
+    setImgBounds({ ox, oy, w: rw, h: rh });
+  }, []);
+
+  useEffect(() => {
+    const container = imgContainerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver(() => recalcImgBounds());
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [recalcImgBounds]);
+
+  // Recalc on image load and when sheet expands/collapses
+  useEffect(() => {
+    // Small delay to let CSS transition finish
+    const t = setTimeout(recalcImgBounds, 350);
+    return () => clearTimeout(t);
+  }, [sheetExpanded, recalcImgBounds]);
+
   // Lock body scroll on mobile when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -220,25 +258,30 @@ export default function ImageModal({
         >
           {currentVariant ? (
             <>
-              <div className="relative inline-flex w-full h-full items-center justify-center">
+              <div ref={imgContainerRef} className="relative inline-flex w-full h-full items-center justify-center">
                 <img
                   ref={imageRef}
                   src={publicImageUrl(currentVariant.path)}
                   alt={(selected.title ?? "").trim() || "\u041A\u0430\u0440\u0442\u0438\u043D\u043A\u0430"}
                   className="max-w-full max-h-full object-contain"
-                  onLoad={() => { if (imageRef.current) setImageWidth(imageRef.current.offsetWidth); }}
+                  onLoad={() => {
+                    if (imageRef.current) setImageWidth(imageRef.current.offsetWidth);
+                    recalcImgBounds();
+                  }}
                 />
 
-                {/* Color marker on image */}
-                {modalHoveredColor !== null && selected.color_positions && selected.color_positions[modalHoveredColor] && (() => {
+                {/* Color marker on image — pixel-positioned to match actual rendered image */}
+                {modalHoveredColor !== null && selected.color_positions && selected.color_positions[modalHoveredColor] && imgBounds && (() => {
                   const pos = selected.color_positions[modalHoveredColor];
                   const color = currentColors[modalHoveredColor] ?? pos.hex;
+                  const px = imgBounds.ox + pos.x * imgBounds.w;
+                  const py = imgBounds.oy + pos.y * imgBounds.h;
                   return (
                     <div
                       className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
-                      style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%` }}
+                      style={{ left: px, top: py }}
                     >
-                      <div className="w-7 h-7 rounded-full border-[1.5px] border-white" style={{ backgroundColor: color, boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }} />
+                      <div className="w-5 h-5 rounded-full border-[1.5px] border-white" style={{ backgroundColor: color, boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }} />
                     </div>
                   );
                 })()}
