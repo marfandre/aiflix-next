@@ -979,9 +979,8 @@ export default function SearchButton() {
 
                           {!colorMapLoading && colorMapData.length > 0 && (
                             <>
-                              {/* === ВАРИАНТ 1: СПЕКТР (непрерывный) === */}
+                              {/* === ВАРИАНТ 1: СПЕКТР + AREA CHART === */}
                               {colorMapView === 'spectrum' && (() => {
-                                // Группируем цвета в 36 сегментов по 10° оттенка
                                 const SEGMENTS = 36;
                                 const segSize = 360 / SEGMENTS;
                                 const segments: { colors: ColorMapEntry[]; totalCount: number; avgHex: string }[] =
@@ -993,7 +992,6 @@ export default function SearchButton() {
                                   segments[idx].totalCount += c.count;
                                 }
 
-                                // Для каждого сегмента вычисляем взвешенный средний цвет
                                 for (const seg of segments) {
                                   if (seg.colors.length === 0) continue;
                                   let rSum = 0, gSum = 0, bSum = 0, wSum = 0;
@@ -1008,11 +1006,10 @@ export default function SearchButton() {
                                   seg.avgHex = `#${toH(rSum)}${toH(gSum)}${toH(bSum)}`;
                                 }
 
-                                // Заполняем пустые сегменты интерполяцией соседних
+                                // Интерполяция пустых сегментов
                                 const filled = segments.map(s => s.avgHex || '');
                                 for (let i = 0; i < SEGMENTS; i++) {
                                   if (filled[i]) continue;
-                                  // Найти ближайший заполненный слева и справа
                                   let left = -1, right = -1;
                                   for (let d = 1; d < SEGMENTS; d++) {
                                     if (left < 0 && filled[(i - d + SEGMENTS) % SEGMENTS]) left = (i - d + SEGMENTS) % SEGMENTS;
@@ -1025,9 +1022,9 @@ export default function SearchButton() {
                                     const dR = ((right - i) + SEGMENTS) % SEGMENTS;
                                     const t = dL / (dL + dR);
                                     const lerp = (a: number, b: number) => Math.round(a + (b - a) * t);
-                                    const lr = parseInt(lc.slice(1, 3), 16), lg = parseInt(lc.slice(3, 5), 16), lb = parseInt(lc.slice(5, 7), 16);
+                                    const lr = parseInt(lc.slice(1, 3), 16), lg2 = parseInt(lc.slice(3, 5), 16), lb = parseInt(lc.slice(5, 7), 16);
                                     const rr = parseInt(rc.slice(1, 3), 16), rg = parseInt(rc.slice(3, 5), 16), rb = parseInt(rc.slice(5, 7), 16);
-                                    filled[i] = `#${lerp(lr, rr).toString(16).padStart(2, '0')}${lerp(lg, rg).toString(16).padStart(2, '0')}${lerp(lb, rb).toString(16).padStart(2, '0')}`;
+                                    filled[i] = `#${lerp(lr, rr).toString(16).padStart(2, '0')}${lerp(lg2, rg).toString(16).padStart(2, '0')}${lerp(lb, rb).toString(16).padStart(2, '0')}`;
                                   } else if (left >= 0) {
                                     filled[i] = filled[left];
                                   } else if (right >= 0) {
@@ -1035,37 +1032,54 @@ export default function SearchButton() {
                                   }
                                 }
 
-                                const maxCount = Math.max(...segments.map(s => s.totalCount), 1);
                                 const gradientStops = filled.map((hex, i) => `${hex || '#333'} ${(i / SEGMENTS) * 100}%`).join(', ');
+                                const maxCount = Math.max(...segments.map(s => s.totalCount), 1);
+
+                                // SVG area chart path — плавная кривая через все сегменты
+                                const svgW = 300;
+                                const svgH = 60;
+                                const points = segments.map((seg, i) => ({
+                                  x: (i / (SEGMENTS - 1)) * svgW,
+                                  y: svgH - (seg.totalCount / maxCount) * (svgH - 4),
+                                }));
+
+                                // Catmull-Rom → cubic bezier для плавности
+                                let pathD = `M ${points[0].x} ${points[0].y}`;
+                                for (let i = 0; i < points.length - 1; i++) {
+                                  const p0 = points[Math.max(i - 1, 0)];
+                                  const p1 = points[i];
+                                  const p2 = points[i + 1];
+                                  const p3 = points[Math.min(i + 2, points.length - 1)];
+                                  const tension = 0.3;
+                                  const cp1x = p1.x + (p2.x - p0.x) * tension;
+                                  const cp1y = p1.y + (p2.y - p0.y) * tension;
+                                  const cp2x = p2.x - (p3.x - p1.x) * tension;
+                                  const cp2y = p2.y - (p3.y - p1.y) * tension;
+                                  pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+                                }
+                                const areaD = `${pathD} L ${svgW} ${svgH} L 0 ${svgH} Z`;
 
                                 return (
-                                  <div className="flex flex-col gap-2">
-                                    {/* Непрерывная спектр-полоса из реальных цветов */}
+                                  <div className="flex flex-col gap-0">
+                                    {/* Плавный градиент-полоса */}
                                     <div
-                                      className="relative w-full rounded-xl overflow-hidden cursor-pointer"
+                                      className="relative w-full rounded-t-xl overflow-hidden cursor-pointer"
                                       style={{
                                         background: `linear-gradient(to right, ${gradientStops})`,
-                                        height: 48,
+                                        height: 28,
                                       }}
                                     >
-                                      {/* Полупрозрачные столбики высоты = количество контента */}
+                                      {/* Невидимые кнопки-зоны для кликов */}
                                       <div className="absolute inset-0 flex">
                                         {segments.map((seg, i) => (
                                           <button
                                             key={i}
                                             type="button"
-                                            className="relative h-full hover:brightness-125 transition-all"
-                                            style={{
-                                              flex: 1,
-                                              background: seg.totalCount > 0
-                                                ? `linear-gradient(to top, ${seg.avgHex || filled[i]} ${Math.round((seg.totalCount / maxCount) * 100)}%, transparent ${Math.round((seg.totalCount / maxCount) * 100)}%)`
-                                                : 'transparent',
-                                              opacity: seg.totalCount > 0 ? 1 : 0.3,
-                                            }}
-                                            title={seg.totalCount > 0 ? `${seg.colors.length} цветов, ${seg.totalCount} изобр.` : 'Нет контента'}
+                                            className="h-full hover:brightness-110 transition-all"
+                                            style={{ flex: 1, background: 'transparent' }}
+                                            title={seg.totalCount > 0 ? `${seg.colors.length} цветов, ${seg.totalCount} изобр.` : ''}
                                             onClick={() => {
-                                              // Берём самый популярный цвет в сегменте
-                                              const best = seg.colors.sort((a, b) => b.count - a.count)[0];
+                                              const best = [...seg.colors].sort((a, b) => b.count - a.count)[0];
                                               if (best && !simpleSelectedColors.includes(best.hex) && simpleSelectedColors.length < 5) {
                                                 handleSimpleColorClick(best.hex);
                                               }
@@ -1075,43 +1089,52 @@ export default function SearchButton() {
                                       </div>
                                     </div>
 
-                                    {/* Вторая строка — развёрнутая полоса с плавным градиентом */}
-                                    <div
-                                      className="w-full rounded-lg overflow-hidden"
-                                      style={{
-                                        background: `linear-gradient(to right, ${gradientStops})`,
-                                        height: 18,
-                                      }}
-                                    />
-
-                                    {/* Интерактивные сегменты-кнопки под полосой */}
-                                    <div className="flex gap-[1px] w-full">
-                                      {segments.filter(s => s.totalCount > 0).map((seg, i) => {
-                                        const best = seg.colors.sort((a, b) => b.count - a.count)[0];
-                                        const h = 14 + (seg.totalCount / maxCount) * 22;
-                                        return (
+                                    {/* Area chart плотности */}
+                                    <div className="relative w-full rounded-b-xl overflow-hidden bg-gray-50" style={{ height: svgH }}>
+                                      <svg
+                                        viewBox={`0 0 ${svgW} ${svgH}`}
+                                        preserveAspectRatio="none"
+                                        className="w-full h-full"
+                                      >
+                                        <defs>
+                                          <linearGradient id="areaGrad" x1="0" y1="0" x2="1" y2="0">
+                                            {filled.map((hex, i) => (
+                                              <stop key={i} offset={`${(i / SEGMENTS) * 100}%`} stopColor={hex || '#333'} stopOpacity="0.5" />
+                                            ))}
+                                          </linearGradient>
+                                          <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                                            {filled.map((hex, i) => (
+                                              <stop key={i} offset={`${(i / SEGMENTS) * 100}%`} stopColor={hex || '#333'} stopOpacity="1" />
+                                            ))}
+                                          </linearGradient>
+                                        </defs>
+                                        {/* Заливка */}
+                                        <path d={areaD} fill="url(#areaGrad)" />
+                                        {/* Линия */}
+                                        <path d={pathD} fill="none" stroke="url(#lineGrad)" strokeWidth="2" />
+                                      </svg>
+                                      {/* Кликабельные зоны поверх графика */}
+                                      <div className="absolute inset-0 flex">
+                                        {segments.map((seg, i) => (
                                           <button
                                             key={i}
                                             type="button"
+                                            className="h-full transition-all hover:bg-white/20"
+                                            style={{ flex: 1 }}
+                                            title={seg.totalCount > 0 ? `${seg.totalCount} изобр.` : ''}
                                             onClick={() => {
+                                              const best = [...seg.colors].sort((a, b) => b.count - a.count)[0];
                                               if (best && !simpleSelectedColors.includes(best.hex) && simpleSelectedColors.length < 5) {
                                                 handleSimpleColorClick(best.hex);
                                               }
                                             }}
-                                            className="rounded-sm transition-transform hover:scale-y-150 hover:z-10"
-                                            style={{
-                                              flex: seg.totalCount,
-                                              height: h,
-                                              backgroundColor: best?.hex || '#999',
-                                            }}
-                                            title={`${best?.hex} — ${seg.totalCount} изобр.`}
                                           />
-                                        );
-                                      })}
+                                        ))}
+                                      </div>
                                     </div>
 
-                                    <p className="text-center text-[10px] text-gray-400">
-                                      Высота = количество контента. Нажмите на участок, чтобы искать по цвету.
+                                    <p className="text-center text-[10px] text-gray-400 mt-1">
+                                      График показывает количество контента по цветам. Нажмите, чтобы искать.
                                     </p>
                                   </div>
                                 );
