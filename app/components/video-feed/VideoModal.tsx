@@ -668,7 +668,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 <div className="flex flex-wrap items-center gap-3">
                   <div>
                     <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
-                    <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80">{formatModelName(selected.model)}</span>
+                    <button type="button" onClick={() => { window.location.href = `/?t=video&models=${encodeURIComponent(selected.model || '')}`; }} className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25 cursor-pointer">{formatModelName(selected.model)}</button>
                   </div>
                   {selected.aspect_ratio && (
                     <div>
@@ -748,7 +748,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {/* Model */}
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
-                  <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{formatModelName(selected.model)}</span>
+                  <button type="button" onClick={() => { window.location.href = `/?t=video&models=${encodeURIComponent(selected.model || '')}`; }} className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20 cursor-pointer">{formatModelName(selected.model)}</button>
                 </div>
 
                 {/* Format */}
@@ -901,7 +901,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                   <span className="text-white font-medium text-xs">{nick}</span>
                 </Link>
 
-                <span className="font-mono text-xs uppercase tracking-wider text-white/70">{formatModelName(selected.model)}</span>
+                <button type="button" onClick={() => { window.location.href = `/?t=video&models=${encodeURIComponent(selected.model || '')}`; }} className="font-mono text-xs uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer">{formatModelName(selected.model)}</button>
               </div>
             </div>
           </div>

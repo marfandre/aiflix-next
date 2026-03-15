@@ -536,7 +536,11 @@ export default function ImageModal({
               <div className="flex flex-wrap items-center gap-3">
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
-                  <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80">{formatModelName(selected.model)}</span>
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
+                    className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25 cursor-pointer"
+                  >{formatModelName(selected.model)}</button>
                 </div>
                 {selected.aspect_ratio && (
                   <div>
@@ -552,7 +556,12 @@ export default function ImageModal({
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0422\u0435\u0433\u0438"}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {selected.tags.map((t) => (
-                      <span key={t} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{renderTagName(t)}</span>
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
+                        className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:bg-white/25 cursor-pointer"
+                      >{renderTagName(t)}</button>
                     ))}
                   </div>
                 </div>
@@ -666,7 +675,11 @@ export default function ImageModal({
               {/* Model */}
               <div>
                 <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
-                <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{formatModelName(selected.model)}</span>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
+                  className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20 cursor-pointer"
+                >{formatModelName(selected.model)}</button>
               </div>
 
               {/* Format */}
@@ -683,7 +696,12 @@ export default function ImageModal({
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0422\u0435\u0433\u0438"}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {selected.tags.map((t) => (
-                      <span key={t} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{renderTagName(t)}</span>
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
+                        className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:bg-white/25 cursor-pointer"
+                      >{renderTagName(t)}</button>
                     ))}
                   </div>
                 </div>
@@ -815,11 +833,20 @@ export default function ImageModal({
                           {avatar && <img src={avatar} alt={nick} className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40" />}
                           <span className="text-white">{nick}</span>
                         </Link>
-                        <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">{formatModelName(selected.model)}</span>
+                        <button
+                          type="button"
+                          onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
+                          className="font-mono text-[11px] uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer"
+                        >{formatModelName(selected.model)}</button>
                         {selected.tags && selected.tags.length > 0 && (
                           <>
                             {selected.tags.slice(0, 3).map((t) => (
-                              <span key={t} className="rounded-full bg-white/20 px-2 py-0.5">{renderTagName(t)}</span>
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
+                                className="rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/35 cursor-pointer"
+                              >{renderTagName(t)}</button>
                             ))}
                             {selected.tags.length > 3 && (
                               <span className="text-white/60">+{selected.tags.length - 3}</span>

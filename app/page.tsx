@@ -21,6 +21,7 @@ export default async function Home({
     models?: string;
     moods?: string;
     imageTypes?: string;
+    tags?: string;
   };
 }) {
   const supabase = createServerComponentClient({ cookies });
@@ -65,6 +66,7 @@ export default async function Home({
               models: searchParams?.models,
               moods: searchParams?.moods,
               imageTypes: searchParams?.imageTypes,
+              tags: searchParams?.tags,
             }}
           />
         )}

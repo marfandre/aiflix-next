@@ -36,4 +36,5 @@ export type SearchParams = {
   models?: string;
   moods?: string;
   imageTypes?: string;
+  tags?: string;
 };

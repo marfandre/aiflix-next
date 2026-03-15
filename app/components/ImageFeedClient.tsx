@@ -102,6 +102,11 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
         }
       }
 
+      if (searchParams.tags) {
+        const tags = searchParams.tags.split(",").map((t) => t.trim()).filter(Boolean);
+        if (tags.length) query = query.contains("tags", tags);
+      }
+
       const { data, error } = await query;
       if (error) {
         console.error("image fetch with filters:", error);
@@ -111,11 +116,11 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       }
       setLoading(false);
     })();
-  }, [supa, searchParams.colors, searchParams.models, initialImages]);
+  }, [supa, searchParams.colors, searchParams.models, searchParams.tags, initialImages]);
 
   // ---------- Realtime subscription ----------
   useEffect(() => {
-    if (searchParams.colors || searchParams.models) return;
+    if (searchParams.colors || searchParams.models || searchParams.tags) return;
 
     const channel = supa
       .channel("images-feed")
@@ -139,7 +144,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       .subscribe();
 
     return () => { supa.removeChannel(channel); };
-  }, [supa, searchParams.colors, searchParams.models]);
+  }, [supa, searchParams.colors, searchParams.models, searchParams.tags]);
 
   const publicImageUrl = (path: string) => {
     const { data } = supa.storage.from("images").getPublicUrl(path);

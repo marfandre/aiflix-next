@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Masonry from "react-masonry-css";
 import VideoCard from "./video-feed/VideoCard";
@@ -21,10 +22,12 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const supa = createClientComponentClient();
+  const sp = useSearchParams();
+  const modelsFilter = sp.get("models") || "";
 
   // Load videos
   useEffect(() => {
-    if (initialVideos && initialVideos.length > 0) {
+    if (initialVideos && initialVideos.length > 0 && !modelsFilter) {
       setVideos(initialVideos);
       setLoading(false);
       return;
@@ -33,11 +36,21 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
     (async () => {
       setLoading(true);
 
-      const { data: filmsData, error } = await supa
+      let query = supa
         .from("films")
         .select("id, author_id, title, description, prompt, playback_id, created_at, model, aspect_ratio, genres, mood, colors, colors_preview, colors_full, colors_full_interval, color_mode, status")
         .order("created_at", { ascending: false })
         .limit(60);
+
+      if (modelsFilter) {
+        const models = modelsFilter.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
+        if (models.length) {
+          const orClause = models.map((m) => `model.ilike.%${m}%`).join(",");
+          query = query.or(orClause);
+        }
+      }
+
+      const { data: filmsData, error } = await query;
 
       if (error) {
         console.error("video fetch error:", error);
@@ -74,7 +87,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
       setVideos(enrichedVideos);
       setLoading(false);
     })();
-  }, [supa, initialVideos]);
+  }, [supa, initialVideos, modelsFilter]);
 
   // Realtime subscription
   useEffect(() => {
