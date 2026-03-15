@@ -32,7 +32,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(npx next:*)",
-      "Bash(node -e \"const Hls = require\\(''hls.js''\\); console.log\\(''hls.js version:'', Hls.version || ''loaded''\\); console.log\\(''isSupported:'', typeof Hls.isSupported === ''function'' ? ''yes'' : ''no''\\)\")"
+      "Bash(node -e \"const Hls = require\\(''hls.js''\\); console.log\\(''hls.js version:'', Hls.version || ''loaded''\\); console.log\\(''isSupported:'', typeof Hls.isSupported === ''function'' ? ''yes'' : ''no''\\)\")",
+      "Bash(ls -la /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/.env*)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

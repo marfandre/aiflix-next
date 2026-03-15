@@ -143,15 +143,25 @@ function VideoCard({
         </div>
       </div>
 
-      {/* Delete button (owner only) */}
+      {/* Edit / Delete for owner */}
       {isOwnerView && (
-        <div className="pointer-events-none absolute top-2 right-2 z-30 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+        <div className="pointer-events-none absolute top-2 right-2 z-30 flex gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); window.location.href = `/film/${v.id}/edit`; }}
+            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+            title="Редактировать"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+            </svg>
+          </button>
           <button
             type="button"
             onClick={(e) => onDelete(v.id, e)}
             disabled={deletingId === v.id}
             className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-600 disabled:opacity-50"
-            title="\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0432\u0438\u0434\u0435\u043E"
+            title="Удалить видео"
           >
             {deletingId === v.id ? (
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
