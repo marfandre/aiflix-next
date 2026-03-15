@@ -50,6 +50,8 @@ export default function CustomVideoPlayer({
     const fillRef = useRef<HTMLDivElement>(null);
     const dotRef = useRef<HTMLDivElement>(null);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hlsRef = useRef<any>(null);
+    const sourceReadyRef = useRef(false);
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -95,58 +97,81 @@ export default function CustomVideoPlayer({
         }
     }, [videoEl]);
 
-    // ----- Source setup: HLS.js for Chrome/Firefox, native for Safari, mp4 fallback -----
+    // ----- Source setup + autoplay -----
     useEffect(() => {
         const v = videoEl.current;
         if (!v) return;
 
-        let hls: any;
         let cancelled = false;
 
-        const tryPlay = async () => {
+        const tryAutoplay = async () => {
             if (cancelled) return;
             try {
                 v.muted = false;
                 await v.play();
             } catch {
-                v.muted = true;
-                setIsMuted(true);
-                try { await v.play(); } catch { }
+                try {
+                    v.muted = true;
+                    setIsMuted(true);
+                    await v.play();
+                } catch { /* autoplay completely blocked — user will tap */ }
             }
         };
 
         const setup = async () => {
+            // 1. Try HLS
             if (hlsSrc) {
-                // Safari: native HLS support
+                // Safari: native HLS
                 if (v.canPlayType('application/vnd.apple.mpegURL')) {
                     v.src = hlsSrc;
-                    v.addEventListener('loadedmetadata', () => tryPlay(), { once: true });
+                    sourceReadyRef.current = true;
+                    v.addEventListener('canplay', () => tryAutoplay(), { once: true });
                     return;
                 }
 
-                // Chrome/Firefox: use hls.js
-                const Hls = (await import('hls.js')).default;
-                if (cancelled) return;
+                // Chrome/Firefox: hls.js
+                try {
+                    const Hls = (await import('hls.js')).default;
+                    if (cancelled) return;
 
-                if (Hls.isSupported()) {
-                    hls = new Hls({ maxBufferLength: 30 });
-                    hls.loadSource(hlsSrc);
-                    hls.attachMedia(v);
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => tryPlay());
-                    return;
+                    if (Hls.isSupported()) {
+                        const hls = new Hls({ maxBufferLength: 30 });
+                        hlsRef.current = hls;
+                        hls.loadSource(hlsSrc);
+                        hls.attachMedia(v);
+                        sourceReadyRef.current = true;
+                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                            if (!cancelled) tryAutoplay();
+                        });
+                        hls.on(Hls.Events.ERROR, (_: any, data: any) => {
+                            if (data.fatal && !cancelled) {
+                                // HLS failed — fallback to mp4
+                                hls.destroy();
+                                hlsRef.current = null;
+                                v.src = src;
+                                sourceReadyRef.current = true;
+                                v.addEventListener('canplay', () => tryAutoplay(), { once: true });
+                            }
+                        });
+                        return;
+                    }
+                } catch {
+                    // hls.js import failed — fall through to mp4
                 }
             }
 
-            // Fallback: direct mp4
+            // 2. Fallback: direct mp4
+            if (cancelled) return;
             v.src = src;
-            v.addEventListener('loadedmetadata', () => tryPlay(), { once: true });
+            sourceReadyRef.current = true;
+            v.addEventListener('canplay', () => tryAutoplay(), { once: true });
         };
 
         setup();
 
         return () => {
             cancelled = true;
-            try { if (hls?.destroy) hls.destroy(); } catch {}
+            try { if (hlsRef.current?.destroy) { hlsRef.current.destroy(); hlsRef.current = null; } } catch {}
         };
     }, [videoEl, hlsSrc, src]);
 
@@ -337,89 +362,107 @@ export default function CustomVideoPlayer({
                 height={height || undefined}
                 style={{ maxHeight }}
                 className={roundedClass}
-            />
+            >
+                {/* mp4 fallback source — loads immediately while hls.js initializes */}
+                <source src={src} type="video/mp4" />
+            </video>
 
-            {/* Drag to seek overlay (replaces simple play-overlay) */}
-            <div
-                className="absolute inset-0 z-5 cursor-pointer"
-                onDoubleClick={toggleFullscreen}
-                onContextMenu={(e) => e.preventDefault()}
-                onPointerDown={(e) => {
-                    // Игнорируем правый клик
-                    if (e.button !== 0) return;
-                    e.preventDefault();
+            {/* Big play button — visible when paused, works on mobile */}
+            {!isPlaying && (
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                    className="absolute inset-0 z-20 flex items-center justify-center"
+                    aria-label="Play"
+                >
+                    <div className="flex items-center justify-center rounded-full"
+                        style={{
+                            width: 56, height: 56,
+                            background: "rgba(0,0,0,0.5)",
+                            backdropFilter: "blur(8px)",
+                            WebkitBackdropFilter: "blur(8px)",
+                            border: "1px solid rgba(255,255,255,0.15)",
+                        }}
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                    </div>
+                </button>
+            )}
 
-                    const v = videoEl.current;
-                    if (!v) return;
+            {/* Drag to seek overlay — only when playing */}
+            {isPlaying && (
+                <div
+                    className="absolute inset-0 cursor-pointer"
+                    style={{ zIndex: 15 }}
+                    onDoubleClick={toggleFullscreen}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onPointerDown={(e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
 
-                    // Если метаданные ещё не загружены — просто play/pause по тапу
-                    if (!v.duration) {
-                        const onUp = () => {
-                            window.removeEventListener("pointerup", onUp);
-                            togglePlay();
-                        };
-                        window.addEventListener("pointerup", onUp);
-                        return;
-                    }
+                        const v = videoEl.current;
+                        if (!v) return;
 
-                    setIsDragging(true);
-
-                    // Считаем клик или драг
-                    let hasDragged = false;
-                    const startX = e.clientX;
-                    const startRect = e.currentTarget.getBoundingClientRect();
-                    const initialTime = v.currentTime;
-
-                    // Запоминаем играло ли видео до клика
-                    const wasPlaying = !v.paused;
-
-                    const onPointerMove = (ev: PointerEvent) => {
-                        const dx = ev.clientX - startX;
-                        // Если сдвинулись больше чем на 3px, считаем это драгом (перемоткой)
-                        if (!hasDragged && Math.abs(dx) > 3) {
-                            hasDragged = true;
-                            // Начинаем драг - ставим на паузу чтобы не было конфликтов кадров
-                            if (wasPlaying) v.pause();
+                        // If no duration yet — just toggle play
+                        if (!v.duration) {
+                            const onUp = () => {
+                                window.removeEventListener("pointerup", onUp);
+                                togglePlay();
+                            };
+                            window.addEventListener("pointerup", onUp);
+                            return;
                         }
 
-                        if (hasDragged) {
-                            // Логика перемотки: весь экран = ширина видео
-                            const ratio = dx / startRect.width;
-                            const timeDelta = ratio * v.duration;
+                        setIsDragging(true);
 
-                            // Вычисляем новое время и ограничиваем его в пределах 0..duration
-                            let newTime = initialTime + timeDelta;
-                            newTime = Math.max(0, Math.min(newTime, v.duration));
+                        let hasDragged = false;
+                        const startX = e.clientX;
+                        const startRect = e.currentTarget.getBoundingClientRect();
+                        const initialTime = v.currentTime;
+                        const wasPlaying = !v.paused;
 
-                            v.currentTime = newTime;
-                            setCurrentTime(newTime);
-
-                            // Синхронно обновляем ползунок таймлайна
-                            if (fillRef.current) fillRef.current.style.width = `${(newTime / v.duration) * 100}%`;
-                            if (dotRef.current) dotRef.current.style.left = `${(newTime / v.duration) * 100}%`;
-                        }
-                    };
-
-                    const onPointerUp = (ev: PointerEvent) => {
-                        setIsDragging(false);
-                        window.removeEventListener("pointermove", onPointerMove);
-                        window.removeEventListener("pointerup", onPointerUp);
-
-                        // Если драга не было, считаем это обычным кликом -> переключаем Play/Pause
-                        if (!hasDragged) {
-                            togglePlay();
-                        } else {
-                            // Если был драг, и до драга видео играло - продолжаем воспроизведение
-                            if (wasPlaying && v.paused) {
-                                v.play().catch(() => { });
+                        const onPointerMove = (ev: PointerEvent) => {
+                            const dx = ev.clientX - startX;
+                            if (!hasDragged && Math.abs(dx) > 3) {
+                                hasDragged = true;
+                                if (wasPlaying) v.pause();
                             }
-                        }
-                    };
 
-                    window.addEventListener("pointermove", onPointerMove);
-                    window.addEventListener("pointerup", onPointerUp);
-                }}
-            />
+                            if (hasDragged) {
+                                const ratio = dx / startRect.width;
+                                const timeDelta = ratio * v.duration;
+                                let newTime = initialTime + timeDelta;
+                                newTime = Math.max(0, Math.min(newTime, v.duration));
+
+                                v.currentTime = newTime;
+                                setCurrentTime(newTime);
+
+                                if (fillRef.current) fillRef.current.style.width = `${(newTime / v.duration) * 100}%`;
+                                if (dotRef.current) dotRef.current.style.left = `${(newTime / v.duration) * 100}%`;
+                            }
+                        };
+
+                        const onPointerUp = () => {
+                            setIsDragging(false);
+                            window.removeEventListener("pointermove", onPointerMove);
+                            window.removeEventListener("pointerup", onPointerUp);
+
+                            if (!hasDragged) {
+                                togglePlay();
+                            } else {
+                                if (wasPlaying && v.paused) {
+                                    v.play().catch(() => { });
+                                }
+                            }
+                        };
+
+                        window.addEventListener("pointermove", onPointerMove);
+                        window.addEventListener("pointerup", onPointerUp);
+                    }}
+                />
+            )}
         </div>
     );
 }

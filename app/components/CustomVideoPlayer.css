@@ -6,11 +6,10 @@
 /* Контейнер плеера */
 .custom-player {
     position: relative;
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
     overflow: hidden;
     background: #000;
-    width: fit-content;
 }
 
 .custom-player video {
