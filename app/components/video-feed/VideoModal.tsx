@@ -111,15 +111,20 @@ function MobileVideo({
   }, []);
 
   return (
-    <div className={`relative max-w-full max-h-full overflow-hidden transition-[border-radius] duration-300 ${rounded ? "rounded-2xl" : ""}`}>
+    <>
       <video
         ref={ref}
         poster={poster}
         loop
         playsInline
         preload="metadata"
-        className="w-full h-full"
-        style={{ objectFit: "contain" }}
+        className="max-w-full max-h-full"
+        style={{
+          objectFit: "contain",
+          borderRadius: rounded ? 16 : 0,
+          overflow: "hidden",
+          transition: "border-radius 0.3s",
+        }}
         onClick={togglePlay}
         onPlay={() => onPlayChange(true)}
         onPause={() => onPlayChange(false)}
@@ -142,7 +147,7 @@ function MobileVideo({
         )}
       </button>
       {error && <div className="absolute bottom-4 left-4 right-4 text-center text-red-400 text-sm bg-black/80 rounded-lg px-3 py-2">{error}</div>}
-    </div>
+    </>
   );
 }
 
