@@ -250,8 +250,8 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
           </svg>
         </button>
 
-        {/* Video area */}
-        <div className="relative flex items-center justify-center flex-1 min-h-0">
+        {/* Video area — px-2 for small side margins so edges are visible */}
+        <div className="relative flex items-center justify-center flex-1 min-h-0 px-2">
           {selected.playback_id ? (
             <CustomVideoPlayer
               src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`}
@@ -261,7 +261,8 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
               colorInterval={1}
               maxHeight="100%"
               videoRef={modalVideoRef}
-              className="w-full h-full [&>video]:h-full [&>video]:object-contain"
+              className="w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-contain"
+              roundedClass="rounded-lg"
               onPlayChange={setModalPlaying}
               onLoadedMetadata={handleVideoMetadata}
             />
