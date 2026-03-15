@@ -95,37 +95,16 @@ export default function CustomVideoPlayer({
         }
     }, [videoEl]);
 
-    // ----- HLS.js for non-Safari browsers -----
-    useEffect(() => {
-        const v = videoEl.current;
-        if (!v || !hlsSrc) return;
-
-        // Safari supports HLS natively via <source>
-        if (v.canPlayType('application/vnd.apple.mpegURL')) return;
-
-        let hls: any;
-        const init = async () => {
-            const Hls = (await import('hls.js')).default;
-            if (Hls.isSupported()) {
-                hls = new Hls({ maxBufferLength: 30 });
-                hls.loadSource(hlsSrc);
-                hls.attachMedia(v);
-            }
-            // else fallback to mp4 <source> already in DOM
-        };
-        init();
-
-        return () => {
-            try { if (hls?.destroy) hls.destroy(); } catch {}
-        };
-    }, [videoEl, hlsSrc]);
-
-    // ----- Smart autoplay with sound -----
+    // ----- Source setup: HLS.js for Chrome/Firefox, native for Safari, mp4 fallback -----
     useEffect(() => {
         const v = videoEl.current;
         if (!v) return;
 
+        let hls: any;
+        let cancelled = false;
+
         const tryPlay = async () => {
+            if (cancelled) return;
             try {
                 v.muted = false;
                 await v.play();
@@ -136,9 +115,40 @@ export default function CustomVideoPlayer({
             }
         };
 
-        const timer = setTimeout(tryPlay, 300);
-        return () => clearTimeout(timer);
-    }, [videoEl]);
+        const setup = async () => {
+            if (hlsSrc) {
+                // Safari: native HLS support
+                if (v.canPlayType('application/vnd.apple.mpegURL')) {
+                    v.src = hlsSrc;
+                    v.addEventListener('loadedmetadata', () => tryPlay(), { once: true });
+                    return;
+                }
+
+                // Chrome/Firefox: use hls.js
+                const Hls = (await import('hls.js')).default;
+                if (cancelled) return;
+
+                if (Hls.isSupported()) {
+                    hls = new Hls({ maxBufferLength: 30 });
+                    hls.loadSource(hlsSrc);
+                    hls.attachMedia(v);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => tryPlay());
+                    return;
+                }
+            }
+
+            // Fallback: direct mp4
+            v.src = src;
+            v.addEventListener('loadedmetadata', () => tryPlay(), { once: true });
+        };
+
+        setup();
+
+        return () => {
+            cancelled = true;
+            try { if (hls?.destroy) hls.destroy(); } catch {}
+        };
+    }, [videoEl, hlsSrc, src]);
 
     // ----- Video event handlers -----
     useEffect(() => {
@@ -322,14 +332,12 @@ export default function CustomVideoPlayer({
                 playsInline
                 disablePictureInPicture
                 poster={poster}
+                preload="metadata"
                 width={width || undefined}
                 height={height || undefined}
                 style={{ maxHeight }}
                 className={roundedClass}
-            >
-                {hlsSrc && <source src={hlsSrc} type="application/x-mpegURL" />}
-                <source src={src} type="video/mp4" />
-            </video>
+            />
 
             {/* Drag to seek overlay (replaces simple play-overlay) */}
             <div
@@ -342,7 +350,17 @@ export default function CustomVideoPlayer({
                     e.preventDefault();
 
                     const v = videoEl.current;
-                    if (!v || !v.duration) return;
+                    if (!v) return;
+
+                    // Если метаданные ещё не загружены — просто play/pause по тапу
+                    if (!v.duration) {
+                        const onUp = () => {
+                            window.removeEventListener("pointerup", onUp);
+                            togglePlay();
+                        };
+                        window.addEventListener("pointerup", onUp);
+                        return;
+                    }
 
                     setIsDragging(true);
 
