@@ -255,14 +255,12 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
           {selected.playback_id ? (
             <CustomVideoPlayer
               src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`}
-              hlsSrc={`https://stream.mux.com/${selected.playback_id}.m3u8`}
               poster={muxPoster(selected.playback_id)}
               colors={selected.colors ?? undefined}
               colorInterval={1}
               maxHeight="100%"
               videoRef={modalVideoRef}
-              className="w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-contain"
-              roundedClass="rounded-lg"
+              className="w-full h-full rounded-2xl overflow-hidden [&>video]:w-full [&>video]:h-full [&>video]:object-contain"
               onPlayChange={setModalPlaying}
               onLoadedMetadata={handleVideoMetadata}
             />
