@@ -253,7 +253,7 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
         {/* Video area — px-3 for side margins so edges are visible */}
         <div className="relative flex items-center justify-center flex-1 min-h-0 px-3">
           {selected.playback_id ? (
-            <div className="w-full h-full flex items-center justify-center rounded-2xl overflow-hidden">
+            <div className="w-full h-full flex items-center justify-center">
               <CustomVideoPlayer
                 src={`https://stream.mux.com/${selected.playback_id}/low.mp4`}
                 poster={muxPoster(selected.playback_id)}
@@ -262,6 +262,7 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
                 maxHeight="100%"
                 videoRef={modalVideoRef}
                 className="w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-contain"
+                roundedClass="rounded-2xl"
                 onPlayChange={setModalPlaying}
                 onLoadedMetadata={handleVideoMetadata}
               />
