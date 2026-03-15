@@ -31,7 +31,8 @@
       "Bash(git status:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(node -e \"const Hls = require\\(''hls.js''\\); console.log\\(''hls.js version:'', Hls.version || ''loaded''\\); console.log\\(''isSupported:'', typeof Hls.isSupported === ''function'' ? ''yes'' : ''no''\\)\")"
     ]
   }
 }

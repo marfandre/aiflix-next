@@ -15,27 +15,31 @@ type Props = {
 
 /** Plain <video> with hls.js source — no overlay divs, works on Android */
 function MobileVideo({
-  playbackId, poster, videoRef, onPlayChange, onLoadedMetadata,
+  playbackId, poster, onPlayChange, onLoadedMetadata,
 }: {
   playbackId: string;
   poster: string;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
   onPlayChange: (playing: boolean) => void;
   onLoadedMetadata: () => void;
 }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const video = videoRef.current;
+    const video = ref.current;
     if (!video) return;
 
     let hls: any;
+    let cancelled = false;
     const hlsUrl = `https://stream.mux.com/${playbackId}.m3u8`;
-    const mp4Url = `https://stream.mux.com/${playbackId}/low.mp4`;
+    const mp4Url = `https://stream.mux.com/${playbackId}/medium.mp4`;
 
     const tryAutoplay = async () => {
+      if (cancelled) return;
       try {
         video.muted = true;
         await video.play();
-      } catch { /* user will tap play */ }
+      } catch { /* user will tap native play button */ }
     };
 
     const setup = async () => {
@@ -43,24 +47,30 @@ function MobileVideo({
       if (video.canPlayType('application/vnd.apple.mpegURL')) {
         video.src = hlsUrl;
         video.addEventListener('canplay', () => tryAutoplay(), { once: true });
+        video.addEventListener('error', () => setError('Не удалось загрузить видео'), { once: true });
         return;
       }
 
       // Chrome/Firefox: hls.js
       try {
         const Hls = (await import('hls.js')).default;
+        if (cancelled) return;
+
         if (Hls.isSupported()) {
           hls = new Hls({ maxBufferLength: 30 });
           hls.loadSource(hlsUrl);
           hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => tryAutoplay());
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (!cancelled) tryAutoplay();
+          });
           hls.on(Hls.Events.ERROR, (_: any, data: any) => {
-            if (data.fatal) {
+            if (data.fatal && !cancelled) {
               hls.destroy();
               hls = null;
               // fallback to mp4
               video.src = mp4Url;
               video.addEventListener('canplay', () => tryAutoplay(), { once: true });
+              video.addEventListener('error', () => setError('Не удалось загрузить видео'), { once: true });
             }
           });
           return;
@@ -70,29 +80,34 @@ function MobileVideo({
       // Last fallback: mp4
       video.src = mp4Url;
       video.addEventListener('canplay', () => tryAutoplay(), { once: true });
+      video.addEventListener('error', () => setError('Не удалось загрузить видео'), { once: true });
     };
 
     setup();
 
     return () => {
+      cancelled = true;
       try { if (hls?.destroy) hls.destroy(); } catch {}
     };
-  }, [playbackId, videoRef]);
+  }, [playbackId]);
 
   return (
-    <video
-      ref={videoRef as React.RefObject<HTMLVideoElement>}
-      poster={poster}
-      loop
-      playsInline
-      controls
-      preload="metadata"
-      className="max-w-full max-h-full rounded-2xl"
-      style={{ objectFit: "contain" }}
-      onPlay={() => onPlayChange(true)}
-      onPause={() => onPlayChange(false)}
-      onLoadedMetadata={onLoadedMetadata}
-    />
+    <>
+      <video
+        ref={ref}
+        poster={poster}
+        loop
+        playsInline
+        controls
+        preload="metadata"
+        className="max-w-full max-h-full rounded-2xl"
+        style={{ objectFit: "contain" }}
+        onPlay={() => onPlayChange(true)}
+        onPause={() => onPlayChange(false)}
+        onLoadedMetadata={onLoadedMetadata}
+      />
+      {error && <div className="absolute bottom-4 left-4 right-4 text-center text-red-400 text-sm bg-black/80 rounded-lg px-3 py-2">{error}</div>}
+    </>
   );
 }
 
@@ -339,7 +354,6 @@ export default function VideoModal({ selected, userId, onClose }: Props) {
             <MobileVideo
               playbackId={selected.playback_id}
               poster={muxPoster(selected.playback_id)}
-              videoRef={modalVideoRef}
               onPlayChange={setModalPlaying}
               onLoadedMetadata={handleVideoMetadata}
             />
