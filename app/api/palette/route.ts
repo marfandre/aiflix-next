@@ -498,6 +498,79 @@ async function extractColorsWithVibrant(
 }
 
 // =====================
+// Fallback: извлечение цветов через sharp (без node-vibrant)
+// Уменьшаем картинку до 8x8, читаем пиксели, кластеризуем
+// =====================
+
+async function extractColorsWithSharp(
+  buffer: Buffer,
+  colorCount: number = 5
+): Promise<ExtractedColors> {
+  // Уменьшаем до маленького размера для получения доминантных цветов
+  const { data, info } = await sharp(buffer)
+    .resize(32, 32, { fit: 'cover' })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  // Собираем все пиксели
+  const pixels: { rgb: RGB; count: number }[] = [];
+  const colorMap = new Map<string, { rgb: RGB; count: number }>();
+
+  for (let i = 0; i < data.length; i += 3) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    // Квантизируем в бакеты по 16 для группировки похожих
+    const qr = Math.round(r / 16) * 16;
+    const qg = Math.round(g / 16) * 16;
+    const qb = Math.round(b / 16) * 16;
+    const key = `${qr},${qg},${qb}`;
+
+    const existing = colorMap.get(key);
+    if (existing) {
+      existing.count++;
+      // Среднее значение RGB
+      existing.rgb[0] = Math.round((existing.rgb[0] * (existing.count - 1) + r) / existing.count);
+      existing.rgb[1] = Math.round((existing.rgb[1] * (existing.count - 1) + g) / existing.count);
+      existing.rgb[2] = Math.round((existing.rgb[2] * (existing.count - 1) + b) / existing.count);
+    } else {
+      colorMap.set(key, { rgb: [r, g, b], count: 1 });
+    }
+  }
+
+  // Сортируем по частоте
+  const sorted = Array.from(colorMap.values()).sort((a, b) => b.count - a.count);
+
+  // Убираем похожие цвета (Delta E > 15)
+  const unique: typeof sorted = [];
+  for (const item of sorted) {
+    const tooSimilar = unique.some(u => ciede2000(u.rgb, item.rgb) < 15);
+    if (!tooSimilar) {
+      unique.push(item);
+    }
+    if (unique.length >= colorCount) break;
+  }
+
+  const totalCount = unique.reduce((s, c) => s + c.count, 0);
+  const dominantHexes = unique.map(c => rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]));
+  const dominantWeights = unique.map(c => Math.round((c.count / totalCount) * 1000) / 10);
+  const dominantNames = dominantHexes.map(hex => {
+    try { return getName(hex); } catch { return 'Unknown'; }
+  });
+
+  // Позиции цветов
+  const colorPositions = await findColorPositions(buffer, dominantHexes);
+
+  return {
+    dominant: dominantHexes,
+    dominantWeights,
+    accent: [],
+    dominantNames,
+    accentNames: [],
+    colorPositions,
+  };
+}
+
+// =====================
 // API handler
 // =====================
 
@@ -526,15 +599,26 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     console.log('[palette] Buffer size:', buffer.length, 'bytes');
 
-    const result = await extractColorsWithVibrant(buffer, {
-      colorCount,
-      quality,
-      ignoreWhite,
-      ignoreBlack,
-    });
+    let result: ExtractedColors;
+    let algorithm = 'vibrant';
+
+    try {
+      result = await extractColorsWithVibrant(buffer, {
+        colorCount,
+        quality,
+        ignoreWhite,
+        ignoreBlack,
+      });
+      console.log('[palette] Vibrant OK, colors:', result.dominant.length);
+    } catch (vibrantErr: any) {
+      console.error('[palette] Vibrant failed, using sharp fallback:', vibrantErr?.message);
+      algorithm = 'sharp-fallback';
+      result = await extractColorsWithSharp(buffer, colorCount);
+      console.log('[palette] Sharp fallback OK, colors:', result.dominant.length);
+    }
 
     return NextResponse.json({
-      algorithm: 'vibrant',
+      algorithm,
       colors: result.dominant,
       colorWeights: result.dominantWeights,
       colorNames: result.dominantNames,
@@ -545,10 +629,10 @@ export async function POST(req: NextRequest) {
       accentCount: result.accent.length,
     });
   } catch (e: any) {
-    console.error('Vibrant palette API error:', e?.message, e?.stack);
+    console.error('Palette API error:', e?.message, e?.stack);
     return NextResponse.json(
       {
-        error: e?.message ?? 'Ошибка при извлечении палитры (Vibrant)',
+        error: e?.message ?? 'Ошибка при извлечении палитры',
       },
       { status: 500 }
     );

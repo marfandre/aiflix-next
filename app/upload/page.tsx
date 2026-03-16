@@ -1603,66 +1603,65 @@ export default function UploadPage() {
                     </div>
 
                     {/* Область превью + стрелки + плюс */}
-                    <div className="relative mb-3 flex items-center justify-center">
+                    <div
+                      className={`relative w-full max-w-[280px] sm:max-w-[340px] rounded-3xl border-2 border-dashed bg-white shadow-sm overflow-hidden transition-all ${images.length > 0 ? 'border-transparent' : 'border-gray-200 cursor-pointer hover:border-gray-300 hover:shadow-md'}`}
+                      style={images.length > 0 ? {} : { aspectRatio: '9/16' }}
+                      onClick={() => {
+                        if (images.length === 0) fileInputRef.current?.click();
+                      }}
+                    >
                       {images.length > 0 ? (
-                        <div className="relative">
+                        <>
                           {images.length > 1 && (
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setCurrentIndex((i) =>
                                   (i - 1 + images.length) % images.length,
-                                )
-                              }
+                                );
+                              }}
                               className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"
                             >
                               ◀
                             </button>
                           )}
 
-                          <div
-                            className="relative w-full max-w-[280px] sm:max-w-[340px] rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden"
-                          >
-                            <ColorPickerOverlay
-                              imageUrl={currentImage?.previewUrl ?? ''}
-                              colors={currentImage?.colorPositions ?? []}
-                              onColorsChange={(newColors) => {
-                                if (!currentImage) return;
-                                setImages((prev) => {
-                                  const updated = [...prev];
-                                  updated[currentIndex] = {
-                                    ...currentImage,
-                                    colorPositions: newColors,
-                                    mainColors: newColors.map(c => c.hex),
-                                  };
-                                  return updated;
-                                });
-                              }}
-                              maxColors={5}
-                              className="h-full w-full"
-                            />
-                          </div>
+                          <ColorPickerOverlay
+                            imageUrl={currentImage?.previewUrl ?? ''}
+                            colors={currentImage?.colorPositions ?? []}
+                            onColorsChange={(newColors) => {
+                              if (!currentImage) return;
+                              setImages((prev) => {
+                                const updated = [...prev];
+                                updated[currentIndex] = {
+                                  ...currentImage,
+                                  colorPositions: newColors,
+                                  mainColors: newColors.map(c => c.hex),
+                                };
+                                return updated;
+                              });
+                            }}
+                            maxColors={5}
+                            maxHeight="none"
+                            className="w-full [&>img]:w-full [&>img]:h-auto [&>img]:max-h-none"
+                          />
 
                           {images.length > 1 && (
                             <button
                               type="button"
-                              onClick={() =>
-                                setCurrentIndex((i) => (i + 1) % images.length)
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentIndex((i) => (i + 1) % images.length);
+                              }}
                               className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"
                             >
                               ▶
                             </button>
                           )}
-                        </div>
+                        </>
                       ) : (
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className="relative flex w-full max-w-[280px] sm:max-w-[340px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-gray-400 hover:bg-gray-100"
-                          style={{
-                            aspectRatio: '9/16',
-                          }}
-                        >
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
                           <div className="mb-2 rounded-full bg-white p-4 shadow-sm">
                             <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
                           </div>

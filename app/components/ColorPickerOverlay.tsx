@@ -166,7 +166,7 @@ export default function ColorPickerOverlay({
     return (
         <div
             ref={containerRef}
-            className={`relative inline-block cursor-crosshair rounded-2xl overflow-hidden shadow-lg ${className}`}
+            className={`relative block cursor-crosshair rounded-2xl overflow-hidden shadow-lg ${className}`}
             onClick={handleContainerClick}
             style={{ touchAction: 'none', maxHeight, maxWidth: '100%' }}
         >
@@ -174,7 +174,7 @@ export default function ColorPickerOverlay({
             <img
                 src={imageUrl}
                 alt="Color picker"
-                className="block w-auto h-auto object-contain"
+                className="block w-full h-auto object-contain"
                 style={{ maxHeight, maxWidth: '100%' }}
                 draggable={false}
             />
