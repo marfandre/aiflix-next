@@ -97,6 +97,7 @@ export async function POST(req: Request) {
       description,
       prompt,
       model,
+      seed,
       tags,        // новое поле тегов
     } = await req.json();
 
@@ -133,6 +134,11 @@ export async function POST(req: Request) {
     const modelToSave =
       typeof model === "string" && model.trim()
         ? model.trim().toLowerCase()
+        : null;
+
+    const seedToSave =
+      typeof seed === "string" && seed.trim()
+        ? seed.trim()
         : null;
 
     const tagsToSave =
@@ -252,6 +258,7 @@ export async function POST(req: Request) {
 
         aspect_ratio: img.aspectRatio ?? null,
         model: modelToSave,
+        seed: seedToSave,
         tags: tagsToSave,
       };
     });

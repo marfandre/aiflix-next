@@ -60,10 +60,44 @@ type ExtractedPalette = {
   colorPositions: ColorMarker[];  // Координаты цветов на изображении
 };
 
+// Сжимаем картинку на клиенте перед отправкой (Vercel лимит 4.5MB)
+async function compressImageForPalette(file: File): Promise<Blob> {
+  // Если файл маленький — отправляем как есть
+  if (file.size < 2 * 1024 * 1024) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Уменьшаем до макс 1000px по большей стороне (для палитры хватит)
+      const maxDim = 1000;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => resolve(blob || file),
+        'image/jpeg',
+        0.85
+      );
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 async function extractColorsFromFile(file: File): Promise<ExtractedPalette | null> {
   try {
+    const compressed = await compressImageForPalette(file);
+    console.log(`[palette] Original: ${(file.size / 1024).toFixed(0)}KB → Sent: ${(compressed.size / 1024).toFixed(0)}KB`);
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressed, 'image.jpg');
 
     const res = await fetch('/api/palette', {
       method: 'POST',
@@ -71,11 +105,13 @@ async function extractColorsFromFile(file: File): Promise<ExtractedPalette | nul
     });
 
     if (!res.ok) {
-      console.error('Palette API error', await res.text());
+      const errText = await res.text();
+      console.error('Palette API error:', res.status, errText);
       return null;
     }
 
     const data = await res.json();
+    console.log(`[palette] Algorithm: ${data.algorithm}, colors: ${data.colors?.length}`);
     return {
       colors: data.colors ?? [],
       colorWeights: data.colorWeights ?? [],
@@ -84,7 +120,7 @@ async function extractColorsFromFile(file: File): Promise<ExtractedPalette | nul
       colorPositions: data.colorPositions ?? [],
     };
   } catch (err) {
-    console.error('extractColorsFromFile API error:', err);
+    console.error('extractColorsFromFile error:', err);
     return null;
   }
 }
@@ -423,6 +459,7 @@ export default function UploadPage() {
 
   // Модель
   const [model, setModel] = useState<string>('');
+  const [seed, setSeed] = useState<string>('');
 
   // Теги (жанры + атмосфера + сцена)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -629,6 +666,7 @@ export default function UploadPage() {
             description,
             prompt: prompt || null,
             model: model || null,
+            seed: seed || null,
             tags: selectedTags.length ? selectedTags : null,
             colors: videoColors.length ? videoColors.slice(0, 5) : null,
           }),
@@ -668,6 +706,7 @@ export default function UploadPage() {
         setSelectedVideoPaletteColor(null);
         setShowVideoShades(false);
         setModel('');
+        setSeed('');
         setSelectedTags([]);
       } else {
         // ---------- IMAGE (карусель) ----------
@@ -744,6 +783,7 @@ export default function UploadPage() {
             description,
             prompt,
             model: model || null,
+            seed: seed || null,
             tags: selectedTags.length ? selectedTags : null,
           }),
         });
@@ -758,6 +798,7 @@ export default function UploadPage() {
         setDescription('');
         setPrompt('');
         setModel('');
+        setSeed('');
         setSelectedTags([]);
 
         // Чистим локальные превью
@@ -999,6 +1040,19 @@ export default function UploadPage() {
                     <option value="playground">Playground</option>
                     <option value="krea">KREA</option>
                   </datalist>
+                </div>
+
+                {/* Seed */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-600">Seed</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={seed}
+                    onChange={(e) => setSeed(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="Необязательно"
+                    className={`w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:border-gray-300 focus:bg-white focus:outline-none transition ${!seed ? 'text-gray-400' : 'text-gray-900'}`}
+                  />
                 </div>
 
                 {/* Кнопка загрузки */}
