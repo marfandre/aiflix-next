@@ -852,7 +852,7 @@ export default function UploadPage() {
 
           <form onSubmit={onSubmit}>
             {/* Переключатель Видео / Картинка — над всем контентом */}
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 mt-3 sm:mt-0">
               <button
                 type="button"
                 onClick={() => {
@@ -1621,10 +1621,7 @@ export default function UploadPage() {
                           )}
 
                           <div
-                            className="relative w-full rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden"
-                            style={{
-                              width: 340,
-                            }}
+                            className="relative w-full max-w-[280px] sm:max-w-[340px] rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden"
                           >
                             <ColorPickerOverlay
                               imageUrl={currentImage?.previewUrl ?? ''}
@@ -1661,9 +1658,8 @@ export default function UploadPage() {
                       ) : (
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="relative flex w-full flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-gray-400 hover:bg-gray-100"
+                          className="relative flex w-full max-w-[280px] sm:max-w-[340px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-gray-400 hover:bg-gray-100"
                           style={{
-                            width: 340,
                             aspectRatio: '340/420',
                           }}
                         >
@@ -1686,7 +1682,7 @@ export default function UploadPage() {
 
                     {/* Палитра цветов */}
                     {displayMainColors.length > 0 && (
-                      <div className="relative mt-4 flex items-center justify-center">
+                      <div className="relative mt-2 flex items-center justify-center">
                         <div className="flex items-center justify-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm border border-gray-100">
                           {displayMainColors.map((c, index) => {
                             const isSelected = isEditingPalette && selectedIndex === index;
@@ -1792,7 +1788,7 @@ export default function UploadPage() {
                               setDraftColors([...currentImage.mainColors.slice(0, 5)]);
                               setSelectedIndex(0);
                             }}
-                            className="absolute -right-12 top-1/2 -translate-y-1/2 rounded-full bg-white p-2 text-gray-500 shadow border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition"
+                            className="ml-2 md:absolute md:-right-12 md:top-1/2 md:-translate-y-1/2 rounded-full bg-white p-2 text-gray-500 shadow border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition flex-shrink-0"
                             title="Редактировать цвета"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
