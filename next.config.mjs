@@ -8,6 +8,7 @@ const nextConfig = {
       '@huggingface/transformers',
       'onnxruntime-node',
       'sharp',
+      'node-vibrant',
     ],
   },
   images: {

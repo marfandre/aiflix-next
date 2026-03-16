@@ -1621,7 +1621,7 @@ export default function UploadPage() {
                           )}
 
                           <div
-                            className="relative w-full w-full sm:max-w-[340px] rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden"
+                            className="relative w-full max-w-[280px] sm:max-w-[340px] rounded-3xl border-2 border-dashed border-gray-200 bg-white shadow-sm overflow-hidden"
                           >
                             <ColorPickerOverlay
                               imageUrl={currentImage?.previewUrl ?? ''}
@@ -1658,9 +1658,9 @@ export default function UploadPage() {
                       ) : (
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="relative flex w-full sm:max-w-[340px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-gray-400 hover:bg-gray-100"
+                          className="relative flex w-full max-w-[280px] sm:max-w-[340px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-gray-400 hover:bg-gray-100"
                           style={{
-                            aspectRatio: '340/420',
+                            aspectRatio: '9/16',
                           }}
                         >
                           <div className="mb-2 rounded-full bg-white p-4 shadow-sm">
