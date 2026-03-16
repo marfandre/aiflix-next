@@ -12,6 +12,7 @@ const getVibrant = async () => {
 import namer from 'color-namer';
 
 export const runtime = 'nodejs';
+export const maxDuration = 30;
 
 // =====================
 // Утилиты
@@ -360,7 +361,9 @@ async function extractColorsWithVibrant(
   const { colorCount = 5 } = options;
 
   // Vibrant извлекает палитру
+  console.log('[palette] Loading Vibrant...');
   const Vibrant = await getVibrant();
+  console.log('[palette] Vibrant loaded, extracting palette...');
   const palette = await Vibrant.from(buffer)
     .quality(1) // Высокое качество
     .getPalette();
@@ -521,6 +524,7 @@ export async function POST(req: NextRequest) {
 
     const arrayBuffer = await (file as any).arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log('[palette] Buffer size:', buffer.length, 'bytes');
 
     const result = await extractColorsWithVibrant(buffer, {
       colorCount,

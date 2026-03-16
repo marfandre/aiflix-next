@@ -1595,7 +1595,7 @@ export default function UploadPage() {
               {type === 'image' && (
                 <>
 
-                  <div className="w-full md:w-[340px] md:flex-shrink-0 flex flex-col items-center order-1 md:order-2">
+                  <div className="w-full md:flex-1 flex flex-col items-center order-1 md:order-2">
                     <div className="mb-3 flex w-full items-center justify-between hidden md:flex">
                       <h2 className="text-sm font-semibold text-gray-700">
                         Предпросмотр картинок
