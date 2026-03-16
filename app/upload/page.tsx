@@ -783,8 +783,8 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6">
-      <h1 className="mb-4 text-3xl font-bold">Загрузка</h1>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <h1 className="mb-4 text-2xl sm:text-3xl font-bold">Загрузка</h1>
 
 
 
@@ -851,9 +851,9 @@ export default function UploadPage() {
           )}
 
           <form onSubmit={onSubmit}>
-            <div className="mt-2 flex flex-col md:flex-row gap-10 items-start">
+            <div className="mt-2 flex flex-col md:flex-row gap-6 md:gap-10 items-start">
               {/* Левая колонка — поля формы (вторичная) */}
-              <div className="space-y-4" style={{ width: 380, flexShrink: 0 }}>
+              <div className="w-full md:w-[380px] md:flex-shrink-0 space-y-4 order-2 md:order-1">
                 {/* Переключатель Видео / Картинка */}
                 <div className="flex items-center gap-2 pb-2">
                   <button
@@ -1026,9 +1026,9 @@ export default function UploadPage() {
 
               {/* Правая колонка — главная карточка превью */}
               {type === 'video' && (
-                <div className="flex-1 flex flex-col items-center">
+                <div className="w-full md:flex-1 flex flex-col items-center order-1 md:order-2">
                   <div
-                    className={`relative w-full max-w-[340px] rounded-3xl border-2 border-dashed bg-white shadow-sm overflow-hidden transition-all ${videoObjectUrl ? 'border-transparent border-dashed-none' : 'border-gray-200 cursor-pointer hover:border-gray-300 hover:shadow-md'}`}
+                    className={`relative w-full max-w-[280px] sm:max-w-[340px] rounded-3xl border-2 border-dashed bg-white shadow-sm overflow-hidden transition-all ${videoObjectUrl ? 'border-transparent border-dashed-none' : 'border-gray-200 cursor-pointer hover:border-gray-300 hover:shadow-md'}`}
                     style={videoObjectUrl ? {} : { aspectRatio: '9/16' }}
                     onClick={() => {
                       if (!videoObjectUrl) {
@@ -1160,7 +1160,7 @@ export default function UploadPage() {
 
                   {/* Таймлайн с цветовыми метками */}
                   {videoObjectUrl && videoFrames.length > 0 && (
-                    <div className="mt-3 w-full max-w-[340px]">
+                    <div className="mt-3 w-full max-w-[280px] sm:max-w-[340px]">
                       <div className="flex items-center gap-2">
                         {/* Play/Pause кнопка */}
                         <button
@@ -1596,7 +1596,7 @@ export default function UploadPage() {
               {type === 'image' && (
                 <>
 
-                  <div className="flex flex-col items-center" style={{ width: 340, flexShrink: 0 }}>
+                  <div className="w-full md:w-[340px] md:flex-shrink-0 flex flex-col items-center order-1 md:order-2">
                     <div className="mb-3 flex w-full items-center justify-between">
                       <h2 className="text-sm font-semibold text-gray-700">
                         Предпросмотр картинок
