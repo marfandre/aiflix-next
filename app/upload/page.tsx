@@ -784,7 +784,7 @@ export default function UploadPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      <h1 className="mb-4 text-2xl sm:text-3xl font-bold">Загрузка</h1>
+      <h1 className="mb-4 text-2xl sm:text-3xl font-bold hidden sm:block">Загрузка</h1>
 
 
 
@@ -851,48 +851,47 @@ export default function UploadPage() {
           )}
 
           <form onSubmit={onSubmit}>
-            <div className="mt-2 flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+            {/* Переключатель Видео / Картинка — над всем контентом */}
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setType('video');
+                  setFile(null);
+                  setIsPaletteLoading(false);
+                  setIsEditingPalette(false);
+                  setDraftColors(null);
+                  setSelectedIndex(null);
+                  setSelectedTags([]);
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${type === 'video' ? 'text-white shadow-sm' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                style={type === 'video' ? { backgroundColor: '#1E3A5F' } : undefined}
+              >
+                Видео
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setType('image');
+                  setFile(null);
+                  setSelectedTags([]);
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${type === 'image' ? 'text-white shadow-sm' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                style={type === 'image' ? { backgroundColor: '#1E3A5F' } : undefined}
+              >
+                Картинка
+              </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
               {/* Левая колонка — поля формы (вторичная) */}
               <div className="w-full md:w-[380px] md:flex-shrink-0 space-y-4 order-2 md:order-1">
-                {/* Переключатель Видео / Картинка */}
-                <div className="flex items-center gap-2 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setType('video');
-                      setFile(null);
-                      // Сбрасываем палитру/редактирование, но НЕ удаляем картинки
-                      setIsPaletteLoading(false);
-                      setIsEditingPalette(false);
-                      setDraftColors(null);
-                      setSelectedIndex(null);
-                      setSelectedTags([]);
-                      setError(null);
-                      setSuccess(null);
-                    }}
-                    className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${type === 'video' ? 'text-white shadow-sm' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    style={type === 'video' ? { backgroundColor: '#1E3A5F' } : undefined}
-                  >
-                    Видео
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setType('image');
-                      setFile(null);
-                      setSelectedTags([]);
-                      setError(null);
-                      setSuccess(null);
-                    }}
-                    className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${type === 'image' ? 'text-white shadow-sm' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    style={type === 'image' ? { backgroundColor: '#1E3A5F' } : undefined}
-                  >
-                    Картинка
-                  </button>
-                </div>
-
                 {/* Промт */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-600">Промт</label>
