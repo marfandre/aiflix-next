@@ -461,6 +461,12 @@ export default function UploadPage() {
   const [model, setModel] = useState<string>('');
   const [seed, setSeed] = useState<string>('');
 
+  // Источник (импорт)
+  const [showSource, setShowSource] = useState(false);
+  const [sourceAuthor, setSourceAuthor] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourcePlatform, setSourcePlatform] = useState('');
+
   // Теги (жанры + атмосфера + сцена)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
@@ -667,6 +673,9 @@ export default function UploadPage() {
             prompt: prompt || null,
             model: model || null,
             seed: seed || null,
+            source: sourcePlatform || null,
+            source_author: sourceAuthor || null,
+            source_url: sourceUrl || null,
             tags: selectedTags.length ? selectedTags : null,
             colors: videoColors.length ? videoColors.slice(0, 5) : null,
           }),
@@ -707,6 +716,10 @@ export default function UploadPage() {
         setShowVideoShades(false);
         setModel('');
         setSeed('');
+        setSourceAuthor('');
+        setSourceUrl('');
+        setSourcePlatform('');
+        setShowSource(false);
         setSelectedTags([]);
       } else {
         // ---------- IMAGE (карусель) ----------
@@ -784,6 +797,9 @@ export default function UploadPage() {
             prompt,
             model: model || null,
             seed: seed || null,
+            source: sourcePlatform || null,
+            source_author: sourceAuthor || null,
+            source_url: sourceUrl || null,
             tags: selectedTags.length ? selectedTags : null,
           }),
         });
@@ -799,6 +815,10 @@ export default function UploadPage() {
         setPrompt('');
         setModel('');
         setSeed('');
+        setSourceAuthor('');
+        setSourceUrl('');
+        setSourcePlatform('');
+        setShowSource(false);
         setSelectedTags([]);
 
         // Чистим локальные превью
@@ -1053,6 +1073,71 @@ export default function UploadPage() {
                     placeholder="Необязательно"
                     className={`w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:border-gray-300 focus:bg-white focus:outline-none transition ${!seed ? 'text-gray-400' : 'text-gray-900'}`}
                   />
+                </div>
+
+                {/* Источник (импорт) */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSource(!showSource)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className={`w-4 h-4 transition-transform ${showSource ? 'rotate-90' : ''}`}
+                    >
+                      <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                    </svg>
+                    Источник
+                    {(sourceAuthor || sourceUrl) && (
+                      <span className="ml-1 text-xs text-blue-500">заполнено</span>
+                    )}
+                  </button>
+
+                  {showSource && (
+                    <div className="mt-3 space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Платформа</label>
+                        <select
+                          value={sourcePlatform}
+                          onChange={(e) => setSourcePlatform(e.target.value)}
+                          className={`w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-300 focus:outline-none transition ${!sourcePlatform ? 'text-gray-400' : 'text-gray-900'}`}
+                        >
+                          <option value="">Не указана</option>
+                          <option value="civitai">Civitai</option>
+                          <option value="lexica">Lexica</option>
+                          <option value="openart">OpenArt</option>
+                          <option value="prompthero">PromptHero</option>
+                          <option value="deviantart">DeviantArt</option>
+                          <option value="reddit">Reddit</option>
+                          <option value="twitter">Twitter / X</option>
+                          <option value="other">Другое</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Автор</label>
+                        <input
+                          type="text"
+                          value={sourceAuthor}
+                          onChange={(e) => setSourceAuthor(e.target.value)}
+                          placeholder="Ник автора на платформе"
+                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-300 focus:outline-none transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Ссылка</label>
+                        <input
+                          type="url"
+                          value={sourceUrl}
+                          onChange={(e) => setSourceUrl(e.target.value)}
+                          placeholder="https://civitai.com/images/..."
+                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-300 focus:outline-none transition"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Кнопка загрузки */}

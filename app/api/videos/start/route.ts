@@ -12,7 +12,7 @@ const mux = new Mux({
 
 export async function POST(req: Request) {
   try {
-    const { title, description, prompt, model, seed, genres, mood, colors } = await req.json();
+    const { title, description, prompt, model, seed, source, source_author, source_url, genres, mood, colors } = await req.json();
 
     // 1) Пользователь
     const supa = createRouteHandlerClient({ cookies });
@@ -62,6 +62,21 @@ export async function POST(req: Request) {
         ? seed.trim()
         : null;
 
+    const sourceNorm =
+      typeof source === 'string' && source.trim()
+        ? source.trim().toLowerCase()
+        : null;
+
+    const sourceAuthorNorm =
+      typeof source_author === 'string' && source_author.trim()
+        ? source_author.trim()
+        : null;
+
+    const sourceUrlNorm =
+      typeof source_url === 'string' && source_url.trim()
+        ? source_url.trim()
+        : null;
+
     let genresToSave: string[] | null = null;
     if (Array.isArray(genres) && genres.length) {
       genresToSave = genres
@@ -94,6 +109,9 @@ export async function POST(req: Request) {
       playback_id: null, // заполнит webhook
       model: modelNorm,
       seed: seedNorm,
+      source: sourceNorm,
+      source_author: sourceAuthorNorm,
+      source_url: sourceUrlNorm,
       genres: genresToSave,
       mood: moodToSave,
       colors: colorsToSave,

@@ -98,6 +98,9 @@ export async function POST(req: Request) {
       prompt,
       model,
       seed,
+      source,
+      source_author,
+      source_url,
       tags,        // новое поле тегов
     } = await req.json();
 
@@ -139,6 +142,21 @@ export async function POST(req: Request) {
     const seedToSave =
       typeof seed === "string" && seed.trim()
         ? seed.trim()
+        : null;
+
+    const sourceToSave =
+      typeof source === "string" && source.trim()
+        ? source.trim().toLowerCase()
+        : null;
+
+    const sourceAuthorToSave =
+      typeof source_author === "string" && source_author.trim()
+        ? source_author.trim()
+        : null;
+
+    const sourceUrlToSave =
+      typeof source_url === "string" && source_url.trim()
+        ? source_url.trim()
         : null;
 
     const tagsToSave =
@@ -259,6 +277,9 @@ export async function POST(req: Request) {
         aspect_ratio: img.aspectRatio ?? null,
         model: modelToSave,
         seed: seedToSave,
+        source: sourceToSave,
+        source_author: sourceAuthorToSave,
+        source_url: sourceUrlToSave,
         tags: tagsToSave,
       };
     });
