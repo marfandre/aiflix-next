@@ -40,7 +40,12 @@
       "Bash(node -e \"const {createClient}=require\\(''@supabase/supabase-js''\\); const s=createClient\\(''https://tavfxeskxlqnfdzgfmnq.supabase.co'',''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhdmZ4ZXNreGxxbmZkemdmbW5xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTg1NDg1OSwiZXhwIjoyMDc1NDMwODU5fQ.EJcuobYzGF4TEwpQ2-ybyStlhzL7xb_W0YVfRw18jHI''\\); s.from\\(''images_meta''\\).select\\(''colors''\\).not\\(''colors'',''is'',null\\).limit\\(2\\).then\\(r=>console.log\\(JSON.stringify\\(r.data?.[0]??r.error\\)\\)\\).catch\\(e=>console.log\\(''ERR:'',e.message\\)\\)\")",
       "Bash(node -e \"fetch\\(''https://tavfxeskxlqnfdzgfmnq.supabase.co/rest/v1/images_meta?select=colors&colors=not.is.null&limit=1'',{headers:{''apikey'':''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhdmZ4ZXNreGxxbmZkemdmbW5xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTg1NDg1OSwiZXhwIjoyMDc1NDMwODU5fQ.EJcuobYzGF4TEwpQ2-ybyStlhzL7xb_W0YVfRw18jHI''}}\\).then\\(r=>r.json\\(\\)\\).then\\(d=>console.log\\(JSON.stringify\\(d\\).slice\\(0,200\\)\\)\\).catch\\(e=>console.log\\(''ERR:'',e.message,e.cause\\)\\)\")",
       "Bash(xargs cat:*)",
-      "Bash(node -e \"const pkg=require\\(''c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/node_modules/node-vibrant/package.json''\\); console.log\\(JSON.stringify\\(pkg.exports, null, 2\\)\\)\")"
+      "Bash(node -e \"const pkg=require\\(''c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/node_modules/node-vibrant/package.json''\\); console.log\\(JSON.stringify\\(pkg.exports, null, 2\\)\\)\")",
+      "WebFetch(domain:wiki.civitai.com)",
+      "WebFetch(domain:civitai.com)",
+      "WebFetch(domain:developer.civitai.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(ls \"c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/.env\"*)"
     ]
   }
 }
