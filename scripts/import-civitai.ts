@@ -101,7 +101,7 @@ async function uploadToStorage(buffer: Buffer, filename: string): Promise<string
         ...supabaseHeaders,
         'Content-Type': 'image/jpeg',
       },
-      body: buffer,
+      body: new Uint8Array(buffer),
     }
   );
 
