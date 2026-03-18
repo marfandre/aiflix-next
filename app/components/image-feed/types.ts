@@ -19,6 +19,10 @@ export type ImageRow = {
   aspect_ratio?: string | null;
   tags?: string[] | null;
   images_count?: number | null;
+  source?: string | null;
+  source_author?: string | null;
+  source_url?: string | null;
+  seed?: string | null;
   profiles:
   | { username: string | null; avatar_url: string | null }[]
   | { username: string | null; avatar_url: string | null }

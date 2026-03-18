@@ -176,6 +176,117 @@ async function extractColors(buffer: Buffer): Promise<{
   }
 }
 
+// ─── Поиск координат цветов на изображении ───
+
+interface ColorPosition {
+  hex: string;
+  x: number;
+  y: number;
+}
+
+async function findColorPositions(
+  buffer: Buffer,
+  colors: string[]
+): Promise<ColorPosition[]> {
+  if (!colors.length) return [];
+  try {
+    const sharp = (await import('sharp')).default;
+    const { data, info } = await sharp(buffer)
+      .resize(200, 200, { fit: 'inside' })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    const targetRgbs = colors.map(hex => hexToRgb(hex));
+    const THRESHOLD = 60;
+    const GRID = 10;
+    const gridW = Math.ceil(info.width / GRID);
+    const gridH = Math.ceil(info.height / GRID);
+
+    const grids = targetRgbs.map(() =>
+      Array.from({ length: gridH }, () => new Float64Array(gridW))
+    );
+
+    for (let y = 0; y < info.height; y++) {
+      for (let x = 0; x < info.width; x++) {
+        const i = (y * info.width + x) * info.channels;
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+
+        let bestIdx = -1, bestDist = Infinity;
+        for (let ci = 0; ci < targetRgbs.length; ci++) {
+          const t = targetRgbs[ci];
+          const dist = Math.sqrt((r - t.r) ** 2 + (g - t.g) ** 2 + (b - t.b) ** 2);
+          if (dist < bestDist) { bestDist = dist; bestIdx = ci; }
+        }
+
+        if (bestIdx >= 0 && bestDist < THRESHOLD) {
+          const gx = Math.min(Math.floor(x / GRID), gridW - 1);
+          const gy = Math.min(Math.floor(y / GRID), gridH - 1);
+          grids[bestIdx][gy][gx] += 1 / (1 + bestDist);
+        }
+      }
+    }
+
+    const positions: ColorPosition[] = [];
+
+    for (let ci = 0; ci < colors.length; ci++) {
+      let maxDensity = 0, peakGx = 0, peakGy = 0;
+      for (let gy = 0; gy < gridH; gy++) {
+        for (let gx = 0; gx < gridW; gx++) {
+          if (grids[ci][gy][gx] > maxDensity) {
+            maxDensity = grids[ci][gy][gx];
+            peakGx = gx; peakGy = gy;
+          }
+        }
+      }
+
+      if (maxDensity > 0) {
+        positions.push({
+          hex: colors[ci],
+          x: ((peakGx + 0.5) * GRID) / info.width,
+          y: ((peakGy + 0.5) * GRID) / info.height,
+        });
+      } else {
+        // Fallback: ищем ближайший пиксель
+        let bestDist = Infinity, bestX = 0.5, bestY = 0.5;
+        const t = targetRgbs[ci];
+        for (let y = 0; y < info.height; y += 2) {
+          for (let x = 0; x < info.width; x += 2) {
+            const idx = (y * info.width + x) * info.channels;
+            const dist = Math.sqrt(
+              (data[idx] - t.r) ** 2 + (data[idx + 1] - t.g) ** 2 + (data[idx + 2] - t.b) ** 2
+            );
+            if (dist < bestDist) { bestDist = dist; bestX = x / info.width; bestY = y / info.height; }
+          }
+        }
+        positions.push({ hex: colors[ci], x: bestX, y: bestY });
+      }
+    }
+
+    // Разводим слишком близкие маркеры
+    const MIN_DIST = 0.08;
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const dx = positions[j].x - positions[i].x;
+        const dy = positions[j].y - positions[i].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MIN_DIST && dist > 0) {
+          const scale = (MIN_DIST - dist) / 2 / dist;
+          positions[i].x = Math.max(0.02, Math.min(0.98, positions[i].x - dx * scale));
+          positions[i].y = Math.max(0.02, Math.min(0.98, positions[i].y - dy * scale));
+          positions[j].x = Math.max(0.02, Math.min(0.98, positions[j].x + dx * scale));
+          positions[j].y = Math.max(0.02, Math.min(0.98, positions[j].y + dy * scale));
+        }
+      }
+    }
+
+    return positions;
+  } catch (err) {
+    console.error('  ⚠ Ошибка расчёта позиций цветов:', err);
+    return colors.map((hex, i) => ({ hex, x: 0.2 + i * 0.15, y: 0.3 + i * 0.1 }));
+  }
+}
+
 // ─── Aspect ratio ───
 
 function getAspectRatio(w: number, h: number): string {
@@ -279,6 +390,11 @@ async function main() {
       const { colors, colorWeights } = await extractColors(buffer);
       console.log(`  ✓ ${colors.length} цветов: ${colors.join(', ')}`);
 
+      // 2.5. Рассчитываем позиции цветов на изображении
+      console.log('  📍 Рассчитываем позиции цветов...');
+      const colorPositions = await findColorPositions(buffer, colors);
+      console.log(`  ✓ ${colorPositions.length} позиций`);
+
       // 3. Загружаем в Storage
       console.log('  ☁ Загружаем в Storage...');
       const ext = img.url.includes('.png') ? 'png' : 'jpg';
@@ -305,6 +421,7 @@ async function main() {
         source_url: `https://civitai.com/images/${img.id}`,
         colors: colors.length ? colors : null,
         color_weights: colorWeights.length ? colorWeights : null,
+        color_positions: colorPositions.length ? colorPositions : null,
         aspect_ratio: getAspectRatio(img.width, img.height),
         dominant_color: buckets[0] ?? null,
         secondary_color: buckets[1] ?? null,

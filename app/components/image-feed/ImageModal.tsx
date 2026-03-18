@@ -532,6 +532,35 @@ export default function ImageModal({
                 </div>
               )}
 
+              {/* Source */}
+              {selected.source && (
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u0418\u0441\u0442\u043E\u0447\u043D\u0438\u043A"}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selected.source_author && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/80">
+                        <svg className="h-3 w-3 text-white/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        {selected.source_author}
+                      </span>
+                    )}
+                    {selected.source_url && (
+                      <a href={selected.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/60 transition hover:bg-white/20 hover:text-white/90">
+                        <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        {selected.source === 'civitai' ? 'CivitAI' : selected.source}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Seed */}
+              {selected.seed && (
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">Seed</h3>
+                  <span className="inline-block rounded-full bg-white/10 px-2.5 py-1 text-xs font-mono text-white/80">{selected.seed}</span>
+                </div>
+              )}
+
               {/* Model + Format row */}
               <div className="flex flex-wrap items-center gap-3">
                 <div>
@@ -671,6 +700,40 @@ export default function ImageModal({
                   <span className="text-sm text-white font-medium">{nick}</span>
                 </Link>
               </div>
+
+              {/* Source */}
+              {selected.source && (
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0418\u0441\u0442\u043E\u0447\u043D\u0438\u043A"}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selected.source_author && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-sm text-white/80">
+                        <svg className="h-3.5 w-3.5 text-white/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        {selected.source_author}
+                      </span>
+                    )}
+                    {selected.source_url && (
+                      <a
+                        href={selected.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-sm text-white/60 transition hover:bg-white/10 hover:text-white/90"
+                      >
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        {selected.source === 'civitai' ? 'CivitAI' : selected.source}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Seed */}
+              {selected.seed && (
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">Seed</h3>
+                  <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{selected.seed}</span>
+                </div>
+              )}
 
               {/* Model */}
               <div>

@@ -84,7 +84,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       let query = supa
         .from("images_meta")
         .select(
-          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, profiles(username, avatar_url)"
+          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)"
         )
         .order("created_at", { ascending: false })
         .limit(60);
@@ -163,7 +163,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     try {
       const { data: freshData, error: freshError } = await supa
         .from("images_meta")
-        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, profiles(username, avatar_url)")
+        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)")
         .eq("id", im.id)
         .single();
 

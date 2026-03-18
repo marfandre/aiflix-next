@@ -45,7 +45,9 @@
       "WebFetch(domain:civitai.com)",
       "WebFetch(domain:developer.civitai.com)",
       "WebFetch(domain:github.com)",
-      "Bash(ls \"c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/.env\"*)"
+      "Bash(ls \"c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/.env\"*)",
+      "Bash(grep -r \"color.*dot\\\\|indicator\\\\|position.*color\\\\|x.*y.*color\" /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/app --include=*.tsx --include=*.ts)",
+      "Bash(find /c/Users/Андрей/Downloads/aiflix_mvp/aiflix -name *import* -o -name *script*)"
     ]
   }
 }
