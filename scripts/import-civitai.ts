@@ -287,6 +287,49 @@ async function findColorPositions(
   }
 }
 
+// ─── AI-тегирование через Imagga ───
+
+const GENERIC_TAGS = ['no person', 'one person', 'horizontal', 'vertical', 'image'];
+
+async function generateTagsFromUrl(imageUrl: string, limit = 5): Promise<string[]> {
+  const apiKey = process.env.IMAGGA_API_KEY;
+  const apiSecret = process.env.IMAGGA_API_SECRET;
+  if (!apiKey || !apiSecret) {
+    console.log('  ⚠ IMAGGA_API_KEY/SECRET не заданы, теги пропущены');
+    return [];
+  }
+
+  try {
+    const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+    const res = await fetch(
+      `https://api.imagga.com/v2/tags?image_url=${encodeURIComponent(imageUrl)}&limit=10&language=en`,
+      { headers: { Authorization: `Basic ${auth}` } }
+    );
+
+    if (res.status === 429 || res.status === 403) {
+      console.log('  ⚠ Imagga квота исчерпана, теги пропущены');
+      return [];
+    }
+    if (!res.ok) {
+      console.log(`  ⚠ Imagga ошибка: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const rawTags = data?.result?.tags;
+    if (!Array.isArray(rawTags)) return [];
+
+    return rawTags
+      .filter((t: any) => t.confidence >= 30)
+      .map((t: any) => t.tag.en.toLowerCase().trim())
+      .filter((name: string) => !GENERIC_TAGS.includes(name))
+      .slice(0, limit);
+  } catch (err) {
+    console.error('  ⚠ Ошибка тегирования:', err);
+    return [];
+  }
+}
+
 // ─── Aspect ratio ───
 
 function getAspectRatio(w: number, h: number): string {
@@ -401,6 +444,11 @@ async function main() {
       const path = await uploadToStorage(buffer, `civitai_${img.id}.${ext}`);
       console.log(`  ✓ ${path}`);
 
+      // 3.5. Тегирование через Imagga
+      console.log('  🏷 Генерируем теги...');
+      const tags = await generateTagsFromUrl(img.url);
+      console.log(`  ✓ ${tags.length} тегов: ${tags.join(', ')}`);
+
       // 4. Бакеты
       const buckets = colors.map(mapToBucket);
 
@@ -428,6 +476,7 @@ async function main() {
         third_color: buckets[2] ?? null,
         fourth_color: buckets[3] ?? null,
         fifth_color: buckets[4] ?? null,
+        tags: tags.length ? tags : null,
         images_count: 1,
       };
 
