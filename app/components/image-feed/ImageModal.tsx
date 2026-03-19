@@ -787,10 +787,11 @@ export default function ImageModal({
               <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full flex-col gap-2 flex items-end z-10" style={{ paddingRight: '4px' }}>
                 {selected.accent_colors && selected.accent_colors.length > 0 && (
                   selected.accent_colors.map((c, index) => (
-                    <div key={`accent-spine-${c}-${index}`} className="flex items-center gap-1">
-                      <span className="text-[9px] font-mono text-white/50 uppercase">{c}</span>
-                      <div className="w-6 h-[1px] bg-white/30" />
-                      <div className="rounded-full border-2 border-white/30 shadow-lg flex-shrink-0" style={{ backgroundColor: c, width: 18, height: 18 }} title={`\u0410\u043A\u0446\u0435\u043D\u0442: ${c}`} />
+                    <div key={`accent-spine-${c}-${index}`} className="relative group/accent">
+                      <div className="rounded-full border-2 border-white/30 shadow-lg" style={{ backgroundColor: c, width: 18, height: 18 }} />
+                      <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-mono text-white/90 uppercase whitespace-nowrap opacity-0 group-hover/accent:opacity-100 transition-opacity duration-150 pointer-events-none">
+                        {c}
+                      </div>
                     </div>
                   ))
                 )}
@@ -798,16 +799,18 @@ export default function ImageModal({
                   if (!c) return null;
                   const isHovered = modalHoveredColor === index;
                   return (
-                    <div key={`spine-${c}-${index}`} className="flex items-center gap-1">
-                      <span className={`text-[9px] font-mono uppercase transition-all duration-150 ${isHovered ? 'text-white/90' : 'text-white/50'}`}>{c}</span>
-                      <div className={`w-8 h-[1px] transition-all duration-150 ${isHovered ? 'bg-white/60' : 'bg-white/30'}`} />
+                    <div key={`spine-${c}-${index}`} className="relative">
                       <div
-                        className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 flex-shrink-0 ${isHovered ? 'border border-white' : 'border border-white/30'}`}
+                        className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white scale-110' : 'border border-white/30'}`}
                         style={{ backgroundColor: c, width: 28, height: 28 }}
-                        title={c}
                         onMouseEnter={() => setModalHoveredColor(index)}
                         onMouseLeave={() => setModalHoveredColor(null)}
                       />
+                      {isHovered && (
+                        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-mono text-white/90 uppercase whitespace-nowrap pointer-events-none">
+                          {c}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
