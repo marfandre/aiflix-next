@@ -271,8 +271,9 @@ export async function POST(req: NextRequest) {
 
           // Авто-Тегирование (Imagga) отключено на бэкенде: теперь оно происходит на фронтенде перед загрузкой.
 
-          // === Генерируем NTC-имена цветов для поиска ===
+          // === Генерируем NTC-имена и семейства цветов для поиска ===
           let colorNames: string[] = [];
+          let colorFamilies: string[] = [];
           try {
             const namer = (await import('color-namer')).default;
             const finalColors = baseColors.length > 0 ? baseColors : [];
@@ -280,6 +281,12 @@ export async function POST(req: NextRequest) {
               try {
                 const result = namer(hex);
                 return result.ntc[0]?.name ?? '';
+              } catch { return ''; }
+            }).filter(Boolean);
+            colorFamilies = finalColors.map((hex) => {
+              try {
+                const result = namer(hex);
+                return result.basic[0]?.name?.toLowerCase() ?? '';
               } catch { return ''; }
             }).filter(Boolean);
           } catch (namerErr) {
@@ -298,7 +305,7 @@ export async function POST(req: NextRequest) {
 
           const colorsToSave = userAlreadySetColors ? existingFilm.colors : (baseColors.length > 0 ? baseColors : null);
 
-          // Если пользователь задал свои цвета — генерируем NTC-имена для них
+          // Если пользователь задал свои цвета — генерируем NTC-имена и семейства для них
           if (userAlreadySetColors && existingFilm.colors) {
             try {
               const namer = (await import('color-namer')).default;
@@ -306,6 +313,12 @@ export async function POST(req: NextRequest) {
                 try {
                   const result = namer(hex);
                   return result.ntc[0]?.name ?? '';
+                } catch { return ''; }
+              }).filter(Boolean);
+              colorFamilies = existingFilm.colors.map((hex: string) => {
+                try {
+                  const result = namer(hex);
+                  return result.basic[0]?.name?.toLowerCase() ?? '';
                 } catch { return ''; }
               }).filter(Boolean);
             } catch { /* already logged */ }
@@ -318,6 +331,7 @@ export async function POST(req: NextRequest) {
               colors_preview: previewColors.length > 0 ? previewColors : null,
               color_mode: colorMode,
               color_names: colorNames.length > 0 ? colorNames : null,
+              color_families: colorFamilies.length > 0 ? colorFamilies : null,
             })
             .eq('id', updatedFilm.id);
 

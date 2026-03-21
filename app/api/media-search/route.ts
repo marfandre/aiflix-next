@@ -313,10 +313,11 @@ export async function GET(req: NextRequest) {
   const moodsParam = sp.get("moods");
   const imageTypesParam = sp.get("imageTypes");
 
-  // === НОВЫЕ ПАРАМЕТРЫ ЦВЕТОВОГО ПОИСКА ===
+  // === ПАРАМЕТРЫ ЦВЕТОВОГО ПОИСКА ===
   const colorMode = sp.get("colorMode"); // 'simple' | 'dominant' | null
   const colorsParam = sp.get("colors");  // для простого режима: "red,blue,green" (старый формат)
   const hexColorsParam = sp.get("hexColors"); // новый формат: "#FF1744,#00E676"
+  const familiesParam = sp.get("families"); // поиск по семействам: "blue,pink,green"
 
   // Для режима доминантности: slot0, slot1, slot2, slot3, slot4
   const slot0 = sp.get("slot0");
@@ -336,6 +337,7 @@ export async function GET(req: NextRequest) {
     model: string | null;
     colors: string[] | null;
     color_names: string[] | null;
+    color_families: string[] | null;
   };
 
   type ImageRow = {
@@ -343,6 +345,7 @@ export async function GET(req: NextRequest) {
     title: string | null;
     colors: string[] | null;
     color_weights: number[] | null; // Веса цветов (процент площади)
+    color_families: string[] | null; // Семейства цветов
     tags: string[] | null;
     model: string | null;
     path: string | null;
@@ -365,7 +368,7 @@ export async function GET(req: NextRequest) {
 
     let q: any = supabase
       .from("films")
-      .select("id, title, genres, model, colors, color_names")
+      .select("id, title, genres, model, colors, color_names, color_families")
       .order("created_at", { ascending: false });
 
     if (!useFilmColorSearch) {
@@ -394,6 +397,14 @@ export async function GET(req: NextRequest) {
       const tags = tagsParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
       if (tags.length) {
         q = q.overlaps("tags", tags);
+      }
+    }
+
+    // Фильтр по семействам цветов (SQL-уровень — быстрее чем JS)
+    if (familiesParam) {
+      const families = familiesParam.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
+      if (families.length) {
+        q = q.contains("color_families", families);
       }
     }
 
@@ -486,7 +497,7 @@ export async function GET(req: NextRequest) {
     let q: any = supabase
       .from("images_meta")
       .select(
-        "id, title, colors, color_weights, tags, model, path, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
+        "id, title, colors, color_weights, color_families, tags, model, path, dominant_color, secondary_color, third_color, fourth_color, fifth_color"
       )
       .order("created_at", { ascending: false });
 
@@ -532,6 +543,14 @@ export async function GET(req: NextRequest) {
       const imageTypes = imageTypesParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
       if (imageTypes.length) {
         q = q.overlaps("tags", imageTypes);
+      }
+    }
+
+    // Фильтр по семействам цветов (SQL-уровень)
+    if (familiesParam) {
+      const families = familiesParam.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
+      if (families.length) {
+        q = q.contains("color_families", families);
       }
     }
 
@@ -702,6 +721,7 @@ export async function POST(req: NextRequest) {
   }
 
   pushArrayParam("colors");
+  pushArrayParam("families");
   pushArrayParam("models");
   pushArrayParam("moods");
   pushArrayParam("imageTypes");

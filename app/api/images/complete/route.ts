@@ -13,6 +13,7 @@ type IncomingImage = {
   colors?: string[] | null;
   colorWeights?: number[] | null; // Веса цветов (процент площади)
   colorNames?: string[] | null;  // NTC названия цветов для поиска
+  colorFamilies?: string[] | null; // Семейства цветов (basic: red, blue, ...)
   accentColors?: string[] | null; // Акцентные цвета
   colorPositions?: { hex: string; x: number; y: number }[] | null; // Координаты цветов
   aspectRatio?: string | null; // Соотношение сторон
@@ -91,6 +92,7 @@ export async function POST(req: Request) {
       colors,
       colorWeights,  // Веса цветов
       colorNames,  // NTC названия цветов
+      colorFamilies, // Семейства цветов
       accentColors, // Акцентные цвета
       colorPositions, // Координаты цветов на изображении
       title,
@@ -207,6 +209,20 @@ export async function POST(req: Request) {
         .filter(Boolean)
         .slice(0, 5);
 
+      // Семейства цветов (basic)
+      const rawColorFamilies: string[] =
+        (Array.isArray(img.colorFamilies) && img.colorFamilies.length
+          ? img.colorFamilies
+          : Array.isArray(colorFamilies) && colorFamilies.length
+            ? colorFamilies
+            : []) as string[];
+
+      const normalizedColorFamilies = rawColorFamilies
+        .filter((f) => typeof f === "string")
+        .map((f) => f.trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 5);
+
       // Акцентные цвета
       const rawAccentColors: string[] =
         (Array.isArray(img.accentColors) && img.accentColors.length
@@ -263,6 +279,9 @@ export async function POST(req: Request) {
 
         // NTC названия — для точного поиска по категориям
         color_names: normalizedColorNames.length ? normalizedColorNames : null,
+
+        // Семейства цветов — для быстрого фильтра (red, blue, green, ...)
+        color_families: normalizedColorFamilies.length ? normalizedColorFamilies : null,
 
         // Координаты цветов на изображении (для маркеров)
         color_positions: normalizedColorPositions.length ? normalizedColorPositions : null,

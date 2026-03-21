@@ -109,6 +109,15 @@ function getName(hex: string): string {
     }
 }
 
+function getFamily(hex: string): string {
+    try {
+        const result = namer(hex);
+        return result.basic[0]?.name?.toLowerCase() ?? 'unknown';
+    } catch {
+        return 'unknown';
+    }
+}
+
 // CIEDE2000 для точного сопоставления bucket'ов
 function ciede2000(hex1: string, hex2: string): number {
     const rgb1 = hexToRgb(hex1);
@@ -360,6 +369,7 @@ interface ExtractedColors {
     dominant: string[];
     dominantWeights: number[];
     dominantNames: string[];
+    dominantFamilies: string[];
 }
 
 async function extractColorsWithVibrant(
@@ -495,6 +505,7 @@ async function extractColorsWithVibrant(
         dominant: dominantColors.map(c => c.hex),
         dominantWeights: dominantColors.map(c => Math.round(c.percentage * 10) / 10),
         dominantNames: dominantColors.map(c => getName(c.hex)),
+        dominantFamilies: dominantColors.map(c => getFamily(c.hex)),
     };
 }
 
@@ -576,6 +587,7 @@ export async function POST(req: Request) {
                     colors: result.dominant,
                     color_weights: result.dominantWeights,
                     color_names: result.dominantNames,
+                    color_families: result.dominantFamilies,
                     color_positions: colorPositions,
                     dominant_color: bucket0 || null,
                     secondary_color: bucket1 || null,

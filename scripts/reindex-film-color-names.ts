@@ -1,5 +1,5 @@
 // scripts/reindex-film-color-names.ts
-// Скрипт для добавления NTC названий цветов к существующим видео
+// Скрипт для добавления NTC названий и семейств цветов к существующим видео
 
 import { config } from 'dotenv';
 config({ path: '.env.local' });
@@ -13,11 +13,11 @@ const supabase = createClient(
 );
 
 async function reindexFilmColorNames() {
-    console.log('=== Reindexing color_names for existing films ===\n');
+    console.log('=== Reindexing color_names + color_families for existing films ===\n');
 
     const { data: films, error } = await supabase
         .from('films')
-        .select('id, colors, color_names')
+        .select('id, colors, color_names, color_families')
         .not('colors', 'is', null);
 
     if (error) {
@@ -31,7 +31,10 @@ async function reindexFilmColorNames() {
     let skipped = 0;
 
     for (const film of films ?? []) {
-        if (film.color_names && film.color_names.length > 0) {
+        const hasNames = film.color_names && film.color_names.length > 0;
+        const hasFamilies = film.color_families && film.color_families.length > 0;
+
+        if (hasNames && hasFamilies) {
             skipped++;
             continue;
         }
@@ -41,25 +44,41 @@ async function reindexFilmColorNames() {
             continue;
         }
 
-        const colorNames = film.colors.map((hex: string) => {
-            try {
-                const result = namer(hex);
-                return result.ntc[0]?.name ?? 'Unknown';
-            } catch {
-                return 'Unknown';
-            }
-        });
+        const updateData: Record<string, any> = {};
+
+        if (!hasNames) {
+            updateData.color_names = film.colors.map((hex: string) => {
+                try {
+                    const result = namer(hex);
+                    return result.ntc[0]?.name ?? 'Unknown';
+                } catch {
+                    return 'Unknown';
+                }
+            });
+        }
+
+        if (!hasFamilies) {
+            updateData.color_families = film.colors.map((hex: string) => {
+                try {
+                    const result = namer(hex);
+                    return result.basic[0]?.name?.toLowerCase() ?? 'unknown';
+                } catch {
+                    return 'unknown';
+                }
+            });
+        }
 
         const { error: updateError } = await supabase
             .from('films')
-            .update({ color_names: colorNames })
+            .update(updateData)
             .eq('id', film.id);
 
         if (updateError) {
             console.error(`Error updating film ${film.id}:`, updateError);
         } else {
             updated++;
-            console.log(`[${updated}] Film ${film.id}: ${film.colors.join(', ')} → ${colorNames.join(', ')}`);
+            const families = updateData.color_families ?? film.color_families;
+            console.log(`[${updated}] Film ${film.id}: families=${families?.join(', ')}`);
         }
     }
 

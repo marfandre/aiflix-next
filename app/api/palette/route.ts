@@ -46,6 +46,16 @@ function getName(hex: string): string {
   }
 }
 
+// Получить семейство цвета (basic: red, blue, green, ...)
+function getFamily(hex: string): string {
+  try {
+    const result = namer(hex);
+    return result.basic[0]?.name?.toLowerCase() ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 // Конвертация RGB в HSL
 function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   r /= 255;
@@ -188,6 +198,8 @@ interface ExtractedColors {
   accent: string[];
   dominantNames: string[];
   accentNames: string[];
+  dominantFamilies: string[];
+  accentFamilies: string[];
   colorPositions: ColorPosition[]; // Координаты цветов на изображении
 }
 
@@ -493,6 +505,8 @@ async function extractColorsWithVibrant(
     accent: accentColors.map(c => c.hex),
     dominantNames: dominantColors.map(c => getName(c.hex)),
     accentNames: accentColors.map(c => getName(c.hex)),
+    dominantFamilies: dominantColors.map(c => getFamily(c.hex)),
+    accentFamilies: accentColors.map(c => getFamily(c.hex)),
     colorPositions,
   };
 }
@@ -566,6 +580,10 @@ async function extractColorsWithSharp(
     accent: [],
     dominantNames,
     accentNames: [],
+    dominantFamilies: dominantHexes.map(hex => {
+      try { return getFamily(hex); } catch { return 'unknown'; }
+    }),
+    accentFamilies: [],
     colorPositions,
   };
 }
@@ -622,9 +640,11 @@ export async function POST(req: NextRequest) {
       colors: result.dominant,
       colorWeights: result.dominantWeights,
       colorNames: result.dominantNames,
+      colorFamilies: result.dominantFamilies,
       colorPositions: result.colorPositions,
       accentColors: result.accent,
       accentColorNames: result.accentNames,
+      accentColorFamilies: result.accentFamilies,
       count: result.dominant.length,
       accentCount: result.accent.length,
     });

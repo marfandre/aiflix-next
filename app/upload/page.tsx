@@ -56,6 +56,7 @@ type ExtractedPalette = {
   colors: string[];
   colorWeights: number[];  // Веса цветов (процент площади)
   colorNames: string[];    // NTC названия цветов
+  colorFamilies: string[]; // Семейства цветов (basic: red, blue, ...)
   accentColors: string[];
   colorPositions: ColorMarker[];  // Координаты цветов на изображении
 };
@@ -116,6 +117,7 @@ async function extractColorsFromFile(file: File): Promise<ExtractedPalette | nul
       colors: data.colors ?? [],
       colorWeights: data.colorWeights ?? [],
       colorNames: data.colorNames ?? [],
+      colorFamilies: data.colorFamilies ?? [],
       accentColors: data.accentColors ?? [],
       colorPositions: data.colorPositions ?? [],
     };
@@ -340,6 +342,7 @@ type LocalImage = {
   mainColors: string[];
   colorWeights: number[];  // Веса цветов
   colorNames: string[];    // NTC названия
+  colorFamilies: string[]; // Семейства цветов
   accentColors: string[];  // Акцентные цвета
   basePalette: string[];
   colorPositions: ColorMarker[];  // Координаты маркеров
@@ -540,6 +543,7 @@ export default function UploadPage() {
           const main = fullPalette.slice(0, 5);
           const weights = paletteResult?.colorWeights?.slice(0, 5) ?? [];
           const names = paletteResult?.colorNames?.slice(0, 5) ?? [];
+          const families = paletteResult?.colorFamilies?.slice(0, 5) ?? [];
           const positions = paletteResult?.colorPositions?.slice(0, 5) ?? [];
 
           const imgObj: LocalImage = {
@@ -549,6 +553,7 @@ export default function UploadPage() {
             mainColors: main,
             colorWeights: weights,
             colorNames: names,
+            colorFamilies: families,
             accentColors: [],
             colorPositions: positions,
             aspectRatio,
@@ -575,6 +580,7 @@ export default function UploadPage() {
             mainColors: [],
             colorWeights: [],
             colorNames: [],
+            colorFamilies: [],
             accentColors: [],
             colorPositions: [],
             aspectRatio: null,
@@ -724,7 +730,7 @@ export default function UploadPage() {
       } else {
         // ---------- IMAGE (карусель) ----------
         // 1) Заливаем каждый файл в storage
-        const uploaded: { path: string; colors: string[]; colorWeights: number[]; colorNames: string[]; accentColors: string[]; colorPositions: ColorMarker[]; aspectRatio: string | null }[] = [];
+        const uploaded: { path: string; colors: string[]; colorWeights: number[]; colorNames: string[]; colorFamilies: string[]; accentColors: string[]; colorPositions: ColorMarker[]; aspectRatio: string | null }[] = [];
 
         for (const img of images) {
           const startRes = await fetch('/api/images/start', {
@@ -765,6 +771,11 @@ export default function UploadPage() {
               ? img.colorNames.slice(0, 5)
               : [];
 
+          const colorFamiliesToSave =
+            img.colorFamilies && img.colorFamilies.length
+              ? img.colorFamilies.slice(0, 5)
+              : [];
+
           const accentColorsToSave =
             img.accentColors && img.accentColors.length
               ? img.accentColors.slice(0, 3)
@@ -780,6 +791,7 @@ export default function UploadPage() {
             colors: colorsToSave,
             colorWeights: colorWeightsToSave,
             colorNames: colorNamesToSave,
+            colorFamilies: colorFamiliesToSave,
             accentColors: accentColorsToSave,
             colorPositions: colorPositionsToSave,
             aspectRatio: img.aspectRatio || null,

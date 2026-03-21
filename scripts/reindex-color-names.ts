@@ -1,5 +1,5 @@
 // scripts/reindex-color-names.ts
-// Скрипт для добавления NTC названий цветов к существующим картинкам
+// Скрипт для добавления NTC названий и семейств цветов к существующим картинкам
 
 import { config } from 'dotenv';
 config({ path: '.env.local' });
@@ -13,12 +13,11 @@ const supabase = createClient(
 );
 
 async function reindexColorNames() {
-    console.log('=== Reindexing color_names for existing images ===\n');
+    console.log('=== Reindexing color_names + color_families for existing images ===\n');
 
-    // 1. Получаем все картинки с colors, но без color_names
     const { data: images, error } = await supabase
         .from('images_meta')
-        .select('id, colors, color_names')
+        .select('id, colors, color_names, color_families')
         .not('colors', 'is', null);
 
     if (error) {
@@ -32,8 +31,11 @@ async function reindexColorNames() {
     let skipped = 0;
 
     for (const img of images ?? []) {
-        // Пропускаем если уже есть color_names
-        if (img.color_names && img.color_names.length > 0) {
+        const hasNames = img.color_names && img.color_names.length > 0;
+        const hasFamilies = img.color_families && img.color_families.length > 0;
+
+        // Пропускаем если уже есть и names, и families
+        if (hasNames && hasFamilies) {
             skipped++;
             continue;
         }
@@ -43,27 +45,41 @@ async function reindexColorNames() {
             continue;
         }
 
-        // Получаем NTC названия для каждого цвета
-        const colorNames = img.colors.map((hex: string) => {
-            try {
-                const result = namer(hex);
-                return result.ntc[0]?.name ?? 'Unknown';
-            } catch {
-                return 'Unknown';
-            }
-        });
+        const updateData: Record<string, any> = {};
 
-        // Обновляем запись
+        if (!hasNames) {
+            updateData.color_names = img.colors.map((hex: string) => {
+                try {
+                    const result = namer(hex);
+                    return result.ntc[0]?.name ?? 'Unknown';
+                } catch {
+                    return 'Unknown';
+                }
+            });
+        }
+
+        if (!hasFamilies) {
+            updateData.color_families = img.colors.map((hex: string) => {
+                try {
+                    const result = namer(hex);
+                    return result.basic[0]?.name?.toLowerCase() ?? 'unknown';
+                } catch {
+                    return 'unknown';
+                }
+            });
+        }
+
         const { error: updateError } = await supabase
             .from('images_meta')
-            .update({ color_names: colorNames })
+            .update(updateData)
             .eq('id', img.id);
 
         if (updateError) {
             console.error(`Error updating image ${img.id}:`, updateError);
         } else {
             updated++;
-            console.log(`[${updated}] Image ${img.id}: ${img.colors.join(', ')} → ${colorNames.join(', ')}`);
+            const families = updateData.color_families ?? img.color_families;
+            console.log(`[${updated}] Image ${img.id}: families=${families?.join(', ')}`);
         }
     }
 
