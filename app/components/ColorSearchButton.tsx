@@ -6,33 +6,34 @@ import HorizontalHueSlider from "./HorizontalHueSlider";
 
 const EMPTY_COLOR = "#f3f4f6";
 
-const FAMILY_PALETTE = [
-  { id: 'red', hex: '#FF1744' }, { id: 'orange', hex: '#FF6D00' },
-  { id: 'yellow', hex: '#FFEA00' }, { id: 'green', hex: '#00E676' },
-  { id: 'teal', hex: '#1DE9B6' }, { id: 'cyan', hex: '#00E5FF' },
-  { id: 'blue', hex: '#2979FF' }, { id: 'indigo', hex: '#651FFF' },
-  { id: 'purple', hex: '#D500F9' }, { id: 'pink', hex: '#FF4081' },
-  { id: 'brown', hex: '#8D6E63' }, { id: 'black', hex: '#121212' },
-  { id: 'white', hex: '#FAFAFA' },
-];
-
-function hexToRgbSimple(hex: string): { r: number; g: number; b: number } | null {
-  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-  if (!m) return null;
-  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
-}
-
 function mapHexToFamily(hex: string): string {
-  const rgb = hexToRgbSimple(hex);
-  if (!rgb) return 'black';
-  let bestId = 'black';
-  let bestDist = Infinity;
-  for (const c of FAMILY_PALETTE) {
-    const cRgb = hexToRgbSimple(c.hex)!;
-    const d = (rgb.r - cRgb.r) ** 2 + (rgb.g - cRgb.g) ** 2 + (rgb.b - cRgb.b) ** 2;
-    if (d < bestDist) { bestDist = d; bestId = c.id; }
+  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (!m) return 'black';
+  let r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2 * 100;
+  let s = 0, h = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = (l > 50 ? d / (2 - max - min) : d / (max + min)) * 100;
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6 * 360;
+    else if (max === g) h = ((b - r) / d + 2) / 6 * 360;
+    else h = ((r - g) / d + 4) / 6 * 360;
   }
-  return bestId;
+  if (s < 10) { if (l < 20) return 'black'; if (l > 85) return 'white'; return 'brown'; }
+  if (s < 25 && l < 35) return 'brown';
+  if (l < 8) return 'black';
+  if (l > 95) return 'white';
+  if (h < 15) return 'red';
+  if (h < 40) return 'orange';
+  if (h < 65) return 'yellow';
+  if (h < 160) return 'green';
+  if (h < 185) return 'teal';
+  if (h < 210) return 'cyan';
+  if (h < 260) return 'blue';
+  if (h < 290) return 'indigo';
+  if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
+  return 'red';
 }
 
 export default function ColorSearchButton() {

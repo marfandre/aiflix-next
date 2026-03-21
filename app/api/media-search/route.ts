@@ -416,8 +416,8 @@ export async function GET(req: NextRequest) {
 
     let resultFilms = (data as FilmRow[]) ?? [];
 
-    // === ЦВЕТОВОЙ ПОИСК ДЛЯ ВИДЕО (hue-family) ===
-    if (useFilmColorSearch && resultFilms.length > 0) {
+    // === ЦВЕТОВОЙ ПОИСК ДЛЯ ВИДЕО (hue-family, только без families-фильтра) ===
+    if (useFilmColorSearch && !familiesParam && resultFilms.length > 0) {
       const scoredFilms: { film: FilmRow; score: number }[] = [];
 
       // Определяем hue-семейства для искомых цветов
@@ -562,11 +562,10 @@ export async function GET(req: NextRequest) {
 
     let resultImages = (data as ImageRow[]) ?? [];
 
-    // === ЦВЕТОВОЙ ПОИСК ДЛЯ КАРТИНОК ===
-    // Ищем по СЕМЕЙСТВУ ОТТЕНКА (hue family), а не по точному hex.
-    // Пользователь нажимает "фиолетовый" → ищем всё с фиолетовым hue,
-    // независимо от яркости и насыщенности.
-    if (useDirectColorSearch && resultImages.length > 0) {
+    // === ЦВЕТОВОЙ ПОИСК ДЛЯ КАРТИНОК (JS hue-matching) ===
+    // Используется только если нет families-фильтра (он уже отработал на SQL)
+    // Если families есть — SQL contains уже отфильтровал, JS-matching не нужен
+    if (useDirectColorSearch && !familiesParam && resultImages.length > 0) {
 
       // Определяем hue-семейство для искомого цвета
       function getHueFamily(hex: string): { hueCenter: number; hueRange: number; isAchromatic: boolean } | null {

@@ -272,25 +272,34 @@ export async function POST(req: NextRequest) {
           // Авто-Тегирование (Imagga) отключено на бэкенде: теперь оно происходит на фронтенде перед загрузкой.
 
           // === Генерируем NTC-имена и семейства цветов для поиска ===
-          const FAMILY_BASES = [
-            { id: 'red', r: 255, g: 23, b: 68 }, { id: 'orange', r: 255, g: 109, b: 0 },
-            { id: 'yellow', r: 255, g: 234, b: 0 }, { id: 'green', r: 0, g: 230, b: 118 },
-            { id: 'teal', r: 29, g: 233, b: 182 }, { id: 'cyan', r: 0, g: 229, b: 255 },
-            { id: 'blue', r: 41, g: 121, b: 255 }, { id: 'indigo', r: 101, g: 31, b: 255 },
-            { id: 'purple', r: 213, g: 0, b: 249 }, { id: 'pink', r: 255, g: 64, b: 129 },
-            { id: 'brown', r: 141, g: 110, b: 99 }, { id: 'black', r: 18, g: 18, b: 18 },
-            { id: 'white', r: 250, g: 250, b: 250 },
-          ];
           function hexToFamily(hex: string): string {
             const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
             if (!m) return 'black';
-            const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
-            let bestId = 'black', bestDist = Infinity;
-            for (const f of FAMILY_BASES) {
-              const d = (r - f.r) ** 2 + (g - f.g) ** 2 + (b - f.b) ** 2;
-              if (d < bestDist) { bestDist = d; bestId = f.id; }
+            let r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            const l = (max + min) / 2 * 100;
+            let s = 0, h = 0;
+            if (max !== min) {
+              const d = max - min;
+              s = (l > 50 ? d / (2 - max - min) : d / (max + min)) * 100;
+              if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6 * 360;
+              else if (max === g) h = ((b - r) / d + 2) / 6 * 360;
+              else h = ((r - g) / d + 4) / 6 * 360;
             }
-            return bestId;
+            if (s < 10) { if (l < 20) return 'black'; if (l > 85) return 'white'; return 'brown'; }
+            if (s < 25 && l < 35) return 'brown';
+            if (l < 8) return 'black';
+            if (l > 95) return 'white';
+            if (h < 15) return 'red';
+            if (h < 40) return 'orange';
+            if (h < 65) return 'yellow';
+            if (h < 160) return 'green';
+            if (h < 185) return 'teal';
+            if (h < 210) return 'cyan';
+            if (h < 260) return 'blue';
+            if (h < 290) return 'indigo';
+            if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
+            return 'red';
           }
 
           let colorNames: string[] = [];
