@@ -89,6 +89,11 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
         .order("created_at", { ascending: false })
         .limit(60);
 
+      if (searchParams.families) {
+        const families = searchParams.families.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
+        if (families.length) query = query.contains("color_families", families);
+      }
+
       if (searchParams.colors) {
         const colors = searchParams.colors.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
         if (colors.length) query = query.contains("colors", colors);
@@ -116,11 +121,11 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       }
       setLoading(false);
     })();
-  }, [supa, searchParams.colors, searchParams.models, searchParams.tags, initialImages]);
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, initialImages]);
 
   // ---------- Realtime subscription ----------
   useEffect(() => {
-    if (searchParams.colors || searchParams.models || searchParams.tags) return;
+    if (searchParams.colors || searchParams.families || searchParams.models || searchParams.tags) return;
 
     const channel = supa
       .channel("images-feed")
@@ -144,7 +149,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       .subscribe();
 
     return () => { supa.removeChannel(channel); };
-  }, [supa, searchParams.colors, searchParams.models, searchParams.tags]);
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags]);
 
   const publicImageUrl = (path: string) => {
     const { data } = supa.storage.from("images").getPublicUrl(path);

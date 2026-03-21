@@ -18,6 +18,7 @@ export default async function Home({
   searchParams?: {
     t?: string;
     colors?: string;
+    families?: string;
     models?: string;
     moods?: string;
     imageTypes?: string;
@@ -63,6 +64,7 @@ export default async function Home({
             userId={userId}
             searchParams={{
               colors: searchParams?.colors,
+              families: searchParams?.families,
               models: searchParams?.models,
               moods: searchParams?.moods,
               imageTypes: searchParams?.imageTypes,

@@ -354,8 +354,18 @@ export default function SearchButton() {
     const params = new URLSearchParams();
     params.set('types', types.join(','));
 
-    // Цвета → CIEDE2000 (точный цветовой поиск через /api/media-search)
+    // Цвета → поиск по семействам (color_families) + fallback на hexColors
     if (simpleSelectedColors.length) {
+      // Маппим каждый выбранный HEX в семейство (bucket id)
+      const families = simpleSelectedColors
+        .map((hex) => mapHexToBucket(hex))
+        .filter((f): f is string => !!f);
+      // Убираем дубли семейств
+      const uniqueFamilies = [...new Set(families)];
+      if (uniqueFamilies.length) {
+        params.set('families', uniqueFamilies.join(','));
+      }
+      // hexColors оставляем для дополнительного ранжирования по точности
       params.set('colorMode', 'simple');
       params.set('hexColors', simpleSelectedColors.join(','));
     }

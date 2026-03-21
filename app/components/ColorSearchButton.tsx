@@ -6,6 +6,35 @@ import HorizontalHueSlider from "./HorizontalHueSlider";
 
 const EMPTY_COLOR = "#f3f4f6";
 
+const FAMILY_PALETTE = [
+  { id: 'red', hex: '#FF1744' }, { id: 'orange', hex: '#FF6D00' },
+  { id: 'yellow', hex: '#FFEA00' }, { id: 'green', hex: '#00E676' },
+  { id: 'teal', hex: '#1DE9B6' }, { id: 'cyan', hex: '#00E5FF' },
+  { id: 'blue', hex: '#2979FF' }, { id: 'indigo', hex: '#651FFF' },
+  { id: 'purple', hex: '#D500F9' }, { id: 'pink', hex: '#FF4081' },
+  { id: 'brown', hex: '#8D6E63' }, { id: 'black', hex: '#121212' },
+  { id: 'white', hex: '#FAFAFA' },
+];
+
+function hexToRgbSimple(hex: string): { r: number; g: number; b: number } | null {
+  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (!m) return null;
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+
+function mapHexToFamily(hex: string): string {
+  const rgb = hexToRgbSimple(hex);
+  if (!rgb) return 'black';
+  let bestId = 'black';
+  let bestDist = Infinity;
+  for (const c of FAMILY_PALETTE) {
+    const cRgb = hexToRgbSimple(c.hex)!;
+    const d = (rgb.r - cRgb.r) ** 2 + (rgb.g - cRgb.g) ** 2 + (rgb.b - cRgb.b) ** 2;
+    if (d < bestDist) { bestDist = d; bestId = c.id; }
+  }
+  return bestId;
+}
+
 export default function ColorSearchButton() {
   const [open, setOpen] = useState(false);
   const [slots, setSlots] = useState<string[]>(Array(5).fill(EMPTY_COLOR));
@@ -27,9 +56,12 @@ export default function ColorSearchButton() {
     const colors = slots.filter((c) => c && c !== EMPTY_COLOR);
     if (!colors.length) return;
 
+    // Маппим выбранные цвета в семейства
+    const families = [...new Set(colors.map((c) => mapHexToFamily(c)))];
+
     const params = new URLSearchParams();
     params.set("t", "images");
-    params.set("colors", colors.join(","));
+    params.set("families", families.join(","));
 
     router.push(`/?${params.toString()}`);
     setOpen(false);

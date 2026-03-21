@@ -37,6 +37,7 @@ export type ImageVariant = {
 
 export type SearchParams = {
   colors?: string;
+  families?: string;
   models?: string;
   moods?: string;
   imageTypes?: string;
