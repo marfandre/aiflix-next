@@ -544,7 +544,11 @@ export default function UploadPage() {
           const weights = paletteResult?.colorWeights?.slice(0, 5) ?? [];
           const names = paletteResult?.colorNames?.slice(0, 5) ?? [];
           const families = paletteResult?.colorFamilies?.slice(0, 5) ?? [];
-          const positions = paletteResult?.colorPositions?.slice(0, 5) ?? [];
+          const rawPositions = paletteResult?.colorPositions?.slice(0, 5) ?? [];
+          // Синхронизируем позиции с основными цветами
+          const positions = rawPositions.filter(p =>
+            main.some(c => c.toLowerCase() === p.hex.toLowerCase())
+          );
 
           const imgObj: LocalImage = {
             file: f,
@@ -1747,12 +1751,6 @@ export default function UploadPage() {
                 <>
 
                   <div className="w-full md:flex-1 flex flex-col items-center order-1 md:order-2">
-                    <div className="mb-3 flex w-full items-center justify-between hidden md:flex">
-                      <h2 className="text-sm font-semibold text-gray-700">
-                        Предпросмотр картинок
-                      </h2>
-                    </div>
-
                     {/* Область превью + стрелки + плюс */}
                     <div
                       className={`relative w-full max-w-[280px] sm:max-w-[340px] rounded-3xl border-2 border-dashed bg-white shadow-sm overflow-hidden transition-all ${images.length > 0 ? 'border-transparent' : 'border-gray-200 cursor-pointer hover:border-gray-300 hover:shadow-md'}`}
@@ -1958,11 +1956,10 @@ export default function UploadPage() {
                         )}
                       </div>
                     )}
-                  </div>
 
-                  {/* UI Редактирования (3-я колонка) */}
+                  {/* UI Редактирования палитры (под картинкой) */}
                   {isEditingPalette && (
-                    <div className="flex-1 min-w-[300px] animate-in slide-in-from-right-4 fade-in duration-300">
+                    <div className="w-full max-w-[380px] animate-in fade-in duration-300 mt-3">
                       <div className="sticky top-6 w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                         <div className="mb-4 flex items-center justify-between border-b pb-3">
                           <span className="text-sm font-semibold text-gray-700">
@@ -1975,6 +1972,7 @@ export default function UploadPage() {
                               onClick={() => {
                                 // Удаление основного цвета
                                 if (selectedIndex != null && draftColors) {
+                                  const removedHex = draftColors[selectedIndex];
                                   const next = [...draftColors];
                                   next.splice(selectedIndex, 1);
                                   setDraftColors(next.length ? next : []);
@@ -1983,6 +1981,20 @@ export default function UploadPage() {
                                   } else {
                                     setSelectedIndex(
                                       Math.min(selectedIndex, next.length - 1),
+                                    );
+                                  }
+                                  // Удаляем соответствующий маркер
+                                  if (removedHex) {
+                                    setImages((prev) =>
+                                      prev.map((img, idx) => {
+                                        if (idx !== currentIndex) return img;
+                                        return {
+                                          ...img,
+                                          colorPositions: img.colorPositions.filter(
+                                            p => p.hex.toLowerCase() !== removedHex.toLowerCase()
+                                          ),
+                                        };
+                                      })
                                     );
                                   }
                                 }
@@ -2010,11 +2022,14 @@ export default function UploadPage() {
                                 if (draftColors && currentImage) {
                                   const updated = draftColors.slice(0, 5);
                                   setImages((prev) =>
-                                    prev.map((img, idx) =>
-                                      idx === currentIndex
-                                        ? { ...img, mainColors: updated }
-                                        : img,
-                                    ),
+                                    prev.map((img, idx) => {
+                                      if (idx !== currentIndex) return img;
+                                      // Синхронизируем colorPositions с новыми mainColors
+                                      const syncedPositions = img.colorPositions.filter(p =>
+                                        updated.some(c => c.toLowerCase() === p.hex.toLowerCase())
+                                      );
+                                      return { ...img, mainColors: updated, colorPositions: syncedPositions };
+                                    }),
                                   );
                                 }
                                 setIsEditingPalette(false);
@@ -2237,6 +2252,7 @@ export default function UploadPage() {
                       </div>
                     </div>
                   )}
+                  </div>
                 </>
               )}
             </div>
