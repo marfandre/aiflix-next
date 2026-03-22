@@ -48,9 +48,11 @@ function ImageCard({
         />
 
         {/* Color marker on image when hovering chart segment */}
-        {hoveredColorIndex !== null && im.color_positions && im.color_positions[hoveredColorIndex] && (() => {
-          const pos = im.color_positions[hoveredColorIndex];
-          const color = im.colors?.[hoveredColorIndex] ?? pos.hex;
+        {hoveredColorIndex !== null && im.colors && im.color_positions && (() => {
+          const hoveredHex = im.colors[hoveredColorIndex];
+          if (!hoveredHex) return null;
+          const pos = im.color_positions.find(p => p.hex?.toLowerCase() === hoveredHex.toLowerCase());
+          if (!pos) return null;
           return (
             <div
               className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
@@ -58,7 +60,7 @@ function ImageCard({
             >
               <div
                 className="w-6 h-6 rounded-full border-[1.5px] border-white"
-                style={{ backgroundColor: color, boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
+                style={{ backgroundColor: hoveredHex, boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
               />
             </div>
           );

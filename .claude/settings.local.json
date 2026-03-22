@@ -57,7 +57,8 @@
       "Bash(find c:/Users/Андрей/Downloads/aiflix_mvp/aiflix -name *.sql -type f)",
       "Bash(grep -r images_meta c:/Users/Андрей/Downloads/aiflix_mvp/aiflix --include=*.sql --include=*.ts)",
       "Bash(grep -r 'CREATE TABLE' c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/migrations --include=*.sql)",
-      "Bash(grep -r \"dominant_color\\\\|color_families\" c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/app/api --include=*.ts)"
+      "Bash(grep -r \"dominant_color\\\\|color_families\" c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/app/api --include=*.ts)",
+      "Bash(find /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/migrations -name *accent* -o -name *color*)"
     ]
   }
 }

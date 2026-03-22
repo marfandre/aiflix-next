@@ -15,9 +15,13 @@ type Props = {
   isOwnerView?: boolean;
 };
 
+const PAGE_SIZE = 40;
+
 export default function ImageFeedClient({ userId, searchParams = {}, initialImages, showAuthor = true, isOwnerView = false }: Props) {
   const [images, setImages] = useState<ImageRow[]>(initialImages ?? []);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [tagsMap, setTagsMap] = useState<Record<string, { ru: string; en: string }>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -28,6 +32,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
   const supa = createClientComponentClient();
   const originalUrlRef = useRef<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // ---------- URL sync with modal ----------
   const pushImageUrl = useCallback((imageId: string) => {
@@ -70,58 +75,100 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       .catch(() => { });
   }, []);
 
-  // ---------- Load feed with filters ----------
+  // ---------- Build query with filters ----------
+  const buildQuery = useCallback((cursor?: string) => {
+    let query = supa
+      .from("images_meta")
+      .select(
+        "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
+
+    if (cursor) query = query.lt("created_at", cursor);
+
+    if (searchParams.families) {
+      const families = searchParams.families.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
+      if (families.length) query = query.contains("color_families", families);
+    }
+
+    if (searchParams.colors) {
+      const colors = searchParams.colors.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+      if (colors.length) query = query.contains("colors", colors);
+    }
+
+    if (searchParams.models) {
+      const models = searchParams.models.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
+      if (models.length) {
+        const orClause = models.map((m) => `model.ilike.%${m}%`).join(",");
+        query = query.or(orClause);
+      }
+    }
+
+    if (searchParams.tags) {
+      const tags = searchParams.tags.split(",").map((t) => t.trim()).filter(Boolean);
+      if (tags.length) query = query.contains("tags", tags);
+    }
+
+    return query;
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags]);
+
+  // ---------- Load feed (initial) ----------
   useEffect(() => {
     if (initialImages && initialImages.length > 0) {
       setImages(initialImages);
+      setHasMore(initialImages.length >= PAGE_SIZE);
       setLoading(false);
       return;
     }
 
     (async () => {
       setLoading(true);
-
-      let query = supa
-        .from("images_meta")
-        .select(
-          "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)"
-        )
-        .order("created_at", { ascending: false })
-        .limit(60);
-
-      if (searchParams.families) {
-        const families = searchParams.families.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
-        if (families.length) query = query.contains("color_families", families);
-      }
-
-      if (searchParams.colors) {
-        const colors = searchParams.colors.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
-        if (colors.length) query = query.contains("colors", colors);
-      }
-
-      if (searchParams.models) {
-        const models = searchParams.models.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
-        if (models.length) {
-          const orClause = models.map((m) => `model.ilike.%${m}%`).join(",");
-          query = query.or(orClause);
-        }
-      }
-
-      if (searchParams.tags) {
-        const tags = searchParams.tags.split(",").map((t) => t.trim()).filter(Boolean);
-        if (tags.length) query = query.contains("tags", tags);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await buildQuery();
       if (error) {
         console.error("image fetch with filters:", error);
         setImages([]);
       } else {
-        setImages((data ?? []) as ImageRow[]);
+        const rows = (data ?? []) as ImageRow[];
+        setImages(rows);
+        setHasMore(rows.length >= PAGE_SIZE);
       }
       setLoading(false);
     })();
-  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, initialImages]);
+  }, [buildQuery, initialImages]);
+
+  // ---------- Load more (infinite scroll) ----------
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    const lastImage = images[images.length - 1];
+    if (!lastImage?.created_at) return;
+
+    setLoadingMore(true);
+    const { data, error } = await buildQuery(lastImage.created_at);
+    if (error) {
+      console.error("image fetch more:", error);
+    } else {
+      const rows = (data ?? []) as ImageRow[];
+      setImages((prev) => [...prev, ...rows]);
+      setHasMore(rows.length >= PAGE_SIZE);
+    }
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, images, buildQuery]);
+
+  // ---------- Intersection Observer ----------
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: "600px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   // ---------- Realtime subscription ----------
   useEffect(() => {
@@ -252,6 +299,14 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
           ))}
         </Masonry>
       </div>
+
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-1" />
+      {loadingMore && (
+        <div className="flex justify-center py-6">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+        </div>
+      )}
 
       {/* Modal */}
       {selected && (

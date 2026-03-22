@@ -114,21 +114,26 @@ export default function EditImagePage({ params }: PageProps) {
 
             // Загружаем позиции маркеров из БД если есть, иначе генерируем
             const savedPositions = image.color_positions;
-            const existingColors = image.colors || [];
+            const existingColors: string[] = image.colors || [];
 
             if (savedPositions && Array.isArray(savedPositions) && savedPositions.length > 0) {
-                // Используем сохранённые координаты
-                setColorPositions(savedPositions.map((pos: any) => ({
-                    hex: pos.hex || '#000000',
-                    x: typeof pos.x === 'number' ? pos.x : 0.5,
-                    y: typeof pos.y === 'number' ? pos.y : 0.5,
-                })));
+                // Фильтруем позиции — оставляем только те, чей hex есть в текущих colors
+                const filtered = savedPositions
+                    .map((pos: any) => ({
+                        hex: pos.hex || '#000000',
+                        x: typeof pos.x === 'number' ? pos.x : 0.5,
+                        y: typeof pos.y === 'number' ? pos.y : 0.5,
+                    }))
+                    .filter((pos: ColorMarker) =>
+                        existingColors.some(c => c.toLowerCase() === pos.hex.toLowerCase())
+                    );
+                setColorPositions(filtered);
             } else {
                 // Генерируем координаты для существующих цветов (для старых изображений)
                 setColorPositions(existingColors.map((hex: string, i: number) => ({
                     hex,
-                    x: 0.15 + (i * 0.17),  // Равномерное распределение по горизонтали
-                    y: 0.3 + (i * 0.1),     // Небольшой сдвиг по вертикали
+                    x: 0.15 + (i * 0.17),
+                    y: 0.3 + (i * 0.1),
                 })));
             }
 
@@ -201,7 +206,12 @@ export default function EditImagePage({ params }: PageProps) {
 
     // Удаление цвета по индексу
     function removeColor(index: number) {
+        const removedHex = colors[index];
         setColors(prev => prev.filter((_, i) => i !== index));
+        // Удаляем соответствующую позицию маркера
+        if (removedHex) {
+            setColorPositions(prev => prev.filter(p => p.hex.toLowerCase() !== removedHex.toLowerCase()));
+        }
     }
 
     // Получение публичного URL картинки
