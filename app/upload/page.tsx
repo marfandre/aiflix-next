@@ -1075,6 +1075,7 @@ export default function UploadPage() {
                     <option value="ideogram">Ideogram</option>
                     <option value="playground">Playground</option>
                     <option value="krea">KREA</option>
+                    <option value="nano-banana">Nano Banana</option>
                   </datalist>
                 </div>
 

@@ -22,6 +22,7 @@ const IMAGE_MODELS = [
     { value: 'ideogram', label: 'Ideogram' },
     { value: 'playground', label: 'Playground' },
     { value: 'krea', label: 'KREA' },
+    { value: 'nano-banana', label: 'Nano Banana' },
 ];
 
 // Цветовая палитра для редактирования
