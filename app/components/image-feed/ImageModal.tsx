@@ -315,9 +315,10 @@ export default function ImageModal({
                 />
 
                 {/* Color marker on image — pixel-positioned to match actual rendered image */}
-                {modalHoveredColor !== null && selected.color_positions && selected.color_positions[modalHoveredColor] && imgBounds && (() => {
-                  const pos = selected.color_positions[modalHoveredColor];
-                  const color = currentColors[modalHoveredColor] ?? pos.hex;
+                {modalHoveredColor !== null && currentColors[modalHoveredColor] && selected.color_positions && imgBounds && (() => {
+                  const hoveredHex = currentColors[modalHoveredColor];
+                  const pos = selected.color_positions.find(p => p.hex?.toLowerCase() === hoveredHex.toLowerCase());
+                  if (!pos) return null;
                   const px = imgBounds.ox + pos.x * imgBounds.w;
                   const py = imgBounds.oy + pos.y * imgBounds.h;
                   return (
@@ -325,7 +326,7 @@ export default function ImageModal({
                       className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
                       style={{ left: px, top: py }}
                     >
-                      <div className="w-5 h-5 rounded-full border-[1.5px] border-white" style={{ backgroundColor: color, boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }} />
+                      <div className="w-5 h-5 rounded-full border-[1.5px] border-white" style={{ backgroundColor: hoveredHex, boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }} />
                     </div>
                   );
                 })()}
@@ -831,15 +832,16 @@ export default function ImageModal({
                       />
 
                       {/* Color marker on image */}
-                      {modalHoveredColor !== null && selected.color_positions && selected.color_positions[modalHoveredColor] && (() => {
-                        const pos = selected.color_positions[modalHoveredColor];
-                        const color = currentColors[modalHoveredColor] ?? pos.hex;
+                      {modalHoveredColor !== null && currentColors[modalHoveredColor] && selected.color_positions && (() => {
+                        const hoveredHex = currentColors[modalHoveredColor];
+                        const pos = selected.color_positions.find(p => p.hex?.toLowerCase() === hoveredHex.toLowerCase());
+                        if (!pos) return null;
                         return (
                           <div
                             className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
                             style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%` }}
                           >
-                            <div className="w-7 h-7 rounded-full border-[1.5px] border-white" style={{ backgroundColor: color, boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }} />
+                            <div className="w-7 h-7 rounded-full border-[1.5px] border-white" style={{ backgroundColor: hoveredHex, boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }} />
                           </div>
                         );
                       })()}
