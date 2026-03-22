@@ -47,7 +47,17 @@
       "WebFetch(domain:github.com)",
       "Bash(ls \"c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/.env\"*)",
       "Bash(grep -r \"color.*dot\\\\|indicator\\\\|position.*color\\\\|x.*y.*color\" /c/Users/Андрей/Downloads/aiflix_mvp/aiflix/app --include=*.tsx --include=*.ts)",
-      "Bash(find /c/Users/Андрей/Downloads/aiflix_mvp/aiflix -name *import* -o -name *script*)"
+      "Bash(find /c/Users/Андрей/Downloads/aiflix_mvp/aiflix -name *import* -o -name *script*)",
+      "Bash(curl -s -H \"Authorization: Key 4c6a7c40-6cd0-4b3e-9e6a-6459e40f0780:ee9bc738188b0869f4e2d0c90f01b97d\" \"https://queue.fal.run/fal-ai/flux/requests\")",
+      "Bash(curl -s -H \"Authorization: Key 4c6a7c40-6cd0-4b3e-9e6a-6459e40f0780:ee9bc738188b0869f4e2d0c90f01b97d\" \"https://rest.alpha.fal.ai/requests\")",
+      "Bash(curl -s -i -H \"Authorization: Key 4c6a7c40-6cd0-4b3e-9e6a-6459e40f0780:ee9bc738188b0869f4e2d0c90f01b97d\" \"https://rest.alpha.fal.ai/requests\")",
+      "Bash(curl -s -L -H \"Authorization: Key 4c6a7c40-6cd0-4b3e-9e6a-6459e40f0780:ee9bc738188b0869f4e2d0c90f01b97d\" \"https://rest.alpha.fal.ai/requests/\")",
+      "Bash(curl -s -L -H \"Authorization: Key 4c6a7c40-6cd0-4b3e-9e6a-6459e40f0780:ee9bc738188b0869f4e2d0c90f01b97d\" \"https://rest.alpha.fal.ai/requests/?start_time=2025-01-01T00:00:00Z&end_time=2026-03-22T00:00:00Z\")",
+      "Bash(curl -s -o \"c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/fal-imports/fashion-portrait-goggles.jpg\" \"https://v3b.fal.media/files/b/0a93152a/bIuDywr3iI0MZYnX0pr3B.jpg\")",
+      "Bash(find c:/Users/Андрей/Downloads/aiflix_mvp/aiflix -name *.sql -type f)",
+      "Bash(grep -r images_meta c:/Users/Андрей/Downloads/aiflix_mvp/aiflix --include=*.sql --include=*.ts)",
+      "Bash(grep -r 'CREATE TABLE' c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/migrations --include=*.sql)",
+      "Bash(grep -r \"dominant_color\\\\|color_families\" c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/app/api --include=*.ts)"
     ]
   }
 }
