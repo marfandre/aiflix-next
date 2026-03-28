@@ -467,5 +467,278 @@
     "category": "Atmospheric Capture",
     "public": "A surreal old library with towering pale yellow walls, soft yellow shelves, stacks of lemon-yellow paper and books filling the room, warm but neutral daylight from tall windows, dusty air, layered interior depth, elegant composition, realistic textures, highly detailed, cinematic but natural, no orange tones",
     "private": null
+  },
+  {
+    "id": "7.11",
+    "title": "Yellow Train Hall",
+    "category": "Atmospheric Capture",
+    "public": "A spacious train hall lined with pale yellow tiles, soft yellow benches, lemon-yellow signage, and broad yellow wall panels, the architecture dominated by clean yellow surfaces, cool daylight from a glass roof, layered perspective, realistic textures, cinematic realism, highly detailed, no orange cast",
+    "private": null
+  },
+  {
+    "id": "7.12",
+    "title": "Yellow Sand Dunes",
+    "category": "Atmospheric Capture",
+    "public": "Endless pale yellow and natural yellow sand dunes under a bright neutral sky, broad yellow surfaces dominating the entire landscape, crisp wind-shaped ridges, fine texture in the sand, cool daylight, minimal but immersive environment, realistic, richly detailed, sharp focus, no orange tones",
+    "private": null
+  },
+  {
+    "id": "7.13",
+    "title": "Yellow Paper Gallery",
+    "category": "Atmospheric Capture",
+    "public": "A contemporary gallery installation filled with hundreds of suspended translucent pale yellow and canary yellow paper sheets, layered from floor to ceiling, soft neutral light passing through them, clean minimal architecture, immersive spatial depth, realistic textures, elegant composition, highly detailed, no orange tones",
+    "private": null
+  },
+  {
+    "id": "7.14",
+    "title": "Yellow Mediterranean Courtyard",
+    "category": "Atmospheric Capture",
+    "public": "A quiet Mediterranean courtyard with pale yellow plaster walls, lemon-yellow ceramic staircases, yellow awnings, and glazed tiles catching clean daylight, the architecture dominating the frame, crisp shadows, fresh air, immersive environment, realistic, ultra-detailed, sharp focus, no orange cast",
+    "private": null
+  },
+  {
+    "id": "7.15",
+    "title": "Yellow Archive Room",
+    "category": "Atmospheric Capture",
+    "public": "An old archive room with towering pale yellow shelves, endless stacks of soft yellow and lemon-yellow paper, yellow folders and books filling the space from floor to ceiling, tall windows with clean daylight, layered interior depth, realistic textures, highly detailed, atmospheric and elegant",
+    "private": null
+  },
+  {
+    "id": "7.16",
+    "title": "Yellow Glass Greenhouse",
+    "category": "Atmospheric Capture",
+    "public": "A grand greenhouse built from pale yellow and soft yellow glass panels, filled with layers of lemon yellow flowers and broad yellow leaves, clean reflections across the glass, bright diffused daylight, fresh botanical atmosphere, richly textured environment, realistic, highly detailed, sharp focus",
+    "private": null
+  },
+  {
+    "id": "7.17",
+    "title": "Yellow Fabric Street",
+    "category": "Atmospheric Capture",
+    "public": "A narrow old city street covered with enormous flowing pale yellow and lemon-yellow fabric banners suspended between the buildings, the fabric dominating the entire scene, soft neutral daylight, light mist in the distance, detailed stone pavement, elegant architecture, immersive environment, realistic, ultra-detailed",
+    "private": null
+  },
+  {
+    "id": "7.18",
+    "title": "Yellow Marigold Path",
+    "category": "Atmospheric Capture",
+    "public": "A lush garden path surrounded by dense marigold flowers in pale yellow, soft yellow, and canary yellow tones, rounded blossoms filling almost the entire scene, fresh leaves and cool morning air, neutral daylight, immersive botanical environment, realistic, richly textured, sharp focus, no orange cast",
+    "private": null
+  },
+  {
+    "id": "7.19",
+    "title": "Yellow Rapeseed Field",
+    "category": "Atmospheric Capture",
+    "public": "A vast rapeseed field stretching to the horizon, dominated by pale yellow and natural yellow blossoms, dense layers of flowers filling most of the frame, fresh green stems below, soft morning haze, clean daylight, immersive natural environment, realistic textures, richly detailed",
+    "private": null
+  },
+  {
+    "id": "8.1",
+    "title": "Yellow Mist Conservatory",
+    "category": "Atmospheric Capture",
+    "public": "A vast botanical conservatory filled with layered pale yellow mist, soft yellow condensation on the glass roof, and bands of lemon-yellow weather rolling between rows of tropical plants, clean daylight filtering through the structure, immersive environment, realistic textures, atmospheric depth, ultra-detailed",
+    "private": null
+  },
+  {
+    "id": "8.2",
+    "title": "Yellow Fog Pier",
+    "category": "Atmospheric Capture",
+    "public": "A deserted seaside pier swallowed by a dense natural-yellow fog bank, the entire air glowing yellow above wet wooden planks, distant lamps barely visible through the haze, cold ocean beyond, cinematic realism, richly textured, sharp focus",
+    "private": null
+  },
+  {
+    "id": "8.3",
+    "title": "Yellow Cloud Valley",
+    "category": "Atmospheric Capture",
+    "public": "A mountain valley at dawn where a river of canary-yellow cloud drifts low across the ground, yellow vapor pooling around dark rocks and pine trunks, clean morning light, expansive landscape, magical realism, highly detailed, 8k",
+    "private": null
+  },
+  {
+    "id": "8.4",
+    "title": "Yellow Linen Canopy",
+    "category": "Living Objects",
+    "public": "A grand yellow linen canopy suspended over a quiet courtyard, the fabric behaving like a living creature, folding and breathing in slow waves above stone arches, pale yellow and lemon-yellow cloth dominating the frame, soft neutral daylight, elegant realism, richly detailed",
+    "private": null
+  },
+  {
+    "id": "8.5",
+    "title": "Yellow Paper Garden Desk",
+    "category": "Living Objects",
+    "public": "A vintage writing desk in a sunlit studio, stacks of pale yellow paper curling upward like petals and growing into a full indoor garden of yellow leaves, soft yellow dust in the air, layered environment, surreal realism, sharp focus",
+    "private": null
+  },
+  {
+    "id": "8.6",
+    "title": "Yellow Page Bookstore",
+    "category": "Living Objects",
+    "public": "A narrow bookstore where the walls themselves seem alive, built from soft yellow pages and natural-yellow paper spines that bend gently like wheat in the wind, long interior depth, realistic detail, clean diffused light",
+    "private": null
+  },
+  {
+    "id": "8.7",
+    "title": "Chrysanthemum City",
+    "category": "Miniature Civilizations",
+    "public": "A detailed miniature city built entirely inside a giant yellow chrysanthemum, tiny streets and stairways woven between pale yellow petals, canary-yellow market awnings, fresh green stems below, magical scale contrast, macro realism, ultra-detailed",
+    "private": null
+  },
+  {
+    "id": "8.8",
+    "title": "Lemon Soap Harbor",
+    "category": "Miniature Civilizations",
+    "public": "A miniature harbor town carved into a towering block of lemon-yellow soap, little balconies, bridges, and alleys glowing softly under clear daylight, textured material, immersive environment, sharp focus",
+    "private": null
+  },
+  {
+    "id": "8.9",
+    "title": "Yellow Silk Civilization",
+    "category": "Miniature Civilizations",
+    "public": "A tiny desert civilization spread across the folds of a gigantic yellow silk robe laid over a palace floor, small domes and pathways rising from the fabric, pale yellow and natural-yellow cloth filling the scene, cinematic detail",
+    "private": null
+  },
+  {
+    "id": "8.10",
+    "title": "Yellow Porcelain Staircase",
+    "category": "Material Swap",
+    "public": "A long staircase made entirely of matte pale yellow porcelain, each step smooth and luminous under neutral daylight, lemon-yellow dust gathered in the corners, elegant architecture, tactile surfaces, photorealistic, highly detailed",
+    "private": null
+  },
+  {
+    "id": "8.11",
+    "title": "Yellow Paper Reading Room",
+    "category": "Material Swap",
+    "public": "A classic reading room with tall columns and archways constructed from soft yellow paper instead of stone, layered sheets forming walls, ceilings, and stairs, realistic paper texture, immersive interior, sharp focus",
+    "private": null
+  },
+  {
+    "id": "8.12",
+    "title": "Yellow Straw Boats",
+    "category": "Material Swap",
+    "public": "A fleet of fishing boats pulled onto shore, their hulls made entirely from woven canary-yellow straw and pale yellow thread, clean coastal light, textured surfaces, grounded environment, realistic, 8k",
+    "private": null
+  },
+  {
+    "id": "8.13",
+    "title": "Cathedral of Yellow Light",
+    "category": "Solid Light",
+    "public": "A cathedral nave built from solid lemon-yellow light, translucent beams forming columns, arches, and a high vaulted ceiling, clean daylight-like radiance filling the space, soft shadows on the floor, monumental scale, ultra-detailed",
+    "private": null
+  },
+  {
+    "id": "8.14",
+    "title": "Yellow Light Curtain Passage",
+    "category": "Solid Light",
+    "public": "A long underground passage lined with ribbons of pale yellow light frozen into fabric-like curtains, the glowing material hanging from the ceiling in heavy folds, quiet atmosphere, realistic reflections, cinematic composition",
+    "private": null
+  },
+  {
+    "id": "8.15",
+    "title": "Yellow Glass Lighthouse",
+    "category": "Solid Light",
+    "public": "A yellow glass lighthouse whose beacon has become a physical spiral of canary-yellow light wrapping around the tower and spilling across the rocks below, wind, sea spray, detailed environment, sharp focus",
+    "private": null
+  },
+  {
+    "id": "8.16",
+    "title": "Yellow Prism Hall",
+    "category": "Impossible Optics",
+    "public": "A grand hall lined with towering yellow prisms that split the room into layers of pale yellow, natural yellow, and lemon-yellow reflections, every wall and floor surface echoing the same family of color, elegant perspective, realistic glass behavior",
+    "private": null
+  },
+  {
+    "id": "8.17",
+    "title": "Yellow Mirror Corridor",
+    "category": "Impossible Optics",
+    "public": "A narrow museum corridor with giant convex mirrors made of tinted yellow glass, the reflections stretching the architecture into endless canary-yellow chambers, subtle shadows, clean light, highly detailed",
+    "private": null
+  },
+  {
+    "id": "8.18",
+    "title": "Yellow Lens Plaza",
+    "category": "Impossible Optics",
+    "public": "A city square beneath a ceiling of suspended yellow lenses, each lens magnifying a different part of the plaza, pale yellow light falling across facades and pavement, immersive urban environment, surreal realism, sharp focus",
+    "private": null
+  },
+  {
+    "id": "8.19",
+    "title": "Yellow Moonflower Garden",
+    "category": "Midnight Botanica",
+    "public": "A night garden overflowing with pale yellow moonflowers and soft yellow leaves, dense blossoms covering almost the entire ground plane, cool night air, silvery highlights, deep botanical depth, atmospheric realism, 8k",
+    "private": null
+  },
+  {
+    "id": "8.20",
+    "title": "Yellow Lily Greenhouse",
+    "category": "Midnight Botanica",
+    "public": "A long greenhouse aisle filled with towering lemon-yellow lilies, the flowers rising above head height and bending over the path, yellow pollen floating in the air, glass reflections, rich environment, ultra-detailed",
+    "private": null
+  },
+  {
+    "id": "8.21",
+    "title": "Yellow Vine Courtyard",
+    "category": "Midnight Botanica",
+    "public": "A hidden courtyard where natural-yellow vines climb every wall and window frame, layers of yellow petals gathering on stone steps and fountains, quiet evening scene, realistic textures, immersive detail",
+    "private": null
+  },
+  {
+    "id": "8.22",
+    "title": "Yellow Desert Sphere",
+    "category": "Pocket Universe",
+    "public": "A transparent sphere resting on a library table, containing an entire yellow desert world inside it - pale yellow dunes, canary-yellow storms, and tiny ruins under a bright sky - while scattered books and maps frame the foreground, macro realism",
+    "private": null
+  },
+  {
+    "id": "8.23",
+    "title": "Yellow Wheat Jar",
+    "category": "Pocket Universe",
+    "public": "A large glass jar on a windowsill containing a miniature field of soft yellow wheat and lemon-yellow light, tiny paths winding through the landscape inside the vessel, clean daylight, detailed reflections, magical realism",
+    "private": null
+  },
+  {
+    "id": "8.24",
+    "title": "Yellow Sunrise Bowl",
+    "category": "Pocket Universe",
+    "public": "A yellow porcelain bowl holding a complete miniature sunrise landscape, layered natural-yellow hills, pale yellow fog, and a small river crossing the scene, tactile ceramic surface, grounded tabletop context, highly detailed",
+    "private": null
+  },
+  {
+    "id": "8.25",
+    "title": "Yellow Library Cross-Section",
+    "category": "Impossible Cross-Section",
+    "public": "A monumental lemon-yellow library shown in impossible cross-section, revealing endless reading rooms, staircases, hidden chambers, and paper-filled towers inside a single glowing block of architecture, intricate detail, cinematic realism",
+    "private": null
+  },
+  {
+    "id": "8.26",
+    "title": "Sunflower Palace",
+    "category": "Impossible Cross-Section",
+    "public": "A giant sunflower sliced open to reveal an entire interior palace of pale yellow corridors, circular halls, and suspended bridges woven through the seed pattern, macro scale, richly textured, surreal realism",
+    "private": null
+  },
+  {
+    "id": "8.27",
+    "title": "Yellow Suitcase Station",
+    "category": "Impossible Cross-Section",
+    "public": "A vintage suitcase opened to reveal a complete natural-yellow train station inside, with platforms, waiting rooms, iron beams, and long yellow canopies, layered environment, realistic materials, sharp focus",
+    "private": null
+  },
+  {
+    "id": "8.28",
+    "title": "Yellow Fabric Hotel",
+    "category": "Dream Architecture",
+    "public": "A hotel corridor wrapped floor to ceiling in pale yellow fabric walls, long lemon-yellow drapes replacing doors and windows, a beautiful young woman standing at the far end of the corridor looking back over her shoulder, soft diffused daylight, dreamlike depth, elegant symmetry, ultra-detailed",
+    "private": null
+  },
+  {
+    "id": "8.29",
+    "title": "Yellow Impossible Staircases",
+    "category": "Dream Architecture",
+    "public": "A vast courtyard where dozens of canary-yellow staircases rise from a field of chalk-white stone and cross one another in impossible directions, clean sky above, monumental scene, surreal realism, 8k",
+    "private": null
+  },
+  {
+    "id": "8.30",
+    "title": "Yellow Velvet Theater",
+    "category": "Dream Architecture",
+    "public": "A silent theater interior with sweeping balconies, curtains, and seats all rendered in soft yellow and natural yellow velvet, dust hanging in the light, strong spatial depth, luxurious but quiet atmosphere, highly detailed",
+    "private": null
   }
 ]

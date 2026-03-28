@@ -79,6 +79,48 @@ const MODEL_OVERRIDES: Record<number, ModelConfig> = {
     64: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
     65: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
     66: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    67: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    68: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    69: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    70: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    71: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    72: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    73: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    74: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    75: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 8.1-8.15 (indices 76-90): flux/dev
+    76: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    77: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    78: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    79: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    80: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    81: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    82: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    83: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    84: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    85: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    86: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    87: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    88: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    89: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    90: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 8.16-8.22 (indices 91-97): flux-pro
+    91: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    92: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    93: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    94: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    95: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    96: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    97: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    // 8.23-8.30 (indices 98-105): nano-banana
+    98: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    99: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    100: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    101: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    102: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    103: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    104: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    105: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
 };
 
 function getModelForIndex(index: number): ModelConfig {
@@ -403,17 +445,95 @@ async function pollForResult(statusUrl: string, responseUrl: string): Promise<{
     return null;
 }
 
-// --- Category to tags ---
-function categoryToTags(category: string): string[] {
-    const base = ['purple', 'ai-generated'];
-    const map: Record<string, string[]> = {
-        'Atmospheric Capture': ['atmospheric', 'glass', 'weather', 'magical-realism'],
-        'Holographic Antiquity': ['holographic', 'ancient', 'marble', 'cyber-classical'],
-        'Fragile Interiors': ['porcelain', 'ceramic', 'fragile', 'glow'],
-        'Solid Light': ['light', 'luminous', 'architectural', 'surreal'],
-        'Crystal Organisms': ['crystal', 'gemstone', 'organic', 'creature'],
-    };
-    return [...base, ...(map[category] ?? [])];
+// --- Auto-tags: extract keywords from prompt ---
+const STOP_WORDS = new Set([
+    // Articles, prepositions, conjunctions
+    'a', 'an', 'the', 'in', 'on', 'at', 'of', 'to', 'for', 'by', 'with', 'from',
+    'and', 'or', 'but', 'nor', 'as', 'if', 'than', 'that', 'this', 'its', 'it',
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
+    'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
+    'not', 'no', 'into', 'through', 'between', 'under', 'over', 'above', 'below',
+    'near', 'across', 'along', 'around', 'behind', 'beside', 'during', 'after',
+    'before', 'about', 'against', 'among', 'within', 'without',
+    // Prompt filler words (style/quality descriptors that aren't useful as tags)
+    'highly', 'very', 'ultra', 'extremely', 'incredibly', 'strongly',
+    'detailed', 'sharp', 'focus', 'high', 'resolution', 'quality', 'hd', '4k', '8k',
+    'entire', 'whole', 'full', 'broad', 'wide', 'large', 'small', 'tiny', 'huge',
+    'almost', 'nearly', 'completely', 'slightly', 'barely', 'mostly',
+    'each', 'every', 'all', 'both', 'many', 'several', 'few', 'some',
+    'style', 'look', 'feeling', 'tone', 'tones', 'cast', 'effect',
+    'image', 'photo', 'photograph', 'photography', 'picture', 'scene',
+    'rendering', 'render', 'generated', 'creating', 'created',
+    'filling', 'dominating', 'covering', 'stretching', 'drifting',
+    'overflowing', 'flowing', 'suspended', 'lined', 'shaped',
+    'immersive', 'environment', 'composition', 'perspective', 'depth',
+    'textures', 'texture', 'textured', 'richly', 'surfaces', 'surface',
+    'clean', 'fine', 'crisp', 'elegant', 'beautiful', 'stunning', 'vivid',
+    'natural', 'neutral', 'bright', 'dark', 'dim', 'warm', 'cool', 'soft', 'pale',
+    'deep', 'faint', 'layered', 'minimal', 'dense',
+    // Adjectives that aren't useful as tags
+    'endless', 'spacious', 'narrow', 'enormous', 'lush', 'old', 'new', 'ancient',
+    'massive', 'giant', 'thick', 'thin', 'tall', 'short', 'long', 'heavy', 'light',
+    'wet', 'dry', 'hot', 'cold', 'raw', 'pure', 'real', 'surreal', 'dramatic',
+    'strong', 'weak', 'open', 'vast', 'rich', 'flat', 'steep', 'rough', 'smooth',
+    // Prompt-specific filler
+    'frame', 'contrast', 'dominance', 'realism', 'realistic', 'cinematic',
+    'overhead', 'background', 'foreground', 'midground', 'silhouette',
+    'daylight', 'moonlight', 'sunlight', 'candlelight', 'backlight',
+    'shadows', 'reflections', 'highlights', 'contour',
+]);
+
+// Color synonyms → normalized color tag
+const COLOR_MAP: Record<string, string> = {
+    purple: 'purple', violet: 'purple', amethyst: 'purple', plum: 'purple',
+    lilac: 'purple', indigo: 'purple', lavender: 'purple',
+    yellow: 'yellow', golden: 'yellow', lemon: 'yellow', canary: 'yellow',
+    red: 'red', crimson: 'red', scarlet: 'red',
+    blue: 'blue', azure: 'blue', cobalt: 'blue', sapphire: 'blue',
+    green: 'green', emerald: 'green', jade: 'green',
+    pink: 'pink', magenta: 'pink',
+    orange: 'orange', amber: 'orange',
+    white: 'white', black: 'black',
+};
+
+function extractTags(prompt: string): string[] {
+    const tags = new Set<string>();
+    tags.add('ai-generated');
+
+    // Normalize: lowercase, remove punctuation, split
+    const lowerPrompt = prompt.toLowerCase();
+    const words = lowerPrompt
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 2);
+
+    // Find negated colors ("no orange", "without red", etc.)
+    const negatedColors = new Set<string>();
+    const negPattern = /\b(?:no|without|not)\s+(\w+)/g;
+    let negMatch;
+    while ((negMatch = negPattern.exec(lowerPrompt)) !== null) {
+        const c = COLOR_MAP[negMatch[1]];
+        if (c) negatedColors.add(c);
+    }
+
+    // Extract color tags (skip negated)
+    for (const w of words) {
+        if (COLOR_MAP[w] && !negatedColors.has(COLOR_MAP[w])) {
+            tags.add(COLOR_MAP[w]);
+        }
+    }
+
+    // Extract meaningful keywords (nouns, key adjectives)
+    for (const w of words) {
+        if (STOP_WORDS.has(w)) continue;
+        if (COLOR_MAP[w]) continue; // already handled
+        // Skip pure adjective suffixes and common modifiers
+        if (w.endsWith('ly') || w.endsWith('ing') || w.endsWith('ed')) continue;
+        if (w.length <= 2) continue;
+        tags.add(w);
+    }
+
+    return [...tags].slice(0, 6);
 }
 
 // --- Main ---
@@ -526,7 +646,7 @@ async function main() {
                 : null;
 
             // 9. Build tags
-            const tags = categoryToTags(p.category);
+            const tags = extractTags(fullPrompt);
 
             // 10. Insert into images_meta with BOTH prompts
             const row = {

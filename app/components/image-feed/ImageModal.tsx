@@ -88,11 +88,10 @@ export default function ImageModal({
 
   const renderTagName = (tagWithLang: string) => {
     let tagId = tagWithLang;
-    let lang: 'ru' | 'en' = 'ru';
-    if (tagWithLang.endsWith(':en')) { tagId = tagWithLang.slice(0, -3); lang = 'en'; }
-    else if (tagWithLang.endsWith(':ru')) { tagId = tagWithLang.slice(0, -3); lang = 'ru'; }
-    const tagNames = tagsMap[tagId];
-    return tagNames ? tagNames[lang] : tagId;
+    if (tagWithLang.endsWith(':en') || tagWithLang.endsWith(':ru')) {
+      tagId = tagWithLang.slice(0, -3);
+    }
+    return tagId;
   };
 
   const profile = Array.isArray(selected.profiles) ? selected.profiles[0] : selected.profiles;
