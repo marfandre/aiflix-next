@@ -100,7 +100,14 @@
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 57 --count 2)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 59 --count 2)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 61 --count 1)",
-      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 62 --count 1)"
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 62 --count 1)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 63 --count 1)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 64 --count 1)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 65 --count 1)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 66 --count 1)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx -e \":*)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/check-colors.ts)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/check-db.ts 49a2dad1-5962-45c8-aa1a-137e68c09613)"
     ]
   }
 }

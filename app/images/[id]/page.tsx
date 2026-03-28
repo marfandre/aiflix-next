@@ -68,16 +68,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!data) return { title: 'Image not found' };
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   const title = (data.title ?? '').trim() || 'AI Image';
   const description = data.prompt ?? `AI-generated image${data.model ? ` by ${data.model}` : ''}`;
   const imageUrl = publicImageUrl(data.path);
+  const canonical = `${baseUrl}/images/${params.id}`;
 
   return {
     title: `${title} — Waiva`,
     description,
+    alternates: { canonical },
     openGraph: {
       title,
       description,
+      url: canonical,
+      siteName: 'Waiva',
       images: [{ url: imageUrl, width: 1200, height: 630 }],
       type: 'article',
     },
@@ -123,8 +128,25 @@ export default async function ImageViewByIdPage({ params }: Props) {
   const tags: string[] = (data as any).tags ?? [];
   const dateLabel = data.created_at ? formatDate(data.created_at) : null;
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ImageObject',
+    name: title,
+    description: data.prompt || data.description || title,
+    contentUrl: url,
+    url: `${baseUrl}/images/${data.id}`,
+    datePublished: data.created_at,
+    creator: { '@type': 'Person', name: nick },
+    ...(tags.length > 0 && { keywords: tags.join(', ') }),
+  };
+
   return (
     <div className="min-h-screen bg-[#111] text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Верхняя навигация */}
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <Link
