@@ -109,7 +109,8 @@
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/check-colors.ts)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/check-db.ts 49a2dad1-5962-45c8-aa1a-137e68c09613)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 67 --count 1)",
-      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 68 --count 1)"
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 68 --count 1)",
+      "Bash(node -e \"const {createClient}=require\\(''@supabase/supabase-js''\\);require\\(''dotenv''\\).config\\({path:''.env.local''}\\);const s=createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY\\);s.from\\(''images_meta''\\).select\\(''id'',{count:''exact'',head:true}\\).then\\(r=>console.log\\(''Total images:'',r.count\\)\\)\")"
     ]
   }
 }

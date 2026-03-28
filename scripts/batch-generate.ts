@@ -121,6 +121,19 @@ const MODEL_OVERRIDES: Record<number, ModelConfig> = {
     103: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
     104: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
     105: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    // 9.1-9.5 (indices 106-110): flux/dev
+    106: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    107: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    108: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    109: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    110: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 9.6-9.8 (indices 111-113): flux-pro
+    111: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    112: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    113: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    // 9.9-9.10 (indices 114-115): nano-banana
+    114: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    115: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
 };
 
 function getModelForIndex(index: number): ModelConfig {

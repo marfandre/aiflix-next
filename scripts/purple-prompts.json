@@ -740,5 +740,75 @@
     "category": "Dream Architecture",
     "public": "A silent theater interior with sweeping balconies, curtains, and seats all rendered in soft yellow and natural yellow velvet, dust hanging in the light, strong spatial depth, luxurious but quiet atmosphere, highly detailed",
     "private": null
+  },
+  {
+    "id": "9.1",
+    "title": "Suspended Canopy Street",
+    "category": "Dream Architecture",
+    "public": "A narrow historic street covered by enormous layers of pale yellow, soft yellow, and lemon-yellow fabric canopies suspended between the buildings, the cloth filling most of the sky like a floating ceiling, cool daylight filtering through the fabric, soft haze in the distance, detailed stone facades, elegant balconies, long perspective, immersive environment, realistic textures, richly layered, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.2",
+    "title": "Yellow Glass Conservatory v2",
+    "category": "Atmospheric Capture",
+    "public": "A grand conservatory built from pale yellow and natural yellow glass panels, the entire structure glowing with clean yellow daylight, dense clusters of lemon-yellow orchids and broad yellow leaves filling the interior, delicate condensation on the glass, long tiled walkway, fresh botanical atmosphere, immersive environment, magical realism, highly detailed, realistic, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.3",
+    "title": "Archive of Sunlit Paper",
+    "category": "Emotional Interiors",
+    "public": "An old archival reading room with towering shelves packed with pale yellow books, soft yellow folders, lemon-yellow paper rolls, and hundreds of pinned notes covering the walls, tall windows casting clean daylight across wooden tables, thin dust drifting through the air, layered interior depth, tactile paper textures, immersive environment, realistic, ultra-detailed, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.4",
+    "title": "Marigold Courtyard Monastery",
+    "category": "Midnight Botanica",
+    "public": "A quiet monastery courtyard transformed into a vast garden of pale yellow, natural yellow, and canary-yellow marigolds, dense rows of flowers surrounding a stone fountain and cloister walkways, pale limestone arches, still morning air, soft haze above the blossoms, immersive environment, contemplative mood, richly textured, realistic, detailed, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.5",
+    "title": "Yellow Ceramic Metro Hall",
+    "category": "Material Swap",
+    "public": "A monumental metro hall lined with pale yellow and soft yellow ceramic walls, long bands of bright yellow wayfinding panels stretching into the distance, polished floors reflecting the architecture, high vaulted ceiling, cool neutral light from skylights, repeating columns, immersive public space, strong geometric rhythm, realistic surfaces, ultra-detailed, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.6",
+    "title": "Paper Festival Plaza",
+    "category": "Living Objects",
+    "public": "A broad city plaza overtaken by a surreal installation of thousands of pale yellow and lemon-yellow paper sheets suspended midair, as if a paper storm had frozen in motion, sheets casting layered shadows across the square, old facades around the plaza, clear daylight, immersive architectural context, elegant chaos, realistic paper texture, cinematic composition, highly detailed, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.7",
+    "title": "Bioluminescent Yellow Orchard",
+    "category": "Biological Interface",
+    "public": "An experimental orchard where every tree carries clusters of translucent pale yellow and canary-yellow fruit glowing softly beneath fresh leaves, neat paths running between the rows, botanical sensors and delicate lattice structures woven through the branches, clean morning atmosphere, immersive agricultural landscape, futuristic but organic, realistic detail, richly textured, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.8",
+    "title": "Umbrella Passage Market",
+    "category": "Miniature Civilizations",
+    "public": "A covered market street with hundreds of pale yellow, natural yellow, and lemon-yellow umbrellas suspended overhead in dense layers, the umbrellas dominating the entire ceiling of the alley, stalls below filled with paper goods, flowers, and ceramics, light mist at the far end, old masonry walls, immersive environment, lively but elegant, realistic textures, richly detailed, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.9",
+    "title": "Yellow Mosaic Bathhouse",
+    "category": "Solid Light",
+    "public": "A vast historic bathhouse lined from floor to ceiling with pale yellow and soft yellow mosaic tiles, arched alcoves, shallow reflective pools, filtered daylight falling through high openings, steam softening the distant corners, benches, columns, and basins all integrated into the yellow palette, immersive environment, tactile surfaces, luxurious atmosphere, realistic, highly detailed, sharp focus",
+    "private": null
+  },
+  {
+    "id": "9.10",
+    "title": "Caution Garden Boulevard",
+    "category": "Living Objects",
+    "public": "A long urban boulevard where industrial caution graphics have transformed into a designed landscape, broad yellow pathways, pale yellow walls, soft yellow barriers, bright yellow signage, and geometric flowerbeds of canary-yellow blooms arranged with precise symmetry, pedestrians moving through the space, neutral daylight, immersive civic environment, bold visual identity, realistic textures, ultra-detailed, sharp focus",
+    "private": null
   }
 ]
