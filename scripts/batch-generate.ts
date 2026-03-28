@@ -69,6 +69,12 @@ const MODEL_OVERRIDES: Record<number, ModelConfig> = {
     54: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
     55: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
     56: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    57: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    58: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    59: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    60: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    61: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    62: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
 };
 
 function getModelForIndex(index: number): ModelConfig {

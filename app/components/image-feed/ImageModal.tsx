@@ -257,13 +257,16 @@ export default function ImageModal({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  // Hide tags in bottom bar for vertical formats (aspect ratio < 1)
-  const isVertical = (() => {
+  // Hide tags in bottom bar for vertical/narrow formats
+  const showBarTags = (() => {
     const ar = selected.aspect_ratio;
-    if (!ar) return false;
-    const parts = ar.split(':').map(Number);
-    if (parts.length === 2 && parts[1]) return parts[0] / parts[1] < 1;
-    return false;
+    if (ar) {
+      const parts = ar.split(':').map(Number);
+      if (parts.length === 2 && parts[1]) return parts[0] / parts[1] >= 1;
+    }
+    // Fallback: if no aspect_ratio, use rendered image width
+    if (imageWidth) return imageWidth >= 500;
+    return true; // default show until we know better
   })();
 
   return (
@@ -917,7 +920,7 @@ export default function ImageModal({
                           onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
                           className="font-mono text-[11px] uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer"
                         >{formatModelName(selected.model)}</button>
-                        {!isVertical && selected.tags && selected.tags.length > 0 && (() => {
+                        {showBarTags && selected.tags && selected.tags.length > 0 && (() => {
                           return (
                             <>
                               {selected.tags.slice(0, 3).map((t) => (

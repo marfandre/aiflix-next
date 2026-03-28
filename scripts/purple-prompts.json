@@ -397,5 +397,47 @@
     "category": "Atmospheric Capture",
     "public": "A vast Victorian greenhouse with a shattered glass dome, overrun by enormous bioluminescent violet flowers and creeping amethyst vines, wrought iron framework draped in glowing purple moss, a stone fountain in the center overflowing with liquid that shimmers lavender, moonlight mixing with the organic purple glow, broken terracotta pots and scattered soil, fog rolling across the tiled floor, dark botanical horror photography",
     "private": "A vast Victorian greenhouse with a shattered glass dome, overrun by enormous bioluminescent flowers in #7A2BF4 and creeping vines in #A45EFF, wrought iron framework draped in glowing moss in #5E3A78, a stone fountain in the center overflowing with liquid that shimmers in #D7C5FF, moonlight mixing with the organic glow in #EEE8FF, broken terracotta pots and scattered soil, fog rolling across the tiled floor, dark botanical horror photography"
+  },
+  {
+    "id": "7.1",
+    "title": "Storm Conservatory",
+    "category": "Atmospheric Capture",
+    "public": "A moonlit Victorian glass conservatory in the middle of a rain-soaked garden, every greenhouse pane trembling with a trapped purple storm, lilac cloud bands circling under the roof, thin canary-yellow lightning running along the iron arches, wet stone paths reflecting the glow, cinematic atmosphere, hyper-realistic detail",
+    "private": null
+  },
+  {
+    "id": "7.2",
+    "title": "Canary Core Jellyfish",
+    "category": "Crystal Organisms",
+    "public": "A deep underwater cavern filled with faint violet bioluminescence, a crystal jellyfish drifting through the dark with a bright yellow heart and transparent amethyst tentacles, floating particles, immersive cinematic depth",
+    "private": null
+  },
+  {
+    "id": "7.3",
+    "title": "Hourglass Eclipse",
+    "category": "Atmospheric Capture",
+    "public": "A ceremonial hourglass standing on a black marble pedestal in a dim observatory, instead of sand it holds swirling amethyst storm clouds and bright lemon-yellow flashes, golden yellow sparks falling through the narrow waist, warm yellow glow illuminating the glass surface, dust from the dome floating in the air, distant constellations behind it, luxurious surreal realism, sharp focus, 8k",
+    "private": null
+  },
+  {
+    "id": "7.4",
+    "title": "Mineral Wolf in Snow",
+    "category": "Crystal Organisms",
+    "public": "A wolf composed of layered violet quartz walking across fresh snow under a dim sky, bright lemon-yellow fractures glowing intensely between the crystal plates, golden yellow eyes blazing, warm yellow light casting on the snow beneath its paws, pine forest at the edge of the clearing, tactile photorealism, 8k",
+    "private": null
+  },
+  {
+    "id": "7.5",
+    "title": "Amethyst Geode Market",
+    "category": "Atmospheric Capture",
+    "public": "A night market stall lit by dozens of warm golden lanterns hanging from wooden beams, the entire counter covered with split-open amethyst geodes glowing violet from within, golden candlelight reflecting off wet purple crystal surfaces, a merchant's weathered hands arranging the stones, yellow flames dancing in brass oil lamps, deep violet shadows between the stalls, street food steam rising in the warm light, cinematic night photography, 8k",
+    "private": null
+  },
+  {
+    "id": "7.6",
+    "title": "Purple Lightning Over Sunflower Field",
+    "category": "Atmospheric Capture",
+    "public": "An endless field of bright yellow sunflowers stretching to the horizon under a dramatic purple thunderstorm sky, violet lightning bolts striking in the distance, dark amethyst clouds swirling above the golden yellow flower heads, each sunflower sharply detailed with vivid yellow petals, the contrast between the warm yellow field and cold violet sky, golden hour light breaking through a gap in the storm clouds, landscape photography, ultra-realistic, 8k",
+    "private": null
   }
 ]

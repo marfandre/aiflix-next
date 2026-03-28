@@ -95,7 +95,12 @@
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 53 --count 2)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 55 --count 2)",
       "WebFetch(domain:www.color-name.com)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 57 --count 2 --dry-run)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 57 --count 2)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 59 --count 2)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 61 --count 1)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 62 --count 1)"
     ]
   }
 }
