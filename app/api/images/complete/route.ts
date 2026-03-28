@@ -98,6 +98,7 @@ export async function POST(req: Request) {
       title,
       description,
       prompt,
+      private_prompt,
       model,
       seed,
       source,
@@ -267,6 +268,7 @@ export async function POST(req: Request) {
         title: title ?? null,
         description: description ?? null,
         prompt: prompt ?? null,
+        private_prompt: private_prompt ?? null,
 
         // сырые HEX — для отображения палитры
         colors: normalizedColors.length ? normalizedColors : null,

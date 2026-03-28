@@ -31,6 +31,8 @@ export default function ImageModal({
   const [imageWidth, setImageWidth] = useState<number | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
+  // Bottom bar: how many tags fit based on image width
+
   // Mobile bottom sheet state
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [promptCopiedMobile, setPromptCopiedMobile] = useState(false);
@@ -254,6 +256,15 @@ export default function ImageModal({
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  // Hide tags in bottom bar for vertical formats (aspect ratio < 1)
+  const isVertical = (() => {
+    const ar = selected.aspect_ratio;
+    if (!ar) return false;
+    const parts = ar.split(':').map(Number);
+    if (parts.length === 2 && parts[1]) return parts[0] / parts[1] < 1;
+    return false;
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
@@ -879,7 +890,7 @@ export default function ImageModal({
                     {/* Bottom bar */}
                     <div className={`absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md py-1.5 px-3 border-t border-white/20 transition-opacity duration-300 ${showPrompt ? 'opacity-0 pointer-events-none' : ''}`}>
                       <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
-                        <div className="flex flex-col items-center gap-0.5">
+                        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
                           <button
                             type="button"
                             onClick={() => setShowPromptOverlay(true)}
@@ -906,21 +917,23 @@ export default function ImageModal({
                           onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
                           className="font-mono text-[11px] uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer"
                         >{formatModelName(selected.model)}</button>
-                        {selected.tags && selected.tags.length > 0 && (
-                          <>
-                            {selected.tags.slice(0, 3).map((t) => (
-                              <button
-                                key={t}
-                                type="button"
-                                onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
-                                className="rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/35 cursor-pointer"
-                              >{renderTagName(t)}</button>
-                            ))}
-                            {selected.tags.length > 3 && (
-                              <span className="text-white/60">+{selected.tags.length - 3}</span>
-                            )}
-                          </>
-                        )}
+                        {!isVertical && selected.tags && selected.tags.length > 0 && (() => {
+                          return (
+                            <>
+                              {selected.tags.slice(0, 3).map((t) => (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
+                                  className="rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/35 cursor-pointer"
+                                >{renderTagName(t)}</button>
+                              ))}
+                              {selected.tags.length > 3 && (
+                                <span className="text-white/60">+{selected.tags.length - 3}</span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </>

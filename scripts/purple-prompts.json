@@ -1,0 +1,401 @@
+[
+  {
+    "id": "1.1",
+    "title": "Thunderstorm Hourglass",
+    "category": "Atmospheric Capture",
+    "public": "A crystal hourglass holding a living thunderstorm instead of sand, miniature storm clouds spiraling between the chambers, thin violet lightning, lilac mist, silver reflections, deep plum shadows, cinematic dark background, magical realism, hyper-realistic glass textures, sharp focus, premium product photography, 8k",
+    "private": "A crystal hourglass holding a living thunderstorm instead of sand, miniature storm clouds spiraling between the chambers, thin lightning in #7A2BF4, mist in #D7C5FF, silver reflections, deep shadows in #5E3A78, cinematic dark background, magical realism, hyper-realistic glass textures, sharp focus, premium product photography, 8k"
+  },
+  {
+    "id": "1.2",
+    "title": "Perfume of the Aurora",
+    "category": "Atmospheric Capture",
+    "public": "A luxurious perfume bottle containing a floating weather system, a soft lavender cloud releasing tiny lilac rain inside the glass, a faint amethyst glow around the stopper, cool silver highlights, black velvet backdrop, elegant surrealism, ultra-detailed, polished reflections, museum-quality lighting",
+    "private": "A luxurious perfume bottle containing a floating weather system, a soft cloud in #EEE8FF releasing tiny rain in #D7C5FF inside the glass, a faint glow in #A45EFF around the stopper, cool silver highlights, black velvet backdrop, elegant surrealism, ultra-detailed, polished reflections, museum-quality lighting"
+  },
+  {
+    "id": "1.3",
+    "title": "Eclipse Snow Globe",
+    "category": "Atmospheric Capture",
+    "public": "A heavy crystal snow globe trapping a total eclipse, a dark halo ringed with amethyst radiance, fine lavender haze drifting through the sphere, subtle plum depth at the edges, glossy obsidian base, dramatic studio lighting, dreamlike atmosphere, hyper-realistic, crisp detail, 8k",
+    "private": "A heavy crystal snow globe trapping a total eclipse, a dark halo ringed with radiance in #A45EFF, fine haze in #EEE8FF drifting through the sphere, subtle depth in #5E3A78 at the edges, glossy obsidian base, dramatic studio lighting, dreamlike atmosphere, hyper-realistic, crisp detail, 8k"
+  },
+  {
+    "id": "1.4",
+    "title": "Monsoon Teapot",
+    "category": "Atmospheric Capture",
+    "public": "An antique porcelain teapot filled with a miniature monsoon, curling cloud bands, violet rain and a luminous lilac steam plume escaping from the spout, wet silver glints, soft plum shadows beneath, surreal still life, sharp focus, tactile detail",
+    "private": "An antique porcelain teapot filled with a miniature monsoon, curling cloud bands, rain in #7A2BF4 and a luminous steam plume in #D7C5FF escaping from the spout, wet silver glints, soft shadows in #5E3A78 beneath, surreal still life, sharp focus, tactile detail"
+  },
+  {
+    "id": "1.5",
+    "title": "Storm Lantern",
+    "category": "Atmospheric Capture",
+    "public": "A faceted glass lantern with a living electrical storm inside, suspended droplets, jagged violet arcs, an amethyst core, faint lavender glow along the metal frame, dark background, cinematic contrast, hyper-realistic materials, elegant and unsettling",
+    "private": "A faceted glass lantern with a living electrical storm inside, suspended droplets, jagged arcs in #7A2BF4, an core in #A45EFF, faint glow in #EEE8FF along the metal frame, dark background, cinematic contrast, hyper-realistic materials, elegant and unsettling"
+  },
+  {
+    "id": "1.6",
+    "title": "Bottle of Hail at Dusk",
+    "category": "Atmospheric Capture",
+    "public": "A tall apothecary bottle containing a twilight hailstorm, icy lilac pellets frozen in motion, streaks of violet light, soft plum smoke at the base, cool moonlit reflections on the glass, atmospheric, precise, photorealistic",
+    "private": "A tall apothecary bottle containing a twilight hailstorm, icy pellets in #D7C5FF frozen in motion, streaks of light in #7A2BF4, soft smoke in #5E3A78 at the base, cool moonlit reflections on the glass, atmospheric, precise, photorealistic"
+  },
+  {
+    "id": "1.7",
+    "title": "Rain Choir Bell",
+    "category": "Atmospheric Capture",
+    "public": "A crystal handbell filled with a vertical sheet of rain, luminous amethyst droplets chiming in midair, a pale lavender glow in the handle, deep plum shadows inside the bell, silver accents, surreal luxury object, macro photography, ultra-detailed, 8k",
+    "private": "A crystal handbell filled with a vertical sheet of rain, luminous droplets in #A45EFF chiming in midair, a pale glow in #EEE8FF in the handle, deep shadows in #5E3A78 inside the bell, silver accents, surreal luxury object, macro photography, ultra-detailed, 8k"
+  },
+  {
+    "id": "1.8",
+    "title": "Pocket Cyclone",
+    "category": "Atmospheric Capture",
+    "public": "A glass pocket watch trapping a miniature cyclone instead of gears, spiraling lilac fog, a sharp violet eye at the center, polished steel rim, black background, intimate macro composition, magical tension, hyper-realistic reflections",
+    "private": "A glass pocket watch trapping a miniature cyclone instead of gears, spiraling fog in #D7C5FF, a sharp eye in #7A2BF4 at the center, polished steel rim, black background, intimate macro composition, magical tension, hyper-realistic reflections"
+  },
+  {
+    "id": "1.9",
+    "title": "Weather in a Violin Bottle",
+    "category": "Atmospheric Capture",
+    "public": "A violin-shaped glass vessel containing moonlit weather, a ribbon of lavender drizzle, small violet flashes, a quiet amethyst glow near the neck, dark plum depth behind the glass, elegant surrealism, tactile highlights, sharp focus",
+    "private": "A violin-shaped glass vessel containing moonlit weather, a ribbon of drizzle in #EEE8FF, small flashes in #7A2BF4, a quiet glow in #A45EFF near the neck, dark depth in #5E3A78 behind the glass, elegant surrealism, tactile highlights, sharp focus"
+  },
+  {
+    "id": "1.10",
+    "title": "Cloudburst Decanter",
+    "category": "Atmospheric Capture",
+    "public": "A cut-crystal decanter imprisoning a cloudburst, dense lilac vapor rolling in layered spirals, thin violet lightning veins, a dim amethyst pulse, wet silver reflections, dark cinematic backdrop, luxurious product-shot realism, 8k",
+    "private": "A cut-crystal decanter imprisoning a cloudburst, dense vapor in #D7C5FF rolling in layered spirals, thin lightning veins in #7A2BF4, a dim pulse in #A45EFF, wet silver reflections, dark cinematic backdrop, luxurious product-shot realism, 8k"
+  },
+  {
+    "id": "2.1",
+    "title": "Glitching Marble Bust",
+    "category": "Holographic Antiquity",
+    "public": "A marble bust of an ancient goddess, one half pristine stone and the other dissolving into violet pixels and cyan wireframe ribbons, faint amethyst light along the fracture, black museum background, dramatic rim lighting, ultra-detailed stone texture, cyber-classical realism, 8k",
+    "private": "A marble bust of an ancient goddess, one half pristine stone and the other dissolving into pixels in #7A2BF4 and cyan wireframe ribbons, faint light in #A45EFF along the fracture, black museum background, dramatic rim lighting, ultra-detailed stone texture, cyber-classical realism, 8k"
+  },
+  {
+    "id": "2.2",
+    "title": "Helm of the Last Oracle",
+    "category": "Holographic Antiquity",
+    "public": "An ancient Greek helmet displayed like a relic, its cracked marble crest breaking into lilac holographic grids and violet scan lines, silver dust in the air, deep plum shadows below, moody gallery lighting, sharp focus",
+    "private": "An ancient Greek helmet displayed like a relic, its cracked marble crest breaking into holographic in #D7C5FF grids and scan lines in #7A2BF4, silver dust in the air, deep shadows in #5E3A78 below, moody gallery lighting, sharp focus"
+  },
+  {
+    "id": "2.3",
+    "title": "Column in Transmission",
+    "category": "Holographic Antiquity",
+    "public": "A weathered Roman column splitting into floating geometric data panels, amethyst neon seams, a pale lavender glow between marble fractures, cool cyan reflections, dark exhibition space, impossible archaeology, hyper-realistic detail",
+    "private": "A weathered Roman column splitting into floating geometric data panels, neon in #A45EFF seams, a pale glow in #EEE8FF between marble fractures, cool cyan reflections, dark exhibition space, impossible archaeology, hyper-realistic detail"
+  },
+  {
+    "id": "2.4",
+    "title": "Mask of the Forgotten City",
+    "category": "Holographic Antiquity",
+    "public": "A ceremonial marble mask from a lost civilization, one side carved and ancient, the other side turning into luminous violet mesh and translucent lilac code fragments, black velvet darkness behind it, cinematic contrast, premium editorial realism",
+    "private": "A ceremonial marble mask from a lost civilization, one side carved and ancient, the other side turning into luminous mesh in #7A2BF4 and translucent code fragments in #D7C5FF, black velvet darkness behind it, cinematic contrast, premium editorial realism"
+  },
+  {
+    "id": "2.5",
+    "title": "Oracle Handshake",
+    "category": "Holographic Antiquity",
+    "public": "A sculpted marble hand reaching from a classical pedestal, fingertips unraveling into amethyst laser threads and violet particles, faint lavender bloom around the knuckles, silver-gray atmosphere, dark background, elegant futuristic tension",
+    "private": "A sculpted marble hand reaching from a classical pedestal, fingertips unraveling into laser threads in #A45EFF and particles in #7A2BF4, faint bloom in #EEE8FF around the knuckles, silver-gray atmosphere, dark background, elegant futuristic tension"
+  },
+  {
+    "id": "2.6",
+    "title": "Amphora of Broken Signals",
+    "category": "Holographic Antiquity",
+    "public": "An ancient amphora with chipped white stone and gold seams, spilling not water but violet data ribbons and a soft lilac glow, subtle amethyst interference patterns hovering above the mouth, museum spotlight, surreal artifact photography",
+    "private": "An ancient amphora with chipped white stone and gold seams, spilling not water but data ribbons in #7A2BF4 and a soft glow in #D7C5FF, subtle interference patterns in #A45EFF hovering above the mouth, museum spotlight, surreal artifact photography"
+  },
+  {
+    "id": "2.7",
+    "title": "Temple Doorway Scan",
+    "category": "Holographic Antiquity",
+    "public": "A ruined temple doorway in pale marble, its archway partially converted into a hovering violet wireframe portal, amethyst pulses moving through the columns, lavender haze on the floor, cinematic night lighting, hyper-realistic, 8k",
+    "private": "A ruined temple doorway in pale marble, its archway partially converted into a hovering wireframe in #7A2BF4 portal, pulses in #A45EFF moving through the columns, haze in #EEE8FF on the floor, cinematic night lighting, hyper-realistic, 8k"
+  },
+  {
+    "id": "2.8",
+    "title": "Coin of the Empress",
+    "category": "Holographic Antiquity",
+    "public": "A giant ancient coin standing upright like a sacred object, the engraved profile flickering into lilac holographic layers and violet glitch shards, plum darkness around the edges, cool metallic highlights, sharp studio focus",
+    "private": "A giant ancient coin standing upright like a sacred object, the engraved profile flickering into holographic in #D7C5FF layers and glitch shards in #7A2BF4, darkness in #5E3A78 around the edges, cool metallic highlights, sharp studio focus"
+  },
+  {
+    "id": "2.9",
+    "title": "Winged Victory Reloaded",
+    "category": "Holographic Antiquity",
+    "public": "A classical marble winged statue with one wing intact and the other wing transforming into amethyst light panels, violet scan traces, a restrained lavender halo around the silhouette, black museum void, fine-art realism",
+    "private": "A classical marble winged statue with one wing intact and the other wing transforming into light panels in #A45EFF, scan in #7A2BF4 traces, a restrained halo in #EEE8FF around the silhouette, black museum void, fine-art realism"
+  },
+  {
+    "id": "2.10",
+    "title": "The Archive Priest",
+    "category": "Holographic Antiquity",
+    "public": "A solemn marble priest statue holding a tablet, the tablet surface erupting into violet code, lilac projection lines, and a hidden amethyst glow beneath cracked stone, silver particles floating through the darkness, moody cinematic lighting",
+    "private": "A solemn marble priest statue holding a tablet, the tablet surface erupting into code in #7A2BF4, projection lines in #D7C5FF, and a hidden glow in #A45EFF beneath cracked stone, silver particles floating through the darkness, moody cinematic lighting"
+  },
+  {
+    "id": "3.1",
+    "title": "Porcelain Hand, Living Light",
+    "category": "Fragile Interiors",
+    "public": "A human hand sculpted from glossy white porcelain, elegant fractures opening across the fingers, warm gold accents and a concentrated amethyst glow from within, faint lilac edges along the cracks, black gallery background, dramatic chiaroscuro, hyper-realistic, 8k",
+    "private": "A human hand sculpted from glossy white porcelain, elegant fractures opening across the fingers, warm gold accents and a concentrated glow in #A45EFF from within, faint edges in #D7C5FF along the cracks, black gallery background, dramatic chiaroscuro, hyper-realistic, 8k"
+  },
+  {
+    "id": "3.2",
+    "title": "Ceramic Deer",
+    "category": "Fragile Interiors",
+    "public": "A graceful white ceramic deer with fine porcelain antlers, delicate cracks revealing a violet inner light and soft lavender haze within the chest, subtle gold detailing, deep plum shadows under the body, cinematic stillness",
+    "private": "A graceful white ceramic deer with fine porcelain antlers, delicate cracks revealing a inner in #7A2BF4 light and soft haze in #EEE8FF within the chest, subtle gold detailing, deep shadows in #5E3A78 under the body, cinematic stillness"
+  },
+  {
+    "id": "3.3",
+    "title": "Anatomical Heart in Porcelain",
+    "category": "Fragile Interiors",
+    "public": "A porcelain anatomical heart resting on velvet, thin fracture lines filled with violet light, a small amethyst core beating through the ceramic shell, pale lilac sheen on the surface, black background, luxury macro photography",
+    "private": "A porcelain anatomical heart resting on velvet, thin fracture lines filled with light in #7A2BF4, a small core in #A45EFF beating through the ceramic shell, pale sheen in #D7C5FF on the surface, black background, luxury macro photography"
+  },
+  {
+    "id": "3.4",
+    "title": "Moth with a Hidden Furnace",
+    "category": "Fragile Interiors",
+    "public": "A fragile porcelain moth with translucent wings and hairline cracks, a vivid violet fire glowing inside the thorax, lilac dust along the wing edges, soft silver reflections, dark moody backdrop, surreal specimen realism",
+    "private": "A fragile porcelain moth with translucent wings and hairline cracks, a vivid fire in #7A2BF4 glowing inside the thorax, dust in #D7C5FF along the wing edges, soft silver reflections, dark moody backdrop, surreal specimen realism"
+  },
+  {
+    "id": "3.5",
+    "title": "Swan of Quiet Power",
+    "category": "Fragile Interiors",
+    "public": "A white porcelain swan with a long elegant neck, the chest cracked open just enough to reveal amethyst radiance and a ribbon of lavender light, calm water reflections, plum depth behind the figure, poetic studio lighting",
+    "private": "A white porcelain swan with a long elegant neck, the chest cracked open just enough to reveal radiance in #A45EFF and a ribbon of light in #EEE8FF, calm water reflections, depth in #5E3A78 behind the figure, poetic studio lighting"
+  },
+  {
+    "id": "3.6",
+    "title": "Sleeping Fox Vessel",
+    "category": "Fragile Interiors",
+    "public": "A curled sleeping fox made of polished ceramic, subtle fractures along the spine releasing a low violet glow, a whisper of lilac mist at the paws, matte ivory surface, dark shadowed background, tactile realism",
+    "private": "A curled sleeping fox made of polished ceramic, subtle fractures along the spine releasing a low glow in #7A2BF4, a whisper of mist in #D7C5FF at the paws, matte ivory surface, dark shadowed background, tactile realism"
+  },
+  {
+    "id": "3.7",
+    "title": "Porcelain Skull with Bloom",
+    "category": "Fragile Interiors",
+    "public": "A finely crafted porcelain skull, immaculate and glossy, split by delicate seams of amethyst light, faint lavender bloom in the eye sockets, silver highlights, deep plum shadows, museum-style still life, sharply detailed",
+    "private": "A finely crafted porcelain skull, immaculate and glossy, split by delicate seams of light in #A45EFF, faint bloom in #EEE8FF in the eye sockets, silver highlights, deep shadows in #5E3A78, museum-style still life, sharply detailed"
+  },
+  {
+    "id": "3.8",
+    "title": "Ballerina Torso",
+    "category": "Fragile Interiors",
+    "public": "A porcelain ballerina torso on a pedestal, one side smooth and pristine, the other side cracked with violet luminescence spilling through, soft lilac haze around the waist, restrained gold accents, black stage-like background, elegant surrealism",
+    "private": "A porcelain ballerina torso on a pedestal, one side smooth and pristine, the other side cracked with luminescence in #7A2BF4 spilling through, soft haze in #D7C5FF around the waist, restrained gold accents, black stage-like background, elegant surrealism"
+  },
+  {
+    "id": "3.9",
+    "title": "Ceramic Orchid Vessel",
+    "category": "Fragile Interiors",
+    "public": "A white ceramic orchid whose petals look hand-painted and fragile, each petal lit from inside by a subtle amethyst glow, lilac translucency at the edges, dark plum background, macro floral portrait, hyper-realistic",
+    "private": "A white ceramic orchid whose petals look hand-painted and fragile, each petal lit from inside by a subtle glow in #A45EFF, translucency in #D7C5FF at the edges, background in #5E3A78, macro floral portrait, hyper-realistic"
+  },
+  {
+    "id": "3.10",
+    "title": "Wolf Mask Reliquary",
+    "category": "Fragile Interiors",
+    "public": "A porcelain wolf mask with clean sculptural lines, fractures across the muzzle revealing violet inner fire, a dim lavender glow in the eye sockets, silver-gray reflections, black velvet darkness, dramatic product-shot realism",
+    "private": "A porcelain wolf mask with clean sculptural lines, fractures across the muzzle revealing inner fire in #7A2BF4, a dim glow in #EEE8FF in the eye sockets, silver-gray reflections, black velvet darkness, dramatic product-shot realism"
+  },
+  {
+    "id": "4.1",
+    "title": "Chandelier of Folded Light",
+    "category": "Solid Light",
+    "public": "A grand chandelier constructed entirely from folded sheets of violet light and translucent lavender beams, suspended like cut crystal in a dark room, silver reflections, elegant geometry, cinematic contrast, hyper-realistic luminous material, 8k",
+    "private": "A grand chandelier constructed entirely from folded sheets of light in #7A2BF4 and translucent beams in #EEE8FF, suspended like cut crystal in a dark room, silver reflections, elegant geometry, cinematic contrast, hyper-realistic luminous material, 8k"
+  },
+  {
+    "id": "4.2",
+    "title": "Staircase of Lilac Rays",
+    "category": "Solid Light",
+    "public": "A floating staircase built from solid lilac light, each step glowing with a pale lavender edge and deeper violet core, dark void around it, soft atmospheric haze, surreal architecture, sharp focus",
+    "private": "A floating staircase built from solid light in #D7C5FF, each step glowing with a #EEE8FF edge and deeper core in #7A2BF4, dark void around it, soft atmospheric haze, surreal architecture, sharp focus"
+  },
+  {
+    "id": "4.3",
+    "title": "Origami Bird of Radiance",
+    "category": "Solid Light",
+    "public": "An origami crane formed from amethyst light with razor-clean folds, a faint lavender halo around the wings, plum darkness behind, cool silver reflections on the floor, minimal composition, high-end surreal design",
+    "private": "An origami crane formed from light in #A45EFF with razor-clean folds, a faint halo in #EEE8FF around the wings, darkness in #5E3A78 behind, cool silver reflections on the floor, minimal composition, high-end surreal design"
+  },
+  {
+    "id": "4.4",
+    "title": "Violin of Lightglass",
+    "category": "Solid Light",
+    "public": "A concert violin sculpted entirely from violet light, its strings rendered as taut amethyst filaments, pale lavender glow inside the body, black background, elegant studio lighting, impossible material realism",
+    "private": "A concert violin sculpted entirely from light in #7A2BF4, its strings rendered as taut filaments in #A45EFF, pale glow in #EEE8FF inside the body, black background, elegant studio lighting, impossible material realism"
+  },
+  {
+    "id": "4.5",
+    "title": "Throne Made of Light",
+    "category": "Solid Light",
+    "public": "A ceremonial throne assembled from dense violet luminosity and lavender edges, with a dim plum shadow beneath it as if light itself has weight, black gallery setting, dramatic frontal composition, luxurious surrealism",
+    "private": "A ceremonial throne assembled from dense luminosity in #7A2BF4 and edges in #EEE8FF, with a dim shadow in #5E3A78 beneath it as if light itself has weight, black gallery setting, dramatic frontal composition, luxurious surrealism"
+  },
+  {
+    "id": "4.6",
+    "title": "Cathedral Window Beam",
+    "category": "Solid Light",
+    "public": "A towering gothic window where the stained glass has been replaced by solid amethyst light, narrow violet rays extending into the room, pale lavender fog, stone walls in shadow, sacred futuristic atmosphere, 8k",
+    "private": "A towering gothic window where the stained glass has been replaced by solid light in #A45EFF, narrow rays in #7A2BF4 extending into the room, #EEE8FF fog, stone walls in shadow, sacred futuristic atmosphere, 8k"
+  },
+  {
+    "id": "4.7",
+    "title": "Rose of Frozen Lumens",
+    "category": "Solid Light",
+    "public": "A single rose built from crystallized lavender light, layered petals with an amethyst center and a thin violet outline, black velvet background, macro photography, delicate but unreal, ultra-detailed",
+    "private": "A single rose built from crystallized light in #EEE8FF, layered petals with an center in #A45EFF and a thin outline in #7A2BF4, black velvet background, macro photography, delicate but unreal, ultra-detailed"
+  },
+  {
+    "id": "4.8",
+    "title": "Library Shelves of Light",
+    "category": "Solid Light",
+    "public": "An endless library where the shelves are made from solid lilac light bars, each shelf casting a violet glow across the floor, soft lavender haze in the air, plum depth in the distance, cinematic dream architecture",
+    "private": "An endless library where the shelves are made from solid light bars in #D7C5FF, each shelf casting a glow in #7A2BF4 across the floor, soft haze in #EEE8FF in the air, depth in #5E3A78 in the distance, cinematic dream architecture"
+  },
+  {
+    "id": "4.9",
+    "title": "Hands Shaping a Light Sphere",
+    "category": "Solid Light",
+    "public": "Two sculptural hands in darkness, carefully shaping a sphere of dense amethyst light, fine violet lines orbiting the surface, a pale lavender shimmer on the fingertips, black background, intimate, tactile, surreal",
+    "private": "Two sculptural hands in darkness, carefully shaping a sphere of dense light in #A45EFF, fine lines in #7A2BF4 orbiting the surface, a #EEE8FF shimmer on the fingertips, black background, intimate, tactile, surreal"
+  },
+  {
+    "id": "4.10",
+    "title": "Bridge of Radiant Glasslight",
+    "category": "Solid Light",
+    "public": "A narrow bridge spanning a dark void, formed entirely from solid violet light with translucent lavender rails and a faint amethyst pulse underfoot, misty atmosphere, sharp cinematic realism",
+    "private": "A narrow bridge spanning a dark void, formed entirely from solid light in #7A2BF4 with translucent rails in #EEE8FF and a faint pulse in #A45EFF underfoot, misty atmosphere, sharp cinematic realism"
+  },
+  {
+    "id": "5.1",
+    "title": "Amethyst Wolf",
+    "category": "Crystal Organisms",
+    "public": "A wolf formed from layered amethyst crystal, translucent facets catching a violet glow from within, lilac highlights along the ears and shoulders, black background, predatory stillness, hyper-realistic gemstone texture, 8k",
+    "private": "A wolf formed from layered crystal in #A45EFF, translucent facets catching a glow in #7A2BF4 from within, highlights in #D7C5FF along the ears and shoulders, black background, predatory stillness, hyper-realistic gemstone texture, 8k"
+  },
+  {
+    "id": "5.2",
+    "title": "Jellyfish of Glass Quartz",
+    "category": "Crystal Organisms",
+    "public": "A drifting jellyfish made of clear quartz and lavender crystal, long tendrils lit by a soft violet pulse, deep plum water around it, ethereal underwater darkness, ultra-detailed, dreamlike realism",
+    "private": "A drifting jellyfish made of clear quartz and crystal in #EEE8FF, long tendrils lit by a soft pulse in #7A2BF4, deep water in #5E3A78 around it, ethereal underwater darkness, ultra-detailed, dreamlike realism"
+  },
+  {
+    "id": "5.3",
+    "title": "Raven with Quartz Feathers",
+    "category": "Crystal Organisms",
+    "public": "A raven assembled from smoky crystal and amethyst feathers, the wing edges tinted with lilac light, sharp beak, plum shadow beneath the body, black background, cinematic specimen portrait",
+    "private": "A raven assembled from smoky crystal and feathers in #A45EFF, the wing edges tinted with light in #D7C5FF, sharp beak, shadow in #5E3A78 beneath the body, black background, cinematic specimen portrait"
+  },
+  {
+    "id": "5.4",
+    "title": "Orchid of Violet Stone",
+    "category": "Crystal Organisms",
+    "public": "A rare orchid grown entirely from translucent violet crystal, petals fading to lavender at the tips, an amethyst core glowing faintly in the center, deep shadow behind, luxury botanical macro photography",
+    "private": "A rare orchid grown entirely from translucent crystal in #7A2BF4, petals fading to at in #EEE8FF the tips, an core in #A45EFF glowing faintly in the center, deep shadow behind, luxury botanical macro photography"
+  },
+  {
+    "id": "5.5",
+    "title": "Geode Fox",
+    "category": "Crystal Organisms",
+    "public": "A fox made from cracked geodes and polished crystal planes, violet facets inside the chest, lilac light catching on the tail, plum depth at the paws, dark museum backdrop, tactile realism",
+    "private": "A fox made from cracked geodes and polished crystal planes, facets in #7A2BF4 inside the chest, light in #D7C5FF catching on the tail, depth in #5E3A78 at the paws, dark museum backdrop, tactile realism"
+  },
+  {
+    "id": "5.6",
+    "title": "Crystal Antler Deer",
+    "category": "Crystal Organisms",
+    "public": "A regal deer with a body of milky quartz and branching antlers of amethyst crystal, faint lavender sheen across the flanks, violet reflections in the eyes, misty dark forest atmosphere, hyper-realistic",
+    "private": "A regal deer with a body of milky quartz and branching antlers of crystal in #A45EFF, faint sheen in #EEE8FF across the flanks, reflections in #7A2BF4 in the eyes, misty dark forest atmosphere, hyper-realistic"
+  },
+  {
+    "id": "5.7",
+    "title": "Seahorse of Shards",
+    "category": "Crystal Organisms",
+    "public": "A delicate seahorse built from tiny amethyst shards and pale lavender crystal plates, a restrained violet glow in its spine, deep plum water around it, macro underwater portrait, premium surreal realism",
+    "private": "A delicate seahorse built from tiny shards in #A45EFF and pale crystal in #EEE8FF plates, a restrained glow in #7A2BF4 in its spine, deep water in #5E3A78 around it, macro underwater portrait, premium surreal realism"
+  },
+  {
+    "id": "5.8",
+    "title": "Opal Lilac Butterfly",
+    "category": "Crystal Organisms",
+    "public": "A butterfly with semi-transparent lilac opal wings, a small amethyst body and a fine violet shimmer along the wing veins, black velvet background, exquisite macro detail, elegant stillness",
+    "private": "A butterfly with semi-transparent opal in #D7C5FF wings, a small body in #A45EFF and a fine shimmer in #7A2BF4 along the wing veins, black velvet background, exquisite macro detail, elegant stillness"
+  },
+  {
+    "id": "5.9",
+    "title": "Smoky Panther",
+    "category": "Crystal Organisms",
+    "public": "A panther sculpted from smoky quartz and dark plum crystal, with only a few restrained violet glints in the musculature, black surroundings, low-key lighting, luxurious menace, sharp focus",
+    "private": "A panther sculpted from smoky quartz and crystal in #5E3A78, with only a few restrained glints in #7A2BF4 in the musculature, black surroundings, low-key lighting, luxurious menace, sharp focus"
+  },
+  {
+    "id": "5.10",
+    "title": "Crystal Sapling",
+    "category": "Crystal Organisms",
+    "public": "A young tree grown from clear crystal and amethyst mineral clusters, slender branches tipped with pale lavender buds, a quiet violet glow running through the trunk, dark gallery floor, surreal botanical realism, 8k",
+    "private": "A young tree grown from clear crystal and mineral in #A45EFF clusters, slender branches tipped with pale buds in #EEE8FF, a quiet glow in #7A2BF4 running through the trunk, dark gallery floor, surreal botanical realism, 8k"
+  },
+  {
+    "id": "6.1",
+    "title": "Violet Alchemist Workshop",
+    "category": "Atmospheric Capture",
+    "public": "A forgotten alchemist's workshop illuminated entirely by glowing violet potions in glass flasks of every shape, bubbling liquids casting amethyst reflections on stone walls covered in arcane symbols, copper instruments tarnished with age, dried lavender bundles hanging from oak ceiling beams, plum-colored smoke rising from a central cauldron, cinematic still life, moody editorial photography",
+    "private": "A forgotten alchemist's workshop illuminated entirely by glowing potions in #7A2BF4 in glass flasks of every shape, bubbling liquids casting reflections in #A45EFF on stone walls covered in arcane symbols, copper instruments tarnished with age, dried lavender bundles hanging from oak ceiling beams, smoke in #5E3A78 rising from a central cauldron, cinematic still life, moody editorial photography"
+  },
+  {
+    "id": "6.2",
+    "title": "Amethyst Kraken Emerging",
+    "category": "Crystal Organisms",
+    "public": "A colossal kraken made of polished amethyst crystal bursting through the surface of a stormy midnight ocean, tentacles wrapped around the mast of a wooden ship, violet lightning splitting the sky, deep plum waves crashing with bioluminescent foam, rain catching the purple glow from within the creature, dramatic wide angle, hyper-detailed",
+    "private": "A colossal kraken made of polished crystal in #A45EFF bursting through the surface of a stormy midnight ocean, tentacles wrapped around the mast of a wooden ship, lightning in #7A2BF4 splitting the sky, deep waves in #5E3A78 crashing with bioluminescent foam in #D7C5FF, rain catching the glow from within the creature, dramatic wide angle, hyper-detailed"
+  },
+  {
+    "id": "6.3",
+    "title": "Cathedral of Violet Crystals",
+    "category": "Crystal Organisms",
+    "public": "A vast underground cavern transformed into a natural cathedral by enormous amethyst crystal formations growing from floor to ceiling, a narrow stone path winding between the clusters, an underground river reflecting the violet glow, tiny explorers with lanterns for scale, stalactites dripping with mineral water, atmospheric fog, epic landscape photography",
+    "private": "A vast underground cavern transformed into a natural cathedral by enormous crystal formations in #A45EFF growing from floor to ceiling, a narrow stone path winding between the clusters, an underground river reflecting the glow in #7A2BF4, tiny explorers with lanterns for scale, stalactites dripping with mineral water, atmospheric fog in #D7C5FF, epic landscape photography"
+  },
+  {
+    "id": "6.4",
+    "title": "Violet Clocktower at Midnight",
+    "category": "Atmospheric Capture",
+    "public": "A towering gothic clocktower struck by violet lightning at the stroke of midnight, the clock face glowing with amethyst light from within, purple electricity arcing between iron gargoyles, rain-soaked stone walls reflecting lavender light, swirling plum-colored storm clouds, a flooded cobblestone square below with violet reflections, dramatic low angle, cinematic photography",
+    "private": "A towering gothic clocktower struck by lightning in #7A2BF4 at the stroke of midnight, the clock face glowing with light in #A45EFF from within, electricity in #D7C5FF arcing between iron gargoyles, rain-soaked stone walls reflecting light in #EEE8FF, swirling storm clouds in #5E3A78, a flooded cobblestone square below with reflections in #7A2BF4, dramatic low angle, cinematic photography"
+  },
+  {
+    "id": "6.5",
+    "title": "Amethyst Throne Room Abandoned",
+    "category": "Solid Light",
+    "public": "An abandoned royal throne room where everything has been overtaken by growing amethyst crystals, the throne itself encased in violet mineral formations, cracked marble floor with purple veins of crystal pushing through, tattered velvet curtains in deep plum, moonlight streaming through shattered rose windows casting lavender patterns on the walls, dust floating in the light, grand scale, atmospheric decay photography",
+    "private": "An abandoned royal throne room where everything has been overtaken by growing crystals in #A45EFF, the throne itself encased in mineral formations in #7A2BF4, cracked marble floor with veins of crystal in #D7C5FF pushing through, tattered velvet curtains in deep #5E3A78, moonlight streaming through shattered rose windows casting patterns in #EEE8FF on the walls, dust floating in the light, grand scale, atmospheric decay photography"
+  },
+  {
+    "id": "6.6",
+    "title": "Violet Shipwreck Abyss",
+    "category": "Atmospheric Capture",
+    "public": "A massive sunken galleon resting on the ocean floor, its rotting hull pierced by clusters of glowing amethyst crystals growing from within, tattered sails drifting in deep violet currents, schools of translucent jellyfish pulsing with lavender light around the broken mast, plum-colored coral encrusting the cannons, shafts of pale moonlight penetrating the dark water from above, underwater cinematic photography",
+    "private": "A massive sunken galleon resting on the ocean floor, its rotting hull pierced by clusters of glowing crystals in #A45EFF growing from within, tattered sails drifting in deep currents in #7A2BF4, schools of translucent jellyfish pulsing with light in #D7C5FF around the broken mast, coral in #5E3A78 encrusting the cannons, shafts of pale moonlight penetrating the dark water from above, underwater cinematic photography"
+  },
+  {
+    "id": "6.7",
+    "title": "Gothic Violet Greenhouse",
+    "category": "Atmospheric Capture",
+    "public": "A vast Victorian greenhouse with a shattered glass dome, overrun by enormous bioluminescent violet flowers and creeping amethyst vines, wrought iron framework draped in glowing purple moss, a stone fountain in the center overflowing with liquid that shimmers lavender, moonlight mixing with the organic purple glow, broken terracotta pots and scattered soil, fog rolling across the tiled floor, dark botanical horror photography",
+    "private": "A vast Victorian greenhouse with a shattered glass dome, overrun by enormous bioluminescent flowers in #7A2BF4 and creeping vines in #A45EFF, wrought iron framework draped in glowing moss in #5E3A78, a stone fountain in the center overflowing with liquid that shimmers in #D7C5FF, moonlight mixing with the organic glow in #EEE8FF, broken terracotta pots and scattered soil, fog rolling across the tiled floor, dark botanical horror photography"
+  }
+]
