@@ -110,6 +110,7 @@ export default function ImageModal({
     if (targetIdx >= 0 && targetIdx < images.length) {
       setSheetExpanded(false);
       setModalHoveredColor(null);
+      setImageWidth(null);
       onNavigate(images[targetIdx]);
     }
   }, [images, onNavigate, selected.id]);
@@ -256,17 +257,9 @@ export default function ImageModal({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  // Hide tags in bottom bar for vertical/narrow formats
-  const showBarTags = (() => {
-    const ar = selected.aspect_ratio;
-    if (ar) {
-      const parts = ar.split(':').map(Number);
-      if (parts.length === 2 && parts[1]) return parts[0] / parts[1] >= 1;
-    }
-    // Fallback: if no aspect_ratio, use rendered image width
-    if (imageWidth) return imageWidth >= 500;
-    return true; // default show until we know better
-  })();
+  // How many tags fit in the bottom bar based on image width
+  // ~350px for prompt+author+model+gaps, ~80px per tag, ~30px for "+N"
+  const barTagCount = imageWidth ? Math.max(0, Math.floor((imageWidth - 380) / 80)) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
@@ -842,6 +835,7 @@ export default function ImageModal({
                         src={publicImageUrl(currentVariant.path)}
                         alt={(selected.title ?? "").trim() || "\u041A\u0430\u0440\u0442\u0438\u043D\u043A\u0430"}
                         className="max-h-[90vh] max-w-full object-contain"
+                        onLoad={(e) => setImageWidth((e.target as HTMLImageElement).offsetWidth)}
                       />
 
                       {/* Color marker on image */}
@@ -891,7 +885,7 @@ export default function ImageModal({
 
                     {/* Bottom bar */}
                     <div className={`absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md py-1.5 px-3 border-t border-white/20 transition-opacity duration-300 ${showPrompt ? 'opacity-0 pointer-events-none' : ''}`}>
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-white/80">
+                      <div className="flex items-center gap-4 text-xs text-white/80 overflow-hidden">
                         <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
                           <button
                             type="button"
@@ -910,28 +904,30 @@ export default function ImageModal({
                             <span className="text-[10px] text-white/50">{formatDate(selected.created_at)}</span>
                           )}
                         </div>
-                        <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20">
+                        <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20 flex-shrink-0">
                           {avatar && <img src={avatar} alt={nick} className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40" />}
                           <span className="text-white">{nick}</span>
                         </Link>
                         <button
                           type="button"
                           onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
-                          className="font-mono text-[11px] uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer"
+                          className="font-mono text-[11px] uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer flex-shrink-0"
                         >{formatModelName(selected.model)}</button>
-                        {showBarTags && selected.tags && selected.tags.length > 0 && (() => {
+                        {barTagCount > 0 && selected.tags && selected.tags.length > 0 && (() => {
+                          const visible = selected.tags.slice(0, barTagCount);
+                          const remaining = selected.tags.length - visible.length;
                           return (
                             <>
-                              {selected.tags.slice(0, 3).map((t) => (
+                              {visible.map((t) => (
                                 <button
                                   key={t}
                                   type="button"
                                   onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
-                                  className="rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/35 cursor-pointer"
+                                  className="rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/35 cursor-pointer flex-shrink-0"
                                 >{renderTagName(t)}</button>
                               ))}
-                              {selected.tags.length > 3 && (
-                                <span className="text-white/60">+{selected.tags.length - 3}</span>
+                              {remaining > 0 && (
+                                <span className="text-white/60 flex-shrink-0">+{remaining}</span>
                               )}
                             </>
                           );

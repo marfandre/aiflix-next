@@ -133,9 +133,8 @@ export default function TagSelector({
             // Удаляем тег (с любым суффиксом)
             onTagsChange(selectedTags.filter((t) => t !== existingTag));
         } else if (selectedTags.length < maxTags) {
-            // Добавляем тег с суффиксом языка
-            const langSuffix = preferEnglish ? ':en' : ':ru';
-            onTagsChange([...selectedTags, tagId + langSuffix]);
+            // Всегда сохраняем на английском
+            onTagsChange([...selectedTags, tagId + ':en']);
         }
         setSearch("");
     };
