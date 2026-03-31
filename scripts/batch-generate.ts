@@ -134,6 +134,210 @@ const MODEL_OVERRIDES: Record<number, ModelConfig> = {
     // 9.9-9.10 (indices 114-115): nano-banana
     114: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
     115: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },
+    // 10.1-10.10 (indices 116-125): flux/dev
+    116: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    117: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    118: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    119: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    120: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    121: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    122: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    123: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    124: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    125: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 10.6-10.16 (indices 121-131): flux/dev
+    // 121-125 already set above
+    126: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    127: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    128: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    129: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    130: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    131: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 10.17-10.18 (indices 132-133): flux-pro
+    132: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    133: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    // 10.19-10.20 (indices 134-135): nano-banana
+    134: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    135: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 11.1 (index 136): flux/dev
+    136: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 11.2-11.3 (indices 137-138): flux/dev
+    137: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    138: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 12.1-12.10 (indices 139-148): red series, all flux/dev
+    139: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    140: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    141: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    142: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    143: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    144: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    145: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    146: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    147: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    148: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 13.1-13.14 (indices 149-162): red series pt2, all flux/dev
+    149: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    150: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    151: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    152: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    153: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    154: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    155: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    156: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    157: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    158: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    159: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    160: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    161: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    162: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 14.1-14.10 (indices 163-172): impossible red, mixed flux/dev + flux-pro
+    163: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    164: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    165: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    166: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    167: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    168: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    169: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    170: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },
+    171: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    172: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    173: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    174: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    175: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    176: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    177: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    178: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 15.1-15.2 (indices 179-180): green series, flux/dev
+    179: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    180: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 15.3-15.7 (indices 181-185): green series pt2, flux/dev
+    181: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    182: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    183: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    184: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    185: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    186: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },
+    // 16.1-16.15 (indices 187-201): green series additional, mixed models
+    187: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Alarm Clock Orchard
+    188: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },  // Microwave Weather Chamber
+    189: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Laptop Root Atlas
+    190: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },  // Ceiling Fan of Hanging Lakes
+    191: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Dishwasher Rainforest Racks
+    192: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Bus Stop Ticket Vines
+    193: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Window AC Fog Cathedral
+    194: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },  // Laundromat Tidal Forest
+    195: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Street Drain Observatory
+    196: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },  // Toaster of Glass Ferns
+    197: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Checkout Belt Wetland
+    198: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mail Slot Canal
+    199: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Umbrella Stand Waterfall
+    200: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },  // Bathroom Mirror Glitch Garden
+    201: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Coffee Grinder Planetarium
+    202: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Victorian Greenhouse Interior
+    203: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Malachite Chamber
+    204: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Scottish Highlands in Rain
+    205: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Absinthe Still Life
+    206: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Jade Emperor's Garden
+    207: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Elevator Emerald Swamp
+    208: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Malachite Bedroom Geode
+    209: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Grand Piano Consumed by Ivy
+    210: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Aquarium Wall Apartment
+    211: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Umbrella Leaf Rain
+    212: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Kitchen Sunset Pot
+    213: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Dress of Red Smoke
+    214: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Elevator Full of Red Roses
+    215: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Living Heart Wallpaper Room
+    216: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Red Library Flooding
+    217: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Taxi in Sunflower Field
+    218: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Light Bulb City
+    219: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Lemon Rain on Subway
+    220: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Honeycomb Bed
+    221: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Golden Moss Stairwell
+    222: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Bedroom in Deep Space
+    223: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Library Flooded with Indigo Ink
+    224: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Door to the Deep Ocean
+    225: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Pianist Underwater
+    226: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Midnight Watchmaker Workshop
+    227: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Autumn Tree Growing from Grand Piano
+    228: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Honey Faucet Bathroom
+    229: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Burning Book Staircase
+    230: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Orange Grove Inside a Cathedral
+    231: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Spilled Sunset on Kitchen Table
+    232: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Cinema Portal Screen
+    233: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Neon Magenta Bathtub
+    234: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Tree of Magenta Lightning
+    235: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Magenta Monochrome Supermarket
+    236: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Magenta Lava Fountain
+    237: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Strawberry Ice Cream Grand Piano
+    238: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Marshmallow Sneakers
+    239: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cotton Candy Bedroom Pillows
+    240: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Whipped Cream Bathtub
+    241: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Lollipop Crystal Chandelier
+    242: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Book Swimming Pool
+    243: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Turquoise Jelly Armchair
+    244: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Teapot Waterfall
+    245: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Subway Stairs Into Turquoise Water
+    246: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Jellyfish Shower
+    247: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Chocolate Laptop
+    248: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Peanut Butter Armchair
+    249: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Caramel Glass Violin
+    250: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cookie Library
+    251: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Chocolate Waterfall Staircase
+    252: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Suitcase Lavender Field
+    253: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Galaxy Ice Cream Cone
+    254: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Wisteria Street Lamp
+    255: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Umbrella Petal Rain
+    256: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Grape Juice Faucet
+    257: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Moss-Covered Alarm Clock
+    258: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Forest Inside a Refrigerator
+    259: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Earbuds Growing Lime Vines
+    260: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Living Grass Sneakers
+    261: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Matcha Bathtub
+    262: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Ocean in a Glass
+    263: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Turquoise Roe Armchair
+    264: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Mirror Reflecting Underwater Reef
+    265: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Turquoise Sea Sponge Pillow
+    266: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Jellyfish Umbrella
+    // 28.1-28.5 Orange (267-271)
+    267: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Salmon Office Chair
+    268: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Pizza Moon Over City
+    269: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Bread Loaf Sofa
+    270: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Melted Cheese Door Handle
+    271: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // City Inside an Orange
+    // 28.6-28.10 Magenta (272-276)
+    272: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // TV Portal Wisteria
+    273: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Jellyfish Dress on Subway
+    274: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Gemstone Rubik's Cube
+    275: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Amethyst Geode Bathtub
+    276: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Wardrobe Violet Thunderstorm
+    // 28.11-28.15 Lime (277-281)
+    277: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Moss-Covered Office Laptop
+    278: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Sushi Roll Park
+    279: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Abandoned Car Forest
+    280: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Headphones Swamp
+    281: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Outlet Growing Ivy
+    282: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Coffee Volcanic Island
+    283: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Walnut Victorian Study
+    284: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Avocado Swimming Pool
+    285: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Watermelon Football Stadium
+    286: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Soft-Boiled Egg Golden Temple
+    287: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Snow Globe Living City
+    288: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Violin Honeycomb Cross-Section
+    // 30.1-30.14 (289-302): Food, Crystals, Art Portraits, Folk Art
+    289: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Croissant Dress Shoes
+    290: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Red Caviar Armchair
+    291: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // White Chocolate Bathtub
+    292: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Gummy Bear Chandelier
+    293: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rose Quartz Grand Piano
+    294: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Obsidian Sneakers
+    295: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Amber Violin with Prehistoric Insects
+    296: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Gold Leaf and Indigo Face
+    297: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Turquoise Tile Mosaic Face
+    298: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Molten Gold Face
+    299: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peony Face
+    300: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Blue Whale in Night Sky Folk Art
+    301: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Fox in Autumn Forest Folk Art
+    302: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peacock Persian Folk Art
 };
 
 function getModelForIndex(index: number): ModelConfig {
@@ -147,7 +351,12 @@ function getModelForIndex(index: number): ModelConfig {
 }
 
 // Varied sizes: cycle through sizes
+const SIZE_OVERRIDES: Record<number, string> = {
+    183: 'landscape_16_9',  // 15.5 Traffic Light River — wide cinematic
+};
+
 function getSizeForIndex(index: number): string {
+    if (SIZE_OVERRIDES[index]) return SIZE_OVERRIDES[index];
     return IMAGE_SIZES[index % IMAGE_SIZES.length];
 }
 
@@ -489,11 +698,52 @@ const STOP_WORDS = new Set([
     'massive', 'giant', 'thick', 'thin', 'tall', 'short', 'long', 'heavy', 'light',
     'wet', 'dry', 'hot', 'cold', 'raw', 'pure', 'real', 'surreal', 'dramatic',
     'strong', 'weak', 'open', 'vast', 'rich', 'flat', 'steep', 'rough', 'smooth',
+    // More adjectives commonly found in prompts
+    'spectacular', 'monumental', 'sculptural', 'translucent', 'magnificent',
+    'gigantic', 'miniature', 'gorgeous', 'intricate', 'elaborate', 'ornate',
+    'delicate', 'transparent', 'opaque', 'muted', 'vibrant', 'saturated',
+    'monochrome', 'polished', 'raw', 'sacred', 'divine', 'celestial',
+    'hidden', 'secret', 'mysterious', 'magical', 'enchanted', 'mystic',
+    'electric', 'internal', 'external', 'visible', 'invisible',
+    'symmetrical', 'asymmetrical', 'geometric', 'organic',
+    // Verbs / participles that aren't useful as tags
+    'inside', 'split', 'unleashing', 'illuminated',
+    'arranged', 'scattered', 'frozen', 'molten', 'liquid',
+    'erupting', 'crashing', 'dripping', 'swirling', 'spiraling',
+    'cascading', 'spilling', 'pooling', 'curling', 'wrapping',
+    'reflecting', 'refracting', 'filtering', 'piercing', 'radiating',
+    'dominating', 'surrounding', 'enveloping', 'embracing',
+    'streams', 'bolts', 'glows', 'arcs', 'shafts', 'beams', 'rays',
+    'splashes', 'droplets', 'particles', 'bits', 'pieces', 'chunks',
+    'jewel-like', 'syrup-like', 'dream-like', 'life-like',
+    'plant', 'plants', 'mid-air', 'mid-motion',
+    // Adverbs / conjunctive words that slip through -ly filter
+    'instead', 'where', 'there', 'here', 'when', 'while', 'also', 'just',
+    'even', 'still', 'yet', 'once', 'then', 'thus', 'hence', 'ever', 'never',
+    'always', 'often', 'already', 'rather', 'quite', 'perhaps', 'maybe',
+    'together', 'apart', 'away', 'back', 'down', 'out', 'off',
+    // Verbs commonly found in prompts
+    'made', 'like', 'set', 'placed', 'sits', 'seen', 'lit', 'held',
+    'given', 'taken', 'left', 'turned', 'built', 'grown', 'kept', 'let',
+    'put', 'run', 'cut', 'hit', 'got', 'get', 'say', 'use', 'try',
+    'make', 'take', 'come', 'give', 'show', 'seem', 'feel', 'know',
+    'rising', 'holding', 'standing', 'sitting', 'hanging', 'floating',
+    'glowing', 'forming', 'growing', 'moving', 'falling', 'turning',
+    'breaking', 'catching', 'reaching', 'splitting', 'pulsing',
+    // Prepositions / relative pronouns missed earlier
+    'upon', 'beneath', 'onto', 'toward', 'towards', 'which', 'whose',
+    'whom', 'what', 'how', 'why', 'whether', 'such', 'other', 'another',
     // Prompt-specific filler
     'frame', 'contrast', 'dominance', 'realism', 'realistic', 'cinematic',
     'overhead', 'background', 'foreground', 'midground', 'silhouette',
     'daylight', 'moonlight', 'sunlight', 'candlelight', 'backlight',
     'shadows', 'reflections', 'highlights', 'contour',
+    // More style/quality filler
+    'premium', 'aesthetic', 'fantasy', 'editorial', 'luxurious', 'luxury',
+    'majestic', 'epic', 'mythic', 'baroque', 'impossible', 'refined',
+    'dominant', 'palette', 'competing', 'colors', 'colour', 'text',
+    'detail', 'scale', 'atmosphere', 'diffusion', 'transformation',
+    'worldbuilding', 'interior', 'exterior',
 ]);
 
 // Color synonyms → normalized color tag
@@ -511,7 +761,7 @@ const COLOR_MAP: Record<string, string> = {
 
 function extractTags(prompt: string): string[] {
     const tags = new Set<string>();
-    tags.add('ai-generated');
+    // no 'ai-generated' tag
 
     // Normalize: lowercase, remove punctuation, split
     const lowerPrompt = prompt.toLowerCase();
@@ -520,13 +770,18 @@ function extractTags(prompt: string): string[] {
         .split(/\s+/)
         .filter(w => w.length > 2);
 
-    // Find negated colors ("no orange", "without red", etc.)
+    // Find negated colors ("no orange", "no blue, green, or gold contamination", etc.)
     const negatedColors = new Set<string>();
-    const negPattern = /\b(?:no|without|not)\s+(\w+)/g;
+    // Match "no/without/not" followed by a comma-separated list of words (e.g. "no blue, green, or gold")
+    const negPattern = /\b(?:no|without|not)\s+([\w]+(?:\s*,\s*(?:or\s+)?[\w]+)*(?:\s+or\s+[\w]+)?)/g;
     let negMatch;
     while ((negMatch = negPattern.exec(lowerPrompt)) !== null) {
-        const c = COLOR_MAP[negMatch[1]];
-        if (c) negatedColors.add(c);
+        // Split the matched list into individual words
+        const parts = negMatch[1].split(/[\s,]+/).filter(w => w && w !== 'or' && w !== 'and');
+        for (const part of parts) {
+            const c = COLOR_MAP[part];
+            if (c) negatedColors.add(c);
+        }
     }
 
     // Extract color tags (skip negated)
@@ -653,9 +908,16 @@ async function main() {
                 continue;
             }
 
-            // 8. Calculate aspect ratio
-            const aspectRatio = result.width && result.height
-                ? getAspectRatioString(result.width, result.height)
+            // 8. Calculate aspect ratio (fallback to sharp metadata if API returns null)
+            let imgWidth = result.width;
+            let imgHeight = result.height;
+            if (!imgWidth || !imgHeight) {
+                const meta = await sharp(imageBuffer).metadata();
+                imgWidth = meta.width ?? 0;
+                imgHeight = meta.height ?? 0;
+            }
+            const aspectRatio = imgWidth && imgHeight
+                ? getAspectRatioString(imgWidth, imgHeight)
                 : null;
 
             // 9. Build tags

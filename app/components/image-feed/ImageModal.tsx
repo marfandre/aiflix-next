@@ -581,7 +581,11 @@ export default function ImageModal({
                 {selected.aspect_ratio && (
                   <div>
                     <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u0424\u043E\u0440\u043C\u0430\u0442"}</h3>
-                    <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80">{selected.aspect_ratio}</span>
+                    <button
+                      type="button"
+                      onClick={() => { window.location.href = `/?t=images&aspect=${encodeURIComponent(selected.aspect_ratio || '')}`; }}
+                      className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25 cursor-pointer"
+                    >{selected.aspect_ratio}</button>
                   </div>
                 )}
               </div>
@@ -756,7 +760,11 @@ export default function ImageModal({
               {selected.aspect_ratio && (
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0424\u043E\u0440\u043C\u0430\u0442"}</h3>
-                  <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{selected.aspect_ratio}</span>
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = `/?t=images&aspect=${encodeURIComponent(selected.aspect_ratio || '')}`; }}
+                    className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20 cursor-pointer"
+                  >{selected.aspect_ratio}</button>
                 </div>
               )}
 

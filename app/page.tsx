@@ -9,6 +9,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import MediaTabs from "./components/MediaTabs";
 import ImageFeedClient from "./components/ImageFeedClient";
 import VideoFeedClient from "./components/VideoFeedClient";
+import ActiveFiltersBar from "./components/ActiveFiltersBar";
 
 type Tab = "video" | "images";
 
@@ -23,6 +24,7 @@ export default async function Home({
     moods?: string;
     imageTypes?: string;
     tags?: string;
+    aspect?: string;
   };
 }) {
   const supabase = createServerComponentClient({ cookies });
@@ -59,6 +61,8 @@ export default async function Home({
       <div className="mx-auto max-w-[2000px] px-4">
         {tab === "video" && <VideoFeedClient userId={userId} />}
 
+        {tab === "images" && <ActiveFiltersBar />}
+
         {tab === "images" && (
           <ImageFeedClient
             userId={userId}
@@ -69,6 +73,7 @@ export default async function Home({
               moods: searchParams?.moods,
               imageTypes: searchParams?.imageTypes,
               tags: searchParams?.tags,
+              aspect: searchParams?.aspect,
             }}
           />
         )}

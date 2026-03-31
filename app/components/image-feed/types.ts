@@ -42,4 +42,5 @@ export type SearchParams = {
   moods?: string;
   imageTypes?: string;
   tags?: string;
+  aspect?: string;
 };

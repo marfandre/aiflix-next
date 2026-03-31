@@ -110,8 +110,12 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       if (tags.length) query = query.contains("tags", tags);
     }
 
+    if (searchParams.aspect) {
+      query = query.eq("aspect_ratio", searchParams.aspect);
+    }
+
     return query;
-  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags]);
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect]);
 
   // ---------- Load feed (initial) ----------
   useEffect(() => {
@@ -172,7 +176,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
   // ---------- Realtime subscription ----------
   useEffect(() => {
-    if (searchParams.colors || searchParams.families || searchParams.models || searchParams.tags) return;
+    if (searchParams.colors || searchParams.families || searchParams.models || searchParams.tags || searchParams.aspect) return;
 
     const channel = supa
       .channel("images-feed")
@@ -196,7 +200,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       .subscribe();
 
     return () => { supa.removeChannel(channel); };
-  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags]);
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect]);
 
   const publicImageUrl = (path: string) => {
     const { data } = supa.storage.from("images").getPublicUrl(path);

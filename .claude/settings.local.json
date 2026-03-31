@@ -110,7 +110,11 @@
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/check-db.ts 49a2dad1-5962-45c8-aa1a-137e68c09613)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 67 --count 1)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx tsx scripts/batch-generate.ts --start 68 --count 1)",
-      "Bash(node -e \"const {createClient}=require\\(''@supabase/supabase-js''\\);require\\(''dotenv''\\).config\\({path:''.env.local''}\\);const s=createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY\\);s.from\\(''images_meta''\\).select\\(''id'',{count:''exact'',head:true}\\).then\\(r=>console.log\\(''Total images:'',r.count\\)\\)\")"
+      "Bash(node -e \"const {createClient}=require\\(''@supabase/supabase-js''\\);require\\(''dotenv''\\).config\\({path:''.env.local''}\\);const s=createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY\\);s.from\\(''images_meta''\\).select\\(''id'',{count:''exact'',head:true}\\).then\\(r=>console.log\\(''Total images:'',r.count\\)\\)\")",
+      "Bash(node -e \"const {createClient}=require\\(''@supabase/supabase-js''\\);require\\(''dotenv''\\).config\\({path:''.env.local''}\\);const s=createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY\\);s.from\\(''images_meta''\\).select\\(''title,colors,color_families,dominant_color,secondary_color,third_color''\\).eq\\(''id'',''c128b51d-6f0b-44ce-8624-5dcf42f476ee''\\).single\\(\\).then\\(r=>console.log\\(JSON.stringify\\(r.data,null,2\\)\\)\\)\")",
+      "Bash(node -e \"const {createClient}=require\\(''@supabase/supabase-js''\\);require\\(''dotenv''\\).config\\({path:''.env.local''}\\);const s=createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY\\);s.from\\(''images_meta''\\).select\\(''title,prompt''\\).eq\\(''id'',''f085a055-1e4b-48d2-b912-e8f727ca3964''\\).single\\(\\).then\\(r=>console.log\\(JSON.stringify\\(r.data,null,2\\)\\)\\)\")",
+      "Bash(node scripts/test-tags.js)",
+      "Bash(del \"c:\\\\Users\\\\Андрей\\\\Downloads\\\\aiflix_mvp\\\\aiflix\\\\app\\\\components\\\\ImageFilterBar.tsx\")"
     ]
   }
 }

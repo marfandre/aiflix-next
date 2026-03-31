@@ -326,6 +326,8 @@ export async function GET(req: NextRequest) {
   const slot3 = sp.get("slot3");
   const slot4 = sp.get("slot4");
 
+  const aspectParam = sp.get("aspect");
+
   // Старые параметры (для обратной совместимости)
   const slotColorParam = sp.get("slotColor");
   const slotIndexParam = sp.get("slotIndex");
@@ -552,6 +554,10 @@ export async function GET(req: NextRequest) {
       if (families.length) {
         q = q.contains("color_families", families);
       }
+    }
+
+    if (aspectParam) {
+      q = q.eq("aspect_ratio", aspectParam);
     }
 
     const { data, error } = await q;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { ColorWheel } from './ColorWheel';
 import TagSelector from './TagSelector';
@@ -77,6 +78,17 @@ const MODEL_SEARCH_KEYS: Record<string, string> = {
   'Pika': 'pika',
   'Runway': 'runway',
 };
+
+const ASPECT_RATIO_OPTIONS = [
+  { value: '1:1', label: '1:1', hint: 'Квадрат' },
+  { value: '16:9', label: '16:9', hint: 'Широкий' },
+  { value: '9:16', label: '9:16', hint: 'Вертикаль' },
+  { value: '4:3', label: '4:3', hint: '' },
+  { value: '3:4', label: '3:4', hint: '' },
+  { value: '3:2', label: '3:2', hint: '' },
+  { value: '2:3', label: '2:3', hint: '' },
+  { value: '21:9', label: '21:9', hint: 'Панорама' },
+];
 
 // MOOD_SUGGESTIONS и IMAGE_TYPE_SUGGESTIONS удалены — теперь используем TagSelector
 
@@ -201,6 +213,7 @@ function hexToEnglishColorName(hex: string): string {
 }
 
 export default function SearchButton() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [includeVideo, setIncludeVideo] = useState(false);
   const [includeImages, setIncludeImages] = useState(false);
@@ -231,9 +244,11 @@ export default function SearchButton() {
   const [modelInput, setModelInput] = useState('');
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [dropdownModelOpen, setDropdownModelOpen] = useState(false);
+  const [selectedAspect, setSelectedAspect] = useState<string>('');
+  const [dropdownAspectOpen, setDropdownAspectOpen] = useState(false);
+  const [aspectInput, setAspectInput] = useState('');
+  const aspectDropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const [results, setResults] = useState<SearchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -274,6 +289,21 @@ export default function SearchButton() {
     };
   }, [dropdownModelOpen]);
 
+  // Закрытие dropdown соотношения сторон при клике вне
+  useEffect(() => {
+    function handleClickOutsideAspect(e: MouseEvent) {
+      if (aspectDropdownRef.current && !aspectDropdownRef.current.contains(e.target as Node)) {
+        setDropdownAspectOpen(false);
+      }
+    }
+    if (dropdownAspectOpen) {
+      document.addEventListener('mousedown', handleClickOutsideAspect);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideAspect);
+    };
+  }, [dropdownAspectOpen]);
+
   // Обработчик выбора цвета в простом режиме (теперь принимает hex)
   function handleSimpleColorClick(hexColor: string) {
     setSimpleSelectedColors((prev) => {
@@ -290,7 +320,6 @@ export default function SearchButton() {
   async function handleSemanticSearch() {
     if (!semanticQuery.trim()) return;
     setError(null);
-    setResults(null);
     setSemanticLoading(true);
 
     try {
@@ -323,8 +352,7 @@ export default function SearchButton() {
           throw new Error(text || 'Ошибка семантического поиска');
         }
 
-        const data = (await res.json()) as SearchResponse;
-        setResults(data);
+        await res.json();
         return; // успех
       }
 
@@ -337,37 +365,15 @@ export default function SearchButton() {
     }
   }
 
-  async function handleSearch() {
-    setError(null);
-    setResults(null);
-
-    const types: string[] = [];
-    if (includeVideo) types.push('video');
-    if (includeImages) types.push('images');
-
-    if (!types.length) {
-      setError('Выберите хотя бы один тип: Видео или Картинки.');
-      return;
-    }
-
-    // === ОБЫЧНЫЙ ПОИСК (теги, модели, цвета через CIEDE2000) ===
+  function handleSearch() {
     const params = new URLSearchParams();
-    params.set('types', types.join(','));
+    params.set('t', 'images');
 
-    // Цвета → поиск по семействам (color_families) + fallback на hexColors
     if (simpleSelectedColors.length) {
-      // Маппим каждый выбранный HEX в семейство (bucket id)
-      const families = simpleSelectedColors
-        .map((hex) => mapHexToBucket(hex))
-        .filter((f): f is string => !!f);
-      // Убираем дубли семейств
-      const uniqueFamilies = [...new Set(families)];
-      if (uniqueFamilies.length) {
-        params.set('families', uniqueFamilies.join(','));
-      }
-      // hexColors оставляем для дополнительного ранжирования по точности
-      params.set('colorMode', 'simple');
-      params.set('hexColors', simpleSelectedColors.join(','));
+      const families = [...new Set(
+        simpleSelectedColors.map((hex) => mapHexToBucket(hex)).filter((f): f is string => !!f)
+      )];
+      if (families.length) params.set('families', families.join(','));
     }
 
     if (selectedTags.length) {
@@ -375,30 +381,19 @@ export default function SearchButton() {
     }
 
     if (selectedModels.length) {
-      const normalizedModels = selectedModels
+      const normalized = selectedModels
         .map((label) => MODEL_SEARCH_KEYS[label] ?? label)
         .map((m) => m.trim().toLowerCase())
         .filter(Boolean);
-      if (normalizedModels.length) {
-        params.set('models', normalizedModels.join(','));
-      }
+      if (normalized.length) params.set('models', normalized.join(','));
     }
 
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/media-search?${params.toString()}`);
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Ошибка поиска');
-      }
-      const data = (await res.json()) as SearchResponse;
-      setResults(data);
-    } catch (e: any) {
-      console.error('search error', e);
-      setError(e?.message ?? 'Ошибка поиска');
-    } finally {
-      setLoading(false);
+    if (selectedAspect) {
+      params.set('aspect', selectedAspect);
     }
+
+    router.push(`/?${params.toString()}`);
+    setOpen(false);
   }
 
   function resetAll() {
@@ -406,10 +401,11 @@ export default function SearchButton() {
     setSelectedTags([]);
     setModelInput('');
     setSelectedModels([]);
+    setSelectedAspect('');
+    setAspectInput('');
     setSimpleSelectedColors([]);
     setColorPickerMode('palette');
     setShowShades(false);
-    setResults(null);
     setError(null);
     setIncludeVideo(false);
     setIncludeImages(false);
@@ -510,124 +506,7 @@ export default function SearchButton() {
             ref={dialogRef}
             className="flex w-full max-w-3xl max-h-[90vh] flex-col rounded-2xl bg-white p-5 shadow-xl"
           >
-            {/* DETAIL VIEW */}
-            {selectedImageId ? (
-              <div className="flex flex-col h-full overflow-auto">
-                {/* Back button */}
-                <button
-                  type="button"
-                  onClick={goBackToResults}
-                  className="mb-4 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Назад к результатам
-                </button>
-
-                {detailLoading ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <p className="text-sm text-gray-500">Загрузка...</p>
-                  </div>
-                ) : detailData ? (
-                  <div className="flex flex-1 flex-col gap-4 md:flex-row">
-                    {/* LEFT: Info */}
-                    <div className="flex w-full flex-col gap-3 text-sm text-gray-700 md:w-80">
-                      {/* Prompt */}
-                      <div className="rounded-lg bg-gray-50 p-3">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">Промт</span>
-                          <button
-                            type="button"
-                            onClick={handleCopyPrompt}
-                            disabled={!detailData.prompt && !detailData.description}
-                            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                          >
-                            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5">
-                              <rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                              <rect x="4" y="4" width="11" height="11" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                            </svg>
-                            Скопировать
-                          </button>
-                        </div>
-                        {detailData.prompt || detailData.description ? (
-                          <p className="whitespace-pre-line text-xs text-gray-800">
-                            {detailData.prompt || detailData.description}
-                          </p>
-                        ) : (
-                          <p className="text-[11px] text-gray-400">Промт не указан.</p>
-                        )}
-                      </div>
-
-                      {/* Model */}
-                      <div className="text-xs text-gray-600">
-                        Модель: <span className="font-medium">{formatModelName(detailData.model)}</span>
-                      </div>
-
-                      {/* Tags */}
-                      {detailData.tags && detailData.tags.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">Теги</span>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {detailData.tags.map((tag) => (
-                              <span key={tag} className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Author */}
-                      {detailData.profiles && (
-                        <div className="mt-auto border-t pt-2 text-xs text-gray-500">
-                          <Link
-                            href={`/u/${encodeURIComponent(detailData.profiles.username || 'user')}`}
-                            className="font-medium text-gray-700 hover:underline"
-                          >
-                            @{detailData.profiles.username || 'user'}
-                          </Link>
-                          {detailData.created_at && (
-                            <div className="mt-0.5">
-                              {new Date(detailData.created_at).toLocaleDateString('ru-RU')}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* RIGHT: Image + Colors */}
-                    <div className="flex flex-1 flex-col">
-                      {/* Colors */}
-                      {detailData.colors && detailData.colors.length > 0 && (
-                        <div className="mb-2 flex items-center gap-1">
-                          {detailData.colors.slice(0, 5).map((c, i) => (
-                            <div
-                              key={c + i}
-                              className="rounded-full border border-gray-200"
-                              style={{ backgroundColor: c, width: 28, height: 28 }}
-                              title={c}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Image */}
-                      <div className="relative flex flex-1 items-center justify-center rounded-lg bg-gray-50 overflow-hidden">
-                        <img
-                          src={publicImageUrl(detailData.path)}
-                          alt={detailData.title || 'Картинка'}
-                          className="max-h-[60vh] w-full object-contain"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">Не удалось загрузить изображение.</p>
-                )}
-              </div>
-            ) : (
-              <>
+            <>
                 {/* Заголовок */}
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -680,7 +559,7 @@ export default function SearchButton() {
                 )}
 
                 {/* Основная сетка */}
-                <div className="mt-4 grid flex-1 grid-cols-1 gap-6 overflow-y-auto text-xs md:grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-6 text-xs md:grid-cols-2">
                   {/* Левая колонка */}
                   <div className="space-y-4">
                     {/* Теги (жанры + атмосфера + сцена) */}
@@ -757,6 +636,62 @@ export default function SearchButton() {
                             )}
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Соотношение сторон */}
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">Соотношение сторон</label>
+                      <div className="relative" ref={aspectDropdownRef}>
+                        <div
+                          className="flex flex-wrap items-center gap-1.5 min-h-[40px] rounded-lg border border-gray-200 bg-white px-2 py-1.5 cursor-text"
+                          onClick={() => setDropdownAspectOpen(true)}
+                        >
+                          {selectedAspect && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                              <span>{selectedAspect}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setSelectedAspect(''); setAspectInput(''); }}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          )}
+                          <input
+                            type="text"
+                            value={aspectInput}
+                            onChange={(e) => { setAspectInput(e.target.value); setDropdownAspectOpen(true); }}
+                            onFocus={() => setDropdownAspectOpen(true)}
+                            placeholder={selectedAspect ? '' : 'например 16:9 или 1:1'}
+                            className="flex-1 min-w-[120px] border-none outline-none bg-transparent text-sm placeholder:text-gray-400"
+                          />
+                        </div>
+                        {dropdownAspectOpen && (() => {
+                          const filtered = ASPECT_RATIO_OPTIONS.filter((opt) =>
+                            opt.value.includes(aspectInput) || opt.hint.toLowerCase().includes(aspectInput.toLowerCase())
+                          );
+                          return filtered.length > 0 ? (
+                            <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border bg-white text-xs shadow">
+                              {filtered.map((opt) => (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedAspect(opt.value);
+                                    setAspectInput('');
+                                    setDropdownAspectOpen(false);
+                                  }}
+                                  className={`flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-gray-100 ${selectedAspect === opt.value ? 'font-medium text-gray-900' : 'text-gray-700'}`}
+                                >
+                                  <span>{opt.label}</span>
+                                  {opt.hint && <span className="text-[10px] text-gray-400">{opt.hint}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1317,10 +1252,7 @@ export default function SearchButton() {
 
                 {/* Футер */}
                 <div className="mt-4 border-t pt-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[11px] text-gray-500">
-                      Выбор по цветам и жанрам можно комбинировать.
-                    </div>
+                  <div className="flex items-center justify-end gap-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -1332,86 +1264,16 @@ export default function SearchButton() {
                       <button
                         type="button"
                         onClick={handleSearch}
-                        disabled={loading || semanticLoading}
+                        disabled={semanticLoading}
                         className="rounded-full bg-gray-900 px-3 py-1 text-xs text-white hover:bg-gray-800 disabled:opacity-50"
                       >
-                        {loading || semanticLoading ? 'Ищем…' : 'Найти'}
+                        Найти
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Ошибка */}
-                {error && (
-                  <p className="mt-3 text-sm text-red-600">{error}</p>
-                )}
-
-                {/* Результаты */}
-                <div className="mt-4 space-y-4 border-t pt-3">
-                  {results && !(results.films?.length ?? 0) && !(results.images?.length ?? 0) && (
-                    <p className="text-sm text-gray-500">Ничего не найдено по заданным фильтрам.</p>
-                  )}
-
-                  {results?.films?.length ? (
-                    <div>
-                      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Видео</h3>
-                      <ul className="space-y-2">
-                        {results.films.map((f) => (
-                          <li key={f.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                            <div className="min-w-0 flex items-center gap-2">
-                              <div className="truncate font-medium text-gray-900">
-                                {(f.title ?? '').trim() || 'Без названия'}
-                              </div>
-                              {f.similarity != null && (
-                                <span className="shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
-                                  {Math.round(f.similarity * 100)}%
-                                </span>
-                              )}
-                            </div>
-                            <Link href={`/film/${f.id}`} className="ml-3 shrink-0 text-xs font-medium text-blue-600 hover:underline">
-                              Открыть
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  {results?.images?.length ? (
-                    <div>
-                      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Картинки</h3>
-                      <div className="grid grid-cols-6 gap-2">
-                        {results.images.map((im) => {
-                          const imageUrl = im.path
-                            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${im.path}`
-                            : null;
-                          return (
-                            <button
-                              key={im.id}
-                              type="button"
-                              onClick={() => openImageDetail(im.id)}
-                              className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 transition hover:ring-2 hover:ring-blue-500"
-                            >
-                              {imageUrl ? (
-                                <img
-                                  src={imageUrl}
-                                  alt={im.title || 'Картинка'}
-                                  className="h-full w-full object-cover transition group-hover:scale-105"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
-                                  Нет превью
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
               </>
-            )}
           </div>
         </div>
       )}
