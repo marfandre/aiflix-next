@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const MODEL_OPTIONS: Record<string, string> = {
@@ -23,30 +24,108 @@ const COLOR_HEX: Record<string, string> = {
   black: '#121212', white: '#FAFAFA',
 };
 
-function isDark(hex: string) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 < 160;
-}
+const ASPECT_OPTIONS = [
+  { value: '1:1', label: '1:1 — Квадрат' },
+  { value: '16:9', label: '16:9 — Широкий' },
+  { value: '9:16', label: '9:16 — Вертикаль' },
+  { value: '4:3', label: '4:3' },
+  { value: '3:4', label: '3:4' },
+  { value: '3:2', label: '3:2' },
+  { value: '2:3', label: '2:3' },
+  { value: '21:9', label: '21:9 — Ультраширокий' },
+];
 
-function Pill({ children, onRemove }: { children: React.ReactNode; onRemove: () => void }) {
-  return (
-    <span className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700">
-      {children}
-      <button type="button" onClick={onRemove} className="text-gray-400 hover:text-gray-700 leading-none">×</button>
-    </span>
+/* ---- Единая капсула: ⊕ Категория  Значение1 × Значение2 × ---- */
+function FilterCapsule({ label, items, options, onRemove, onAdd }: {
+  label: string;
+  items: { key: string; label: string; hex?: string }[];
+  options: { value: string; label: string; hex?: string }[];
+  onRemove: (key: string) => void;
+  onAdd: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const filtered = options.filter(o =>
+    o.label.toLowerCase().includes(search.toLowerCase()) ||
+    o.value.toLowerCase().includes(search.toLowerCase())
   );
-}
 
-function ColorPill({ hex, label, onRemove }: { hex: string; label: string; onRemove: () => void }) {
-  const dark = isDark(hex);
   return (
-    <span className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border"
-      style={{ backgroundColor: hex, color: dark ? 'white' : '#111', borderColor: dark ? 'transparent' : '#e5e7eb' }}>
-      {label}
-      <button type="button" onClick={onRemove} className="opacity-60 hover:opacity-100 leading-none">×</button>
-    </span>
+    <div className="relative" ref={ref}>
+      {/* Одна общая капсула */}
+      <span className="inline-flex items-center rounded-full border border-gray-200 bg-white text-xs overflow-hidden">
+        {/* Левая часть: ⊕ + название категории (кликабельная) */}
+        <button
+          type="button"
+          onClick={() => { if (options.length > 0) { setOpen(!open); setSearch(''); } }}
+          className={`flex items-center gap-1 px-2.5 py-1 text-gray-400 transition ${options.length > 0 ? 'hover:text-gray-600 cursor-pointer' : 'cursor-default'}`}
+        >
+          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <circle cx="8" cy="8" r="7" />
+            <path d="M8 5v6M5 8h6" />
+          </svg>
+          <span className="text-gray-500">{label}</span>
+        </button>
+
+        {/* Правая часть: значения с × */}
+        {items.map((item) => (
+          <span key={item.key} className="flex items-center gap-1 px-2.5 py-1 text-gray-700 border-l border-gray-200">
+            {item.hex && (
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-gray-200" style={{ backgroundColor: item.hex }} />
+            )}
+            {item.label}
+            <button type="button" onClick={() => onRemove(item.key)} className="text-gray-400 hover:text-gray-700 leading-none ml-0.5">×</button>
+          </span>
+        ))}
+      </span>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[180px]">
+          {options.length > 5 && (
+            <div className="p-1.5">
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Поиск..."
+                className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-gray-400"
+                autoFocus
+              />
+            </div>
+          )}
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 && (
+              <div className="px-3 py-2 text-xs text-gray-400">Ничего не найдено</div>
+            )}
+            {filtered.map(o => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => { onAdd(o.value); setOpen(false); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center gap-2"
+              >
+                {o.hex && (
+                  <span className="w-3 h-3 rounded-full inline-block flex-shrink-0 border border-gray-200" style={{ backgroundColor: o.hex }} />
+                )}
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -75,50 +154,77 @@ export default function ActiveFiltersBar() {
     router.push(`/?${params.toString()}`);
   }
 
+  function add(key: string, value: string, replace?: boolean) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (replace) {
+      params.set(key, value);
+    } else {
+      const current = params.get(key)?.split(',').filter(Boolean) ?? [];
+      if (current.includes(value)) return;
+      current.push(value);
+      params.set(key, current.join(','));
+    }
+    router.push(`/?${params.toString()}`);
+  }
+
   function clearAll() {
     const params = new URLSearchParams(searchParams.toString());
     ['tags', 'models', 'aspect', 'families', 'colors'].forEach(k => params.delete(k));
     router.push(`/?${params.toString()}`);
   }
 
+  const availableModels = Object.entries(MODEL_OPTIONS)
+    .filter(([key]) => !models.includes(key))
+    .map(([key, label]) => ({ value: key, label }));
+
+  const availableColors = Object.entries(COLOR_LABELS)
+    .filter(([key]) => !families.includes(key))
+    .map(([key, label]) => ({ value: key, label, hex: COLOR_HEX[key] }));
+
+  const availableAspects = ASPECT_OPTIONS
+    .filter(o => o.value !== aspect)
+    .map(o => ({ value: o.value, label: o.label }));
+
+  const allModels = Object.entries(MODEL_OPTIONS).map(([key, label]) => ({ value: key, label }));
+  const allColors = Object.entries(COLOR_LABELS).map(([key, label]) => ({ value: key, label, hex: COLOR_HEX[key] }));
+  const allAspects = ASPECT_OPTIONS.map(o => ({ value: o.value, label: o.label }));
+
   return (
-    <div className="flex items-center justify-center gap-3 px-4 pb-4">
-      {/* Категории слева от пилюль */}
+    <div className="flex items-center justify-center gap-2 px-4 pb-4">
+      <FilterCapsule
+        label="Модель"
+        items={models.map(key => ({ key, label: MODEL_OPTIONS[key] ?? key }))}
+        options={availableModels.length > 0 ? availableModels : allModels.filter(m => !models.includes(m.value))}
+        onRemove={(key) => remove('models', key)}
+        onAdd={(v) => add('models', v)}
+      />
+
+      <FilterCapsule
+        label="Формат"
+        items={aspect ? [{ key: aspect, label: aspect }] : []}
+        options={aspect ? availableAspects : allAspects}
+        onRemove={() => remove('aspect')}
+        onAdd={(v) => add('aspect', v, true)}
+      />
+
+      <FilterCapsule
+        label="Цвет"
+        items={families.map(id => ({ key: id, label: COLOR_LABELS[id] ?? id, hex: COLOR_HEX[id] }))}
+        options={availableColors.length > 0 ? availableColors : allColors.filter(c => !families.includes(c.value))}
+        onRemove={(key) => remove('families', key)}
+        onAdd={(v) => add('families', v)}
+      />
+
       {tags.length > 0 && (
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-400 mr-0.5">Теги</span>
-          {tags.map(tag => (
-            <Pill key={tag} onRemove={() => remove('tags', tag)}>{tag}</Pill>
-          ))}
-        </div>
+        <FilterCapsule
+          label="Теги"
+          items={tags.map(tag => ({ key: tag, label: tag }))}
+          options={[]}
+          onRemove={(key) => remove('tags', key)}
+          onAdd={() => {}}
+        />
       )}
 
-      {models.length > 0 && (
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-400 mr-0.5">Модель</span>
-          {models.map(key => (
-            <Pill key={key} onRemove={() => remove('models', key)}>{MODEL_OPTIONS[key] ?? key}</Pill>
-          ))}
-        </div>
-      )}
-
-      {aspect && (
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-400 mr-0.5">Формат</span>
-          <Pill onRemove={() => remove('aspect')}>{aspect}</Pill>
-        </div>
-      )}
-
-      {families.length > 0 && (
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-400 mr-0.5">Цвет</span>
-          {families.map(id => (
-            <ColorPill key={id} hex={COLOR_HEX[id] ?? '#ccc'} label={COLOR_LABELS[id] ?? id} onRemove={() => remove('families', id)} />
-          ))}
-        </div>
-      )}
-
-      {/* Сбросить */}
       <button type="button" onClick={clearAll}
         className="ml-1 text-gray-300 hover:text-gray-500 transition" title="Сбросить все фильтры">
         <svg viewBox="0 0 24 24" className="h-4 w-4"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
