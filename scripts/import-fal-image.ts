@@ -31,11 +31,12 @@ function hexToFamily(hex: string): string {
         else if (max === g) h = ((b - r) / d + 2) / 6 * 360;
         else h = ((r - g) / d + 4) / 6 * 360;
     }
-    if (s < 10) { if (l < 20) return 'black'; if (l > 85) return 'white'; return 'brown'; }
-    if (s < 25 && l < 35) return 'brown';
+    if (s < 15) { if (l < 15) return 'black'; if (l > 70) return 'white'; return 'brown'; }
+    if (s < 30 && l < 40) return l < 15 ? 'black' : 'brown';
     if (l < 8) return 'black';
     if (l > 95) return 'white';
-    if (h < 15) return 'red';
+    if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
+    if (h < 15) return l > 70 ? 'pink' : 'red';
     if (h < 40) return 'orange';
     if (h < 65) return 'yellow';
     if (h < 160) return 'green';
@@ -44,7 +45,7 @@ function hexToFamily(hex: string): string {
     if (h < 260) return 'blue';
     if (h < 290) return 'indigo';
     if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-    return 'red';
+    return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
 }
 
 // --- Bucket mapping (same as images/complete) ---

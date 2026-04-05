@@ -338,6 +338,261 @@ const MODEL_OVERRIDES: Record<number, ModelConfig> = {
     300: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Blue Whale in Night Sky Folk Art
     301: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Fox in Autumn Forest Folk Art
     302: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peacock Persian Folk Art
+    // 31.1-31.6 (303-308): Orange Miniature Worlds
+    303: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mandarin Japanese Zen Garden
+    304: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Pumpkin Cozy Library
+    305: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Apricot Roman Bath
+    306: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Persimmon Sunset Lighthouse
+    307: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Butterscotch Candy Confectionery
+    308: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Grapefruit Amphitheater
+    // 31.7-31.11 (309-313): Orange Food Furniture
+    309: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Croissant Armchair
+    310: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Caramel Candy Floor Lamp
+    311: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Waffle Bookshelves with Syrup
+    312: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Ripe Mango Sofa
+    313: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Burnt Caramel Guitar
+    // 32.1-32.3 (314-316): Art Masters × Future City
+    314: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Monet Cyberpunk Sunset City
+    315: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Picasso Cubist Metropolis
+    316: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Dali Surrealist Future City
+    // 32.4-32.6 (317-319): Art Masters × Future City pt2
+    317: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Van Gogh Neon Metropolis Night
+    318: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Degas Urban Rooftop Dancers
+    319: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Klimt Golden Digital Age
+    // 32.7-32.8 (320-321): Art Masters × Future City pt3
+    320: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Hokusai Digital Wave Megacity
+    321: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Matisse Simplified City Paradise
+    // 32.9-32.10 (322-323): Art Masters × City pt4
+    322: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Kandinsky Abstract City
+    323: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Mucha Art Nouveau Cyberspace
+    // 33.1-33.4 (324-327): Orange Gemstone Artifacts
+    324: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Carnelian and Amber Crown
+    325: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Amber vs Obsidian Chess Set
+    326: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Fire Opal Vase
+    327: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Amber Skull with Prehistoric Insects
+    // 33.5-33.7 (328-330): Orange Face Portraits
+    328: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Liquid Caramel Face
+    329: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Burnt Orange Geometric Face Art
+    330: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Amber Mask with Ancient Insects
+    // 33.8-33.10 (331-333): Mechanical Copper Animals
+    331: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mechanical Copper Butterfly
+    332: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Mechanical Bronze Fox
+    333: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Rose Gold Cyborg Hummingbird
+    // 33.11-33.12 (334-335): Orange Sculptures
+    334: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Amber Glass Cupid Sculpture
+    335: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Apollo Bust Orange Collage
+    // 33.13-33.14 (336-337): Orange Folk Art Animals
+    336: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Tiger Rajasthani Miniature
+    337: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Kitsune Fox Spirit Ukiyo-e
+    // 32.11-32.14 (338-341): Art Masters pt5
+    338: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Rembrandt Selfie in Mirror
+    339: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Bosch International Airport
+    340: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Vermeer Coffee Shop Golden Age
+    341: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // El Greco Metropolis Vision
+    // 33.15-33.17 (342-344): Orange Artifacts
+    342: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Autumn Forest Violin
+    343: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Firebird Samovar Palekh Art
+    344: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Samurai Gourd Kintsugi Helmet
+    // 32.15-32.19 (345-349): Art Masters × Modern Life
+    345: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Degas Fitness Studio
+    346: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cezanne Supermarket Still Life
+    347: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Picasso Blue Period Phone Loneliness
+    348: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Malevich Digital Void Smartphone
+    349: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Chagall VR Flight Over City
+    // 32.20-32.24 (350-354): Art Memes & Fun
+    350: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Kandinsky QR Code Composition
+    351: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rembrandt Surprised Cat Portrait
+    352: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Dali Remote Work Deadline Dream
+    353: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Ancient Egypt Pizza Delivery Fresco
+    354: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Cave Paintings with Smartphones
+    // 32.25-32.26 (355-356): Art Memes pt2
+    355: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Rubens Goddess Pizza Delivery
+    356: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Art Deco 1920s Drone City
+    // 34.1-34.5 (357-361): Cinematic Fantasy
+    357: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Mirror Armor Knight in Cathedral
+    358: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Leviathan Rising from the Abyss
+    359: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Porcelain Android Geisha Kintsugi
+    360: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Sunken Baroque Ballroom Underwater
+    361: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Half Mechanical Heart on Surgical Tray
+    // 34.6-34.10 (362-366): Cinematic Mixed
+    362: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Masked Figure in Gothic Chamber
+    363: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Macro Lips with Art Manicure
+    364: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Mosque in Pastel Watercolor Clouds
+    365: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Pirate Ship and Giant Orange Moon
+    366: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Painting Comes Alive Ocean Flood Studio
+    // 35.1-35.17 (367-383): Orange Gothic & Surreal
+    367: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Gothic Cathedral of Burnt Orange Stone
+    368: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cloister Library Flying Manuscripts
+    369: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Gothic Bell Tower Mandarin Storm Bells
+    370: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Monastic Hall Liquid Apricot Light
+    371: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Ruined Abbey Citrus Gargoyle Lanterns
+    372: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Gothic Crypt Mandarin Halos
+    373: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Gothic Organ Apricot Wax Pipes
+    374: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Medieval Street Breathing Orange Banners
+    375: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Chapel of Mirrors Orange Seasons
+    376: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Gothic Bridge of Orange Candle Wax
+    377: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mechanical Heron on Rooftop Tower
+    378: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Living Radiator Coral Reef
+    379: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Desert City Inside Traffic Light
+    380: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mandarin Paper Escalator Metro
+    381: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Laundromat Dryers Orange Weather
+    382: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Subway Statue Holographic Dissolution
+    383: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Office Stairwell of Solid Apricot Light
+    // 35.18-35.20 (384-386): Orange Surreal pt2
+    384: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Teapot Canyon Pocket Universe
+    385: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Bus Cross Section Monastery Garden
+    386: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sacred Phone Booth Mandarin Relic
+    387: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Angel Statue Drowning in Copper Sand
+    388: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Baroque Palace Lost in Desert Sand
+    389: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Demonic Gothic Battlefield Painkiller
+    390: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Warrior in Ruined Blue Monastery
+    391: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Gothic Cathedral City in Midnight Blue
+    392: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cursed Swamp Cathedral Sinking
+    393: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Haunted Monastery in Poisoned Marsh
+    // 36.1-36.13 (394-406): Mixed Art & Photography
+    394: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Felt Doll with Lavender
+    395: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Intimate Portrait of Two Faces
+    396: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Butterfly in Mixed Media Collage
+    397: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Fish Red Linocut Print
+    398: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Black Cat on Yellow Background
+    399: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Crane and Pine Chinese Ink Painting
+    400: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Owl in Neon Blue Macro
+    401: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cozy European Cafe Street
+    402: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // White and Pink Magnolia Flowers
+    403: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Giant Stone Faces in Desert Canyon
+    404: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Product Photography with Flowers
+    405: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Red Tulip Bud Emerging from Soil
+    406: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Fashion Poster with Typography
+    // 37.1-37.20 (407-426): Orange-Led Flux Series
+    407: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Apricot Station Clock
+    408: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Velvet Canyon
+    409: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mandarin Prism Stairwell
+    410: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // The Reliquary Telephone
+    411: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Ballroom Chandelier Collapse
+    412: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Excavated Transit Helmet
+    413: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Mandarin Courtyard Echo
+    414: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sunprint Quarry
+    415: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Citrus Glass Still Life
+    416: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Room of Restless Warmth
+    417: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Orchard Terminal
+    418: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Bird from Copper Lines
+    419: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peeling Opera Walls
+    420: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Desert Eclipse Ring
+    421: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Citrus Observatory
+    422: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Mandarin Monolith
+    423: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Dawn Fox of Vapor
+    424: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Suspended Resin Arch
+    425: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Terracotta Piano Bloom
+    426: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // The Apricot Lighthouse
+    // 38.1-38.10 (427-436): Refined Orange Peach Series
+    427: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peach Fog Escalator
+    428: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Piano with Autumn Core
+    429: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Hall of Sunset Arches
+    430: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Telephone Reliquary
+    431: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Ring with Inner Desert
+    432: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Ceiling of Falling Ember Dust
+    433: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Orange-Blossom Workstation
+    434: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Bowl of Folded Light
+    435: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Clock of Sunrise Rings
+    436: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Helmet in Indoor Dunes
+    // 39.1-39.10 (437-446): Orange Peach Surreal
+    437: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mirror Flood
+    438: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Elevator of Dust Rooms
+    439: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Lamp Bloom
+    440: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sunset Stones
+    441: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Dress Arch
+    442: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Dust Stair
+    443: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Moon Scale
+    444: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Ticket Smoke
+    445: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Sand Faucet
+    446: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cloud Glasses
+    // 40.1-40.7 (447-453): Mixed Art pt2
+    447: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Dachshund with Coffee
+    448: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Ghost at the Cemetery Gate
+    449: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Two on a Cloud
+    450: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Painted Column Capital
+    451: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Japanese Temple in Flowers
+    452: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Scream on Old Poster
+    453: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rabbits Reading a Book
+    454: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Couple on Cloud from Behind
+    455: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Couple on Cloud GoPro Selfie
+    // 41.1-41.12 (456-467): Mixed Art pt3
+    456: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Face with Galaxy
+    457: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Distorted Face in Charcoal
+    458: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Black Abstract Sculpture
+    459: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Graphic Flower in Black Lines
+    460: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Pink Cup on Pink
+    461: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Old Scholar Writing by Candlelight
+    462: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Crowd in Golden Light
+    463: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Girl Silhouette Under Tree at Sunset
+    464: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Couple on the Pier
+    465: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mouse in Yellow Raincoat
+    466: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mountain Through Rock Crack
+    467: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rococo Garden Dance
+    // 42.1-42.10 (468-477): New Peach Series
+    468: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peach Atrium Veil
+    469: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Apricot Halo Chair
+    470: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peach Tide Clock
+    471: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Powder Room Portal
+    472: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Glass Fruit Orbit
+    473: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Silk Flame Vessel
+    474: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Peach Window Reef
+    475: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sunrise Ledger
+    476: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Apricot Bell Tower
+    477: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Porcelain Drift Table
+    478: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Miniature Peach House
+    // 43.1-43.18 (479-496): Mixed Art pt4
+    479: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // City Against Snowy Mountains
+    480: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Manga Girl with Gun
+    481: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Girl in Hat from Behind
+    482: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Girl and Wolf
+    483: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Supercar in Motion
+    484: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Pike Leaping from Water
+    485: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Architectural Building Sketch
+    486: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // White Kitten at Window
+    487: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cartoon Dog on Yellow
+    488: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Crystal Butterfly on Flower
+    489: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Crystal Music Box with Diamond
+    490: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Toy Poodle Puppy
+    491: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Luxury Watch Close Up
+    492: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Samurai in Snowy Night
+    493: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Autumn Suburb from Above
+    494: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Bunny from Colorful Egg
+    495: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Golden Unicorn Medieval Style
+    496: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // City in Bokeh
+    // 44.1-44.20 (497-516): Pink-Led Series
+    497: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mirror Check-In
+    498: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Pink Delay Board
+    499: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Soft Stone Arcade
+    500: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Solar Fossil Window
+    501: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Silent Lipstick Collapse
+    502: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Data Orchid Terminal
+    503: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Pink Time Vestibule
+    504: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Relic of Voicemail
+    505: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Apartment of Tender Static
+    506: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Archive of Soft Alarms
+    507: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Blush Escalator Well
+    508: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rosewater Operating Theater
+    509: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Pink Rotunda Dust
+    510: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Scale Error Plaza
+    511: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Ink of the Metro
+    512: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Powder Rain Runway
+    513: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Hopper Morning Shift
+    514: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Magritte Security Check
+    515: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // de Lempicka Charging Port
+    516: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Compact Planetarium
+    517: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Pink Storm Over Flower Meadow
+    // 45.1-45.10 (518-527): Pink Hero Series
+    518: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Selfie Chapel
+    519: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Velvet Fountain
+    520: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Pearl Observatory
+    521: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Hibiscus Door
+    522: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rose Onyx Stair
+    523: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Runway Reliquary
+    524: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Mirror Pool Lounge
+    525: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Petal Metro Arch
+    526: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rose Halo Salon
+    527: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Moon Balcony
 };
 
 function getModelForIndex(index: number): ModelConfig {
@@ -375,11 +630,12 @@ function hexToFamily(hex: string): string {
         else if (max === g) h = ((b - r) / d + 2) / 6 * 360;
         else h = ((r - g) / d + 4) / 6 * 360;
     }
-    if (s < 10) { if (l < 20) return 'black'; if (l > 85) return 'white'; return 'brown'; }
-    if (s < 25 && l < 35) return 'brown';
+    if (s < 15) { if (l < 15) return 'black'; if (l > 70) return 'white'; return 'brown'; }
+    if (s < 30 && l < 40) return l < 15 ? 'black' : 'brown';
     if (l < 8) return 'black';
     if (l > 95) return 'white';
-    if (h < 15) return 'red';
+    if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
+    if (h < 15) return l > 70 ? 'pink' : 'red';
     if (h < 40) return 'orange';
     if (h < 65) return 'yellow';
     if (h < 160) return 'green';
@@ -388,7 +644,7 @@ function hexToFamily(hex: string): string {
     if (h < 260) return 'blue';
     if (h < 290) return 'indigo';
     if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-    return 'red';
+    return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
 }
 
 // --- Bucket mapping ---
@@ -759,49 +1015,68 @@ const COLOR_MAP: Record<string, string> = {
     white: 'white', black: 'black',
 };
 
+// Compound names that should become a single tag (lowercased)
+const COMPOUND_TAGS: [string, string][] = [
+    ['van gogh', 'van-gogh'],
+    ['claude monet', 'monet'],
+    ['pablo picasso', 'picasso'],
+    ['salvador dali', 'dali'],
+    ['edgar degas', 'degas'],
+    ['gustav klimt', 'klimt'],
+    ['henri matisse', 'matisse'],
+    ['katsushika hokusai', 'hokusai'],
+    ['andy warhol', 'warhol'],
+    ['frida kahlo', 'frida-kahlo'],
+    ['wassily kandinsky', 'kandinsky'],
+    ['piet mondrian', 'mondrian'],
+    ['rene magritte', 'magritte'],
+    ['edward hopper', 'hopper'],
+    ['jackson pollock', 'pollock'],
+    ['mark rothko', 'rothko'],
+    ['alphonse mucha', 'mucha'],
+    ['alfons mucha', 'mucha'],
+    ['hieronymus bosch', 'bosch'],
+    ['jan vermeer', 'vermeer'],
+    ['johannes vermeer', 'vermeer'],
+    ['el greco', 'el-greco'],
+    ['paul cezanne', 'cezanne'],
+    ['kazimir malevich', 'malevich'],
+    ['marc chagall', 'chagall'],
+];
+
 function extractTags(prompt: string): string[] {
     const tags = new Set<string>();
-    // no 'ai-generated' tag
 
-    // Normalize: lowercase, remove punctuation, split
-    const lowerPrompt = prompt.toLowerCase();
+    let lowerPrompt = prompt.toLowerCase();
+
+    // Extract compound tags first and remove them from prompt
+    const usedParts = new Set<string>();
+    for (const [pattern, tag] of COMPOUND_TAGS) {
+        if (lowerPrompt.includes(pattern)) {
+            tags.add(tag);
+            // Mark individual words so they don't appear as separate tags
+            for (const word of pattern.split(' ')) {
+                usedParts.add(word);
+            }
+        }
+    }
+
     const words = lowerPrompt
         .replace(/[^a-z0-9\s-]/g, ' ')
         .split(/\s+/)
         .filter(w => w.length > 2);
 
-    // Find negated colors ("no orange", "no blue, green, or gold contamination", etc.)
-    const negatedColors = new Set<string>();
-    // Match "no/without/not" followed by a comma-separated list of words (e.g. "no blue, green, or gold")
-    const negPattern = /\b(?:no|without|not)\s+([\w]+(?:\s*,\s*(?:or\s+)?[\w]+)*(?:\s+or\s+[\w]+)?)/g;
-    let negMatch;
-    while ((negMatch = negPattern.exec(lowerPrompt)) !== null) {
-        // Split the matched list into individual words
-        const parts = negMatch[1].split(/[\s,]+/).filter(w => w && w !== 'or' && w !== 'and');
-        for (const part of parts) {
-            const c = COLOR_MAP[part];
-            if (c) negatedColors.add(c);
-        }
-    }
-
-    // Extract color tags (skip negated)
-    for (const w of words) {
-        if (COLOR_MAP[w] && !negatedColors.has(COLOR_MAP[w])) {
-            tags.add(COLOR_MAP[w]);
-        }
-    }
-
     // Extract meaningful keywords (nouns, key adjectives)
     for (const w of words) {
         if (STOP_WORDS.has(w)) continue;
-        if (COLOR_MAP[w]) continue; // already handled
-        // Skip pure adjective suffixes and common modifiers
+        if (COLOR_MAP[w]) continue;
+        if (usedParts.has(w)) continue; // skip parts of compound tags
         if (w.endsWith('ly') || w.endsWith('ing') || w.endsWith('ed')) continue;
         if (w.length <= 2) continue;
         tags.add(w);
     }
 
-    return [...tags].slice(0, 6);
+    return [...tags].slice(0, 3);
 }
 
 // --- Main ---

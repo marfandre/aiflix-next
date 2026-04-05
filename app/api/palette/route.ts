@@ -53,14 +53,14 @@ function getFamily(hex: string): string {
   const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // Ахроматические цвета (низкая насыщенность)
-  if (s < 10) {
-    if (l < 20) return 'black';
-    if (l > 85) return 'white';
+  if (s < 15) {
+    if (l < 15) return 'black';
+    if (l > 70) return 'white';
     return 'brown'; // серые тона → brown (ближе к нейтральному)
   }
 
   // Тёмные ненасыщенные → brown
-  if (s < 25 && l < 35) return 'brown';
+  if (s < 30 && l < 40) return l < 15 ? 'black' : 'brown';
 
   // Очень тёмные → black
   if (l < 8) return 'black';
@@ -68,7 +68,8 @@ function getFamily(hex: string): string {
   if (l > 95) return 'white';
 
   // Хроматические — определяем по hue
-  if (h < 15) return 'red';
+  if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
+  if (h < 15) return l > 70 ? 'pink' : 'red';
   if (h < 40) return 'orange';
   if (h < 65) return 'yellow';
   if (h < 160) return 'green';
@@ -77,7 +78,7 @@ function getFamily(hex: string): string {
   if (h < 260) return 'blue';
   if (h < 290) return 'indigo';
   if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-  return 'red'; // 330-360° → red
+  return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
 }
 
 // Конвертация RGB в HSL

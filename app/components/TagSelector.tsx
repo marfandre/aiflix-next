@@ -163,7 +163,7 @@ export default function TagSelector({
         if (tagWithLang.endsWith(':ru')) {
             return { tagId: tagWithLang.slice(0, -3), lang: 'ru' };
         }
-        return { tagId: tagWithLang, lang: 'ru' }; // по умолчанию русский
+        return { tagId: tagWithLang, lang: 'en' }; // по умолчанию английский
     };
 
     const getTagById = (id: string): Tag | undefined => {
@@ -394,9 +394,9 @@ export default function TagSelector({
                                                                     ? "bg-gray-50 text-gray-300 cursor-not-allowed"
                                                                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                                                 }`}
-                                                            title={tag.name_en}
+                                                            title={tag.name_ru}
                                                         >
-                                                            {tag.name_ru}
+                                                            {tag.name_en}
                                                         </button>
                                                     );
                                                 })}

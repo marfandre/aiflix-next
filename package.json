@@ -16,6 +16,7 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.1",
     "clsx": "^2.1.1",
+    "color-name-list": "^14.29.0",
     "color-namer": "^1.4.0",
     "colorthief": "^2.6.0",
     "dotenv": "^17.2.3",
