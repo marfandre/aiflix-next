@@ -287,7 +287,7 @@ export async function POST(req: NextRequest) {
               else h = ((r - g) / d + 4) / 6 * 360;
             }
             if (s < 15) { if (l < 15) return 'black'; if (l > 70) return 'white'; return 'brown'; }
-            if (s < 30 && l < 40) return l < 15 ? 'black' : 'brown';
+            if (s < 30) { if (l < 15) return 'black'; if (l < 50) return 'brown'; return 'pink'; }
             if (l < 8) return 'black';
             if (l > 95) return 'white';
             if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
@@ -300,6 +300,7 @@ export async function POST(req: NextRequest) {
             if (h < 260) return 'blue';
             if (h < 290) return 'indigo';
             if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
+            if (h < 346) return 'pink';
             return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
           }
 

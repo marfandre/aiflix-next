@@ -22,7 +22,7 @@ function hexToFamily(hex: string): string {
         else h = ((r - g) / d + 4) / 6 * 360;
     }
     if (s < 15) { if (l < 15) return 'black'; if (l > 70) return 'white'; return 'brown'; }
-    if (s < 30 && l < 40) return l < 15 ? 'black' : 'brown';
+    if (s < 30) { if (l < 15) return 'black'; if (l < 50) return 'brown'; return 'pink'; }
     if (l < 8) return 'black';
     if (l > 95) return 'white';
     if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
@@ -35,6 +35,7 @@ function hexToFamily(hex: string): string {
     if (h < 260) return 'blue';
     if (h < 290) return 'indigo';
     if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
+    if (h < 346) return 'pink';
     return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
 }
 
@@ -65,18 +66,15 @@ async function reindexColorNames() {
         const hasNames = img.color_names && img.color_names.length > 0;
         const hasFamilies = img.color_families && img.color_families.length > 0;
 
-        // Пропускаем если уже есть и names, и families
-        if (hasNames && hasFamilies) {
-            skipped++;
-            continue;
-        }
-
         if (!img.colors || !Array.isArray(img.colors) || img.colors.length === 0) {
             skipped++;
             continue;
         }
 
         const updateData: Record<string, any> = {};
+
+        // Всегда пересчитываем families (обновлённая логика hexToFamily)
+        updateData.color_families = img.colors.map((hex: string) => hexToFamily(hex));
 
         if (!hasNames) {
             updateData.color_names = img.colors.map((hex: string) => {
@@ -87,10 +85,6 @@ async function reindexColorNames() {
                     return 'Unknown';
                 }
             });
-        }
-
-        if (!hasFamilies) {
-            updateData.color_families = img.colors.map((hex: string) => hexToFamily(hex));
         }
 
         const { error: updateError } = await supabase

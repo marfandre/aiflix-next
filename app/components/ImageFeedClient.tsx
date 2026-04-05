@@ -75,15 +75,45 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       .catch(() => { });
   }, []);
 
+  // ---------- Ранжирование по color_families ----------
+  const isColorSearch = !!searchParams.families;
+  const familiesKey = searchParams.families ?? "";
+
+  const rankByColorRelevance = useCallback((rows: ImageRow[]): ImageRow[] => {
+    const fams = familiesKey.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
+    if (!fams.length) return rows;
+
+    const POSITION_WEIGHT = [35, 25, 20, 12, 8]; // фолбэк-веса (≈площадь в %)
+
+    const scored = rows.map((img) => {
+      const families: string[] = (img as any).color_families ?? [];
+      const weights: number[] | null = (img as any).color_weights ?? null;
+      let score = 0;
+      for (let i = 0; i < families.length && i < 5; i++) {
+        if (fams.includes(families[i])) {
+          score += weights?.[i] ?? POSITION_WEIGHT[i] ?? 5;
+        }
+      }
+      return { img, score };
+    });
+
+    const MIN_WEIGHT = 15; // не показываем если совпавшие цвета < 15% площади
+    scored.sort((a, b) => b.score - a.score);
+    return scored.filter((s) => s.score >= MIN_WEIGHT).map((s) => s.img);
+  }, [familiesKey]);
+
   // ---------- Build query with filters ----------
   const buildQuery = useCallback((cursor?: string) => {
+    // Для цветового поиска добавляем color_families в select для ранжирования
+    const selectFields = isColorSearch
+      ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, color_families, color_weights, profiles(username, avatar_url)"
+      : "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)";
+
     let query = supa
       .from("images_meta")
-      .select(
-        "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)"
-      )
+      .select(selectFields)
       .order("created_at", { ascending: false })
-      .limit(PAGE_SIZE);
+      .limit(isColorSearch && !cursor ? 200 : PAGE_SIZE);
 
     if (cursor) query = query.lt("created_at", cursor);
 
@@ -115,7 +145,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     }
 
     return query;
-  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect]);
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect, isColorSearch]);
 
   // ---------- Load feed (initial) ----------
   useEffect(() => {
@@ -133,13 +163,14 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
         console.error("image fetch with filters:", error);
         setImages([]);
       } else {
-        const rows = (data ?? []) as ImageRow[];
+        let rows = (data ?? []) as ImageRow[];
+        if (isColorSearch) rows = rankByColorRelevance(rows);
         setImages(rows);
-        setHasMore(rows.length >= PAGE_SIZE);
+        setHasMore(isColorSearch ? false : rows.length >= PAGE_SIZE);
       }
       setLoading(false);
     })();
-  }, [buildQuery, initialImages]);
+  }, [buildQuery, initialImages, isColorSearch, rankByColorRelevance]);
 
   // ---------- Load more (infinite scroll) ----------
   const loadMore = useCallback(async () => {
