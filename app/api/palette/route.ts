@@ -4,6 +4,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
+import { hexToFamily, hexToFamilyWeights } from '@/lib/color-utils';
+import { findColorPositions, type ColorPosition } from '@/lib/color-positions';
 // Динамический импорт для node-vibrant
 const getVibrant = async () => {
   const mod = await import('node-vibrant/node');
@@ -46,41 +48,7 @@ function getName(hex: string): string {
   }
 }
 
-// Получить семейство цвета по HSL-hue
-function getFamily(hex: string): string {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return 'black';
-  const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
-  // Ахроматические цвета (низкая насыщенность)
-  if (s < 15) {
-    if (l < 15) return 'black';
-    if (l > 70) return 'white';
-    return 'brown'; // серые тона → brown (ближе к нейтральному)
-  }
-
-  // Тёмные ненасыщенные → brown
-  if (s < 30) { if (l < 15) return 'black'; if (l < 50) return 'brown'; return 'pink'; }
-
-  // Очень тёмные → black
-  if (l < 8) return 'black';
-  // Очень светлые → white
-  if (l > 95) return 'white';
-
-  // Хроматические — определяем по hue
-  if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
-  if (h < 15) return l > 70 ? 'pink' : 'red';
-  if (h < 40) return 'orange';
-  if (h < 65) return 'yellow';
-  if (h < 160) return 'green';
-  if (h < 185) return 'teal';
-  if (h < 210) return 'cyan';
-  if (h < 260) return 'blue';
-  if (h < 290) return 'indigo';
-  if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-  if (h < 346) return 'pink';
-  return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
-}
+const getFamily = hexToFamily;
 
 // Конвертация RGB в HSL
 function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
@@ -212,12 +180,6 @@ interface ColorWithMeta {
   category: string; // Vibrant, Muted, DarkVibrant, etc.
 }
 
-interface ColorPosition {
-  hex: string;
-  x: number; // 0-1 относительная координата
-  y: number;
-}
-
 interface ExtractedColors {
   dominant: string[];
   dominantWeights: number[];
@@ -226,6 +188,7 @@ interface ExtractedColors {
   accentNames: string[];
   dominantFamilies: string[];
   accentFamilies: string[];
+  dominantFamilyWeights: Record<string, number>[];
   colorPositions: ColorPosition[]; // Координаты цветов на изображении
 }
 
@@ -234,148 +197,6 @@ interface PaletteOptions {
   quality?: number;
   ignoreWhite?: boolean;
   ignoreBlack?: boolean;
-}
-
-// =====================
-// Поиск координат цветов на изображении
-// Алгоритм "пиковая плотность" — маркер ставится в самое плотное скопление пикселей цвета
-// =====================
-
-async function findColorPositions(
-  buffer: Buffer,
-  colors: string[]
-): Promise<ColorPosition[]> {
-  try {
-    const { data, info } = await sharp(buffer)
-      .resize(200, 200, { fit: 'inside' })
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    const targetRgbs = colors.map(hex => hexToRgb(hex));
-    const THRESHOLD = 60;
-
-    // Размер ячейки сетки (чем меньше — тем точнее, но медленнее)
-    const GRID = 10; // сетка 10x10 пикселей на ячейку
-    const gridW = Math.ceil(info.width / GRID);
-    const gridH = Math.ceil(info.height / GRID);
-
-    // Для каждого цвета — сетка плотности
-    const grids = targetRgbs.map(() =>
-      Array.from({ length: gridH }, () => new Float64Array(gridW))
-    );
-
-    // === Шаг 1: Назначаем каждый пиксель ближайшему цвету, копим плотность в сетке ===
-    for (let y = 0; y < info.height; y++) {
-      for (let x = 0; x < info.width; x++) {
-        const i = (y * info.width + x) * info.channels;
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-
-        let bestIdx = -1;
-        let bestDist = Infinity;
-
-        for (let ci = 0; ci < targetRgbs.length; ci++) {
-          const t = targetRgbs[ci];
-          if (!t) continue;
-          const dist = Math.sqrt(
-            (r - t.r) ** 2 + (g - t.g) ** 2 + (b - t.b) ** 2
-          );
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestIdx = ci;
-          }
-        }
-
-        if (bestIdx >= 0 && bestDist < THRESHOLD) {
-          const gx = Math.min(Math.floor(x / GRID), gridW - 1);
-          const gy = Math.min(Math.floor(y / GRID), gridH - 1);
-          // Вес: чем точнее совпадение — тем больше вклад
-          grids[bestIdx][gy][gx] += 1 / (1 + bestDist);
-        }
-      }
-    }
-
-    // === Шаг 2: Для каждого цвета находим ячейку с максимальной плотностью ===
-    const positions: ColorPosition[] = [];
-
-    for (let ci = 0; ci < colors.length; ci++) {
-      let maxDensity = 0;
-      let peakGx = 0;
-      let peakGy = 0;
-
-      for (let gy = 0; gy < gridH; gy++) {
-        for (let gx = 0; gx < gridW; gx++) {
-          if (grids[ci][gy][gx] > maxDensity) {
-            maxDensity = grids[ci][gy][gx];
-            peakGx = gx;
-            peakGy = gy;
-          }
-        }
-      }
-
-      if (maxDensity > 0) {
-        // Центр найденной ячейки
-        const cx = (peakGx + 0.5) * GRID;
-        const cy = (peakGy + 0.5) * GRID;
-        positions.push({
-          hex: colors[ci],
-          x: cx / info.width,
-          y: cy / info.height,
-        });
-      } else {
-        // Fallback: ближайший пиксель
-        let bestDist = Infinity;
-        let bestX = 0.5, bestY = 0.5;
-        const t = targetRgbs[ci];
-        if (t) {
-          for (let y = 0; y < info.height; y += 2) {
-            for (let x = 0; x < info.width; x += 2) {
-              const idx = (y * info.width + x) * info.channels;
-              const dist = Math.sqrt(
-                (data[idx] - t.r) ** 2 +
-                (data[idx + 1] - t.g) ** 2 +
-                (data[idx + 2] - t.b) ** 2
-              );
-              if (dist < bestDist) {
-                bestDist = dist;
-                bestX = x / info.width;
-                bestY = y / info.height;
-              }
-            }
-          }
-        }
-        positions.push({ hex: colors[ci], x: bestX, y: bestY });
-      }
-    }
-
-    // === Шаг 3: Разводим слишком близкие маркеры ===
-    const MIN_DIST = 0.08;
-    for (let i = 0; i < positions.length; i++) {
-      for (let j = i + 1; j < positions.length; j++) {
-        const dx = positions[j].x - positions[i].x;
-        const dy = positions[j].y - positions[i].y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < MIN_DIST && dist > 0) {
-          const scale = (MIN_DIST - dist) / 2 / dist;
-          positions[i].x = Math.max(0.02, Math.min(0.98, positions[i].x - dx * scale));
-          positions[i].y = Math.max(0.02, Math.min(0.98, positions[i].y - dy * scale));
-          positions[j].x = Math.max(0.02, Math.min(0.98, positions[j].x + dx * scale));
-          positions[j].y = Math.max(0.02, Math.min(0.98, positions[j].y + dy * scale));
-        }
-      }
-    }
-
-    return positions;
-  } catch (error) {
-    console.error('findColorPositions error:', error);
-    return colors.map((hex, i) => ({
-      hex,
-      x: 0.2 + (i * 0.15),
-      y: 0.3 + (i * 0.1),
-    }));
-  }
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -533,6 +354,7 @@ async function extractColorsWithVibrant(
     accentNames: accentColors.map(c => getName(c.hex)),
     dominantFamilies: dominantColors.map(c => getFamily(c.hex)),
     accentFamilies: accentColors.map(c => getFamily(c.hex)),
+    dominantFamilyWeights: dominantColors.map(c => hexToFamilyWeights(c.hex)),
     colorPositions,
   };
 }
@@ -610,6 +432,9 @@ async function extractColorsWithSharp(
       try { return getFamily(hex); } catch { return 'unknown'; }
     }),
     accentFamilies: [],
+    dominantFamilyWeights: dominantHexes.map(hex => {
+      try { return hexToFamilyWeights(hex); } catch { return {}; }
+    }),
     colorPositions,
   };
 }
@@ -667,6 +492,7 @@ export async function POST(req: NextRequest) {
       colorWeights: result.dominantWeights,
       colorNames: result.dominantNames,
       colorFamilies: result.dominantFamilies,
+      colorFamilyWeights: result.dominantFamilyWeights,
       colorPositions: result.colorPositions,
       accentColors: result.accent,
       accentColorNames: result.accentNames,

@@ -21,6 +21,7 @@ interface ColorPickerOverlayProps {
     maxColors?: number;
     maxHeight?: string;  // CSS max-height, например "60vh"
     className?: string;  // Дополнительные классы для контейнера
+    pickerActive?: boolean; // Если true — рядом с курсором показывается preview-маркер с цветом из пикселя
 }
 
 export default function ColorPickerOverlay({
@@ -31,11 +32,13 @@ export default function ColorPickerOverlay({
     maxColors = 5,
     maxHeight = '60vh',
     className = '',
+    pickerActive = false,
 }: ColorPickerOverlayProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+    const [previewMarker, setPreviewMarker] = useState<ColorMarker | null>(null);
 
     // Загружаем изображение в canvas для получения цветов
     useEffect(() => {
@@ -153,7 +156,26 @@ export default function ColorPickerOverlay({
         if (!newColor) return;
 
         onColorsChange([...colors, newColor]);
+        setPreviewMarker(null);
     };
+
+    // Преview-маркер: пока курсор над картинкой и активен picker — показываем
+    // ghost-кружок цвета пикселя под курсором.
+    const handleContainerMouseMove = (e: React.MouseEvent) => {
+        if (!pickerActive || !imageLoaded) return;
+        if (draggingIndex !== null) return;
+        const c = getColorAt(e.clientX, e.clientY);
+        if (c) setPreviewMarker(c);
+    };
+
+    const handleContainerMouseLeave = () => {
+        setPreviewMarker(null);
+    };
+
+    // Если picker отключили — стираем preview сразу.
+    useEffect(() => {
+        if (!pickerActive) setPreviewMarker(null);
+    }, [pickerActive]);
 
     // Удаление маркера по двойному клику
     const handleMarkerDoubleClick = (e: React.MouseEvent, index: number) => {
@@ -166,9 +188,16 @@ export default function ColorPickerOverlay({
     return (
         <div
             ref={containerRef}
-            className={`relative block cursor-crosshair rounded-2xl overflow-hidden shadow-lg ${className}`}
+            className={`relative block rounded-2xl overflow-hidden shadow-lg ${className}`}
             onClick={handleContainerClick}
-            style={{ touchAction: 'none', maxHeight, maxWidth: '100%' }}
+            onMouseMove={handleContainerMouseMove}
+            onMouseLeave={handleContainerMouseLeave}
+            style={{
+                touchAction: 'none',
+                maxHeight,
+                maxWidth: '100%',
+                cursor: pickerActive ? 'none' : 'crosshair',
+            }}
         >
             {/* Изображение — определяет размер контейнера */}
             <img
@@ -201,6 +230,7 @@ export default function ColorPickerOverlay({
                             top: `${color.y * 100}%`,
                         }}
                         onMouseDown={(e) => handleMarkerMouseDown(e, index)}
+                        onClick={(e) => e.stopPropagation()}
                         onTouchStart={(e) => handleMarkerTouchStart(e, index)}
                         onDoubleClick={(e) => handleMarkerDoubleClick(e, index)}
                         onMouseEnter={() => onHoverChange?.(index)}
@@ -229,6 +259,25 @@ export default function ColorPickerOverlay({
                     </div>
                 );
             })}
+
+            {/* Preview-маркер: следует за курсором, цвет = пиксель под курсором */}
+            {pickerActive && previewMarker && (
+                <div
+                    className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                        left: `${previewMarker.x * 100}%`,
+                        top: `${previewMarker.y * 100}%`,
+                    }}
+                >
+                    <div
+                        className="h-6 w-6 rounded-full border-[1.5px] border-white"
+                        style={{
+                            backgroundColor: previewMarker.hex,
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                        }}
+                    />
+                </div>
+            )}
 
         </div>
     );

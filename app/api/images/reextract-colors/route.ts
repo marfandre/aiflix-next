@@ -8,6 +8,8 @@ export const maxDuration = 120;
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import sharp from 'sharp';
+import { hexToFamily, hexToFamilyWeights } from '@/lib/color-utils';
+import { findColorPositions } from '@/lib/color-positions';
 // Динамический импорт для node-vibrant
 const getVibrant = async () => {
     const mod = await import('node-vibrant/node');
@@ -109,32 +111,7 @@ function getName(hex: string): string {
     }
 }
 
-function getFamily(hex: string): string {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return 'black';
-    const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
-    if (s < 15) {
-        if (l < 15) return 'black';
-        if (l > 70) return 'white';
-        return 'brown';
-    }
-    if (s < 30) { if (l < 15) return 'black'; if (l < 50) return 'brown'; return 'pink'; }
-    if (l < 8) return 'black';
-    if (l > 95) return 'white';
-    if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
-    if (h < 15) return l > 70 ? 'pink' : 'red';
-    if (h < 40) return 'orange';
-    if (h < 65) return 'yellow';
-    if (h < 160) return 'green';
-    if (h < 185) return 'teal';
-    if (h < 210) return 'cyan';
-    if (h < 260) return 'blue';
-    if (h < 290) return 'indigo';
-    if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-    if (h < 346) return 'pink';
-    return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
-}
+const getFamily = hexToFamily;
 
 // CIEDE2000 для точного сопоставления bucket'ов
 function ciede2000(hex1: string, hex2: string): number {
@@ -240,137 +217,6 @@ function findBestBucket(hex: string): string {
 
 // ---- Поиск координат цветов (центр масс) ----
 
-interface ColorPosition {
-    hex: string;
-    x: number;
-    y: number;
-}
-
-async function findColorPositions(
-    buffer: Buffer,
-    colors: string[]
-): Promise<ColorPosition[]> {
-    try {
-        const { data, info } = await sharp(buffer)
-            .resize(200, 200, { fit: 'inside' })
-            .raw()
-            .toBuffer({ resolveWithObject: true });
-
-        const targetRgbs = colors.map(hex => hexToRgb(hex));
-        const THRESHOLD = 60;
-        const GRID = 10;
-        const gridW = Math.ceil(info.width / GRID);
-        const gridH = Math.ceil(info.height / GRID);
-
-        const grids = targetRgbs.map(() =>
-            Array.from({ length: gridH }, () => new Float64Array(gridW))
-        );
-
-        for (let y = 0; y < info.height; y++) {
-            for (let x = 0; x < info.width; x++) {
-                const i = (y * info.width + x) * info.channels;
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-
-                let bestIdx = -1;
-                let bestDist = Infinity;
-
-                for (let ci = 0; ci < targetRgbs.length; ci++) {
-                    const t = targetRgbs[ci];
-                    if (!t) continue;
-                    const dist = Math.sqrt(
-                        (r - t.r) ** 2 + (g - t.g) ** 2 + (b - t.b) ** 2
-                    );
-                    if (dist < bestDist) {
-                        bestDist = dist;
-                        bestIdx = ci;
-                    }
-                }
-
-                if (bestIdx >= 0 && bestDist < THRESHOLD) {
-                    const gx = Math.min(Math.floor(x / GRID), gridW - 1);
-                    const gy = Math.min(Math.floor(y / GRID), gridH - 1);
-                    grids[bestIdx][gy][gx] += 1 / (1 + bestDist);
-                }
-            }
-        }
-
-        const positions: ColorPosition[] = [];
-
-        for (let ci = 0; ci < colors.length; ci++) {
-            let maxDensity = 0;
-            let peakGx = 0, peakGy = 0;
-
-            for (let gy = 0; gy < gridH; gy++) {
-                for (let gx = 0; gx < gridW; gx++) {
-                    if (grids[ci][gy][gx] > maxDensity) {
-                        maxDensity = grids[ci][gy][gx];
-                        peakGx = gx;
-                        peakGy = gy;
-                    }
-                }
-            }
-
-            if (maxDensity > 0) {
-                positions.push({
-                    hex: colors[ci],
-                    x: ((peakGx + 0.5) * GRID) / info.width,
-                    y: ((peakGy + 0.5) * GRID) / info.height,
-                });
-            } else {
-                let bestDist = Infinity;
-                let bestX = 0.5, bestY = 0.5;
-                const t = targetRgbs[ci];
-                if (t) {
-                    for (let y = 0; y < info.height; y += 2) {
-                        for (let x = 0; x < info.width; x += 2) {
-                            const idx = (y * info.width + x) * info.channels;
-                            const dist = Math.sqrt(
-                                (data[idx] - t.r) ** 2 +
-                                (data[idx + 1] - t.g) ** 2 +
-                                (data[idx + 2] - t.b) ** 2
-                            );
-                            if (dist < bestDist) {
-                                bestDist = dist;
-                                bestX = x / info.width;
-                                bestY = y / info.height;
-                            }
-                        }
-                    }
-                }
-                positions.push({ hex: colors[ci], x: bestX, y: bestY });
-            }
-        }
-
-        // Разводим слишком близкие маркеры
-        const MIN_DIST = 0.08;
-        for (let i = 0; i < positions.length; i++) {
-            for (let j = i + 1; j < positions.length; j++) {
-                const dx = positions[j].x - positions[i].x;
-                const dy = positions[j].y - positions[i].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < MIN_DIST && dist > 0) {
-                    const scale = (MIN_DIST - dist) / 2 / dist;
-                    positions[i].x = Math.max(0.02, Math.min(0.98, positions[i].x - dx * scale));
-                    positions[i].y = Math.max(0.02, Math.min(0.98, positions[i].y - dy * scale));
-                    positions[j].x = Math.max(0.02, Math.min(0.98, positions[j].x + dx * scale));
-                    positions[j].y = Math.max(0.02, Math.min(0.98, positions[j].y + dy * scale));
-                }
-            }
-        }
-
-        return positions;
-    } catch (error) {
-        console.error('findColorPositions error:', error);
-        return colors.map((hex, i) => ({
-            hex,
-            x: 0.2 + (i * 0.15),
-            y: 0.3 + (i * 0.1),
-        }));
-    }
-}
-
 // ---- Vibrant extraction ----
 
 interface ColorWithMeta {
@@ -388,6 +234,7 @@ interface ExtractedColors {
     dominantWeights: number[];
     dominantNames: string[];
     dominantFamilies: string[];
+    dominantFamilyWeights: Record<string, number>[];
 }
 
 async function extractColorsWithVibrant(
@@ -524,6 +371,7 @@ async function extractColorsWithVibrant(
         dominantWeights: dominantColors.map(c => Math.round(c.percentage * 10) / 10),
         dominantNames: dominantColors.map(c => getName(c.hex)),
         dominantFamilies: dominantColors.map(c => getFamily(c.hex)),
+        dominantFamilyWeights: dominantColors.map(c => hexToFamilyWeights(c.hex)),
     };
 }
 
@@ -606,6 +454,7 @@ export async function POST(req: Request) {
                     color_weights: result.dominantWeights,
                     color_names: result.dominantNames,
                     color_families: result.dominantFamilies,
+                    color_family_weights: result.dominantFamilyWeights,
                     color_positions: colorPositions,
                     dominant_color: bucket0 || null,
                     secondary_color: bucket1 || null,

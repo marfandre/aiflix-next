@@ -82,55 +82,6 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
   const avatar = profile.avatar_url || '/placeholder.png';
 
-  let videosForFeed: any[] = [];
-  if (tab === 'video') {
-    // Загружаем полные данные видео для VideoFeedClient
-    const films = await selectSafe(
-      supa,
-      'films',
-      'id, author_id, title, description, prompt, playback_id, created_at, model, aspect_ratio, genres, mood, colors, colors_preview, status',
-      [(q: any) => q.eq('author_id', profile.id)],
-      { column: 'created_at', ascending: false },
-      120
-    );
-
-    // Добавляем profiles для совместимости с VideoFeedClient
-    videosForFeed = films.map((f: any) => ({
-      ...f,
-      profiles: { username: profile.username, avatar_url: profile.avatar_url }
-    }));
-  }
-
-  let images: any[] = [];
-  if (tab === 'images') {
-    const img_meta = await selectSafe(
-      supa,
-      'images_meta',
-      'id, user_id, path, title, description, created_at, prompt, colors, model, aspect_ratio, tags, images_count',
-      [(q: any) => q.eq('user_id', profile.id)],
-      { column: 'created_at', ascending: false },
-      120
-    );
-
-    const img_images = await selectSafe(
-      supa,
-      'images',
-      'id, user_id, path, url, title, description, created_at',
-      [(q: any) => q.eq('user_id', profile.id)],
-      { column: 'created_at', ascending: false },
-      120
-    );
-
-    const imgsRaw = img_meta.length ? img_meta : img_images;
-
-    // Добавляем profiles для совместимости с ImageFeedClient
-    images = imgsRaw.map((im: any) => ({
-      ...normImage(im),
-      user_id: im.user_id,
-      profiles: { username: profile.username, avatar_url: profile.avatar_url }
-    }));
-  }
-
   return (
     <div className="mx-auto max-w-[2000px] p-4 sm:p-6">
       {/* Шапка профиля */}
@@ -193,26 +144,18 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
 
       {/* ----- ВИДЕО ----- */}
       {tab === 'video' ? (
-        videosForFeed.length > 0 ? (
-          <VideoFeedClient
-            userId={currentUserId}
-            initialVideos={videosForFeed}
-            isOwnerView={isOwn}
-          />
-        ) : (
-          <div className="text-sm text-gray-500">Здесь пока нет видео.</div>
-        )
+        <VideoFeedClient
+          userId={currentUserId}
+          isOwnerView={isOwn}
+          profileId={profile.id}
+        />
       ) : (
         /* ----- КАРТИНКИ ----- */
-        images.length > 0 ? (
-          <ImageFeedClient
-            userId={currentUserId}
-            initialImages={images}
-            isOwnerView={isOwn}
-          />
-        ) : (
-          <div className="text-sm text-gray-500">Здесь пока нет картинок.</div>
-        )
+        <ImageFeedClient
+          userId={currentUserId}
+          isOwnerView={isOwn}
+          profileId={profile.id}
+        />
       )}
     </div>
   );

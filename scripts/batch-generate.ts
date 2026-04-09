@@ -8,6 +8,8 @@ config({ path: '.env.local' });
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import prompts from './purple-prompts.json';
+import { hexToFamily } from '../lib/color-utils';
+import { findColorPositions } from '../lib/color-positions';
 
 // Per-image environment contexts for more natural, less sterile look
 const ENVIRONMENT_CONTEXTS: Record<number, string> = {
@@ -593,6 +595,17 @@ const MODEL_OVERRIDES: Record<number, ModelConfig> = {
     525: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Petal Metro Arch
     526: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rose Halo Salon
     527: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Moon Balcony
+    // 46.1-46.10 (528-537): Pink Hero Series pt2
+    528: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Mirror Monolith
+    529: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Velvet Spiral Lobby
+    530: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Blush Crash Room
+    531: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Rose Sun Portrait
+    532: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Quartz Bath Hall
+    533: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Satin Ramp
+    534: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Petal Helipad
+    535: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Rose Glass Diner
+    536: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Coupe at Dawn
+    537: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Powder Balcony
 };
 
 function getModelForIndex(index: number): ModelConfig {
@@ -608,6 +621,17 @@ function getModelForIndex(index: number): ModelConfig {
 // Varied sizes: cycle through sizes
 const SIZE_OVERRIDES: Record<number, string> = {
     183: 'landscape_16_9',  // 15.5 Traffic Light River — wide cinematic
+    // 46.1-46.10 (528-537): Pink Hero Series pt2 — varied ratios
+    528: 'portrait_4_3',    // Mirror Monolith — vertical selfie
+    529: 'landscape_4_3',   // Velvet Spiral Lobby — wide lobby
+    530: 'landscape_4_3',   // Blush Crash Room — wide interior
+    531: 'portrait_16_9',   // Rose Sun Portrait — tall portrait
+    532: 'square_hd',       // Quartz Bath Hall — symmetric
+    533: 'landscape_4_3',   // Satin Ramp — wide architecture
+    534: 'square_hd',       // Petal Helipad — aerial top-down
+    535: 'landscape_4_3',   // Rose Glass Diner — cinematic wide
+    536: 'landscape_4_3',   // Coupe at Dawn — wide flat
+    537: 'portrait_4_3',    // Powder Balcony — vertical plume
 };
 
 function getSizeForIndex(index: number): string {
@@ -615,38 +639,6 @@ function getSizeForIndex(index: number): string {
     return IMAGE_SIZES[index % IMAGE_SIZES.length];
 }
 
-// --- HSL-based color family mapping ---
-function hexToFamily(hex: string): string {
-    const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-    if (!m) return 'black';
-    let r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const l = (max + min) / 2 * 100;
-    let s = 0, h = 0;
-    if (max !== min) {
-        const d = max - min;
-        s = (l > 50 ? d / (2 - max - min) : d / (max + min)) * 100;
-        if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6 * 360;
-        else if (max === g) h = ((b - r) / d + 2) / 6 * 360;
-        else h = ((r - g) / d + 4) / 6 * 360;
-    }
-    if (s < 15) { if (l < 15) return 'black'; if (l > 70) return 'white'; return 'brown'; }
-    if (s < 30) { if (l < 15) return 'black'; if (l < 50) return 'brown'; return 'pink'; }
-    if (l < 8) return 'black';
-    if (l > 95) return 'white';
-    if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
-    if (h < 15) return l > 70 ? 'pink' : 'red';
-    if (h < 40) return 'orange';
-    if (h < 65) return 'yellow';
-    if (h < 160) return 'green';
-    if (h < 185) return 'teal';
-    if (h < 210) return 'cyan';
-    if (h < 260) return 'blue';
-    if (h < 290) return 'indigo';
-    if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-    if (h < 346) return 'pink';
-    return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
-}
 
 // --- Bucket mapping ---
 const BUCKET_BASE_COLORS = [
@@ -708,99 +700,6 @@ async function extractColors(imageBuffer: Buffer, count: number = 5): Promise<st
     if (!result) return [];
     const palette = (result.palette() as RGB[]).slice(0, count);
     return palette.map(rgbToHex);
-}
-
-// --- Color positions ---
-type ColorPosition = { hex: string; x: number; y: number };
-
-function hexToRgbObj(hex: string): { r: number; g: number; b: number } | null {
-    const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-    if (!m) return null;
-    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
-}
-
-async function findColorPositions(buffer: Buffer, colors: string[]): Promise<ColorPosition[]> {
-    try {
-        const { data, info } = await sharp(buffer)
-            .resize(200, 200, { fit: 'inside' })
-            .removeAlpha()
-            .raw()
-            .toBuffer({ resolveWithObject: true });
-
-        const targetRgbs = colors.map(hex => hexToRgbObj(hex));
-        const THRESHOLD = 60;
-        const GRID = 10;
-        const gridW = Math.ceil(info.width / GRID);
-        const gridH = Math.ceil(info.height / GRID);
-
-        const grids = targetRgbs.map(() =>
-            Array.from({ length: gridH }, () => new Float64Array(gridW))
-        );
-
-        for (let y = 0; y < info.height; y++) {
-            for (let x = 0; x < info.width; x++) {
-                const i = (y * info.width + x) * info.channels;
-                const r = data[i], g = data[i + 1], b = data[i + 2];
-
-                let bestIdx = -1;
-                let bestDist = Infinity;
-                for (let ci = 0; ci < targetRgbs.length; ci++) {
-                    const t = targetRgbs[ci];
-                    if (!t) continue;
-                    const dist = Math.sqrt((r - t.r) ** 2 + (g - t.g) ** 2 + (b - t.b) ** 2);
-                    if (dist < bestDist) { bestDist = dist; bestIdx = ci; }
-                }
-                if (bestIdx >= 0 && bestDist < THRESHOLD) {
-                    const gx = Math.min(Math.floor(x / GRID), gridW - 1);
-                    const gy = Math.min(Math.floor(y / GRID), gridH - 1);
-                    grids[bestIdx][gy][gx] += 1 / (1 + bestDist);
-                }
-            }
-        }
-
-        const positions: ColorPosition[] = [];
-        for (let ci = 0; ci < colors.length; ci++) {
-            let maxDensity = 0, peakGx = 0, peakGy = 0;
-            for (let gy = 0; gy < gridH; gy++) {
-                for (let gx = 0; gx < gridW; gx++) {
-                    if (grids[ci][gy][gx] > maxDensity) {
-                        maxDensity = grids[ci][gy][gx]; peakGx = gx; peakGy = gy;
-                    }
-                }
-            }
-            if (maxDensity > 0) {
-                positions.push({
-                    hex: colors[ci],
-                    x: (peakGx + 0.5) * GRID / info.width,
-                    y: (peakGy + 0.5) * GRID / info.height,
-                });
-            } else {
-                positions.push({ hex: colors[ci], x: 0.2 + (ci * 0.15), y: 0.3 + (ci * 0.1) });
-            }
-        }
-
-        // Separate close markers
-        const MIN_DIST = 0.08;
-        for (let i = 0; i < positions.length; i++) {
-            for (let j = i + 1; j < positions.length; j++) {
-                const dx = positions[j].x - positions[i].x;
-                const dy = positions[j].y - positions[i].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < MIN_DIST && dist > 0) {
-                    const scale = (MIN_DIST - dist) / 2 / dist;
-                    positions[i].x = Math.max(0.02, Math.min(0.98, positions[i].x - dx * scale));
-                    positions[i].y = Math.max(0.02, Math.min(0.98, positions[i].y - dy * scale));
-                    positions[j].x = Math.max(0.02, Math.min(0.98, positions[j].x + dx * scale));
-                    positions[j].y = Math.max(0.02, Math.min(0.98, positions[j].y + dy * scale));
-                }
-            }
-        }
-
-        return positions;
-    } catch (error) {
-        console.error('findColorPositions error:', error);
-        return colors.map((hex, i) => ({ hex, x: 0.2 + (i * 0.15), y: 0.3 + (i * 0.1) }));
-    }
 }
 
 // --- Aspect ratio ---

@@ -14,6 +14,7 @@ type IncomingImage = {
   colorWeights?: number[] | null; // Веса цветов (процент площади)
   colorNames?: string[] | null;  // NTC названия цветов для поиска
   colorFamilies?: string[] | null; // Семейства цветов (basic: red, blue, ...)
+  colorFamilyWeights?: Record<string, number>[] | null; // Probabilistic family weights per color
   accentColors?: string[] | null; // Акцентные цвета
   colorPositions?: { hex: string; x: number; y: number }[] | null; // Координаты цветов
   aspectRatio?: string | null; // Соотношение сторон
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
       colorWeights,  // Веса цветов
       colorNames,  // NTC названия цветов
       colorFamilies, // Семейства цветов
+      colorFamilyWeights, // Вероятности семейств для каждого цвета
       accentColors, // Акцентные цвета
       colorPositions, // Координаты цветов на изображении
       title,
@@ -224,6 +226,18 @@ export async function POST(req: Request) {
         .filter(Boolean)
         .slice(0, 5);
 
+      // Probabilistic color family weights
+      const rawColorFamilyWeights: Record<string, number>[] =
+        (Array.isArray((img as any).colorFamilyWeights) && (img as any).colorFamilyWeights.length
+          ? (img as any).colorFamilyWeights
+          : Array.isArray(colorFamilyWeights) && colorFamilyWeights.length
+            ? colorFamilyWeights
+            : []) as Record<string, number>[];
+
+      const normalizedColorFamilyWeights = rawColorFamilyWeights
+        .filter((w) => w && typeof w === 'object')
+        .slice(0, 5);
+
       // Акцентные цвета
       const rawAccentColors: string[] =
         (Array.isArray(img.accentColors) && img.accentColors.length
@@ -284,6 +298,9 @@ export async function POST(req: Request) {
 
         // Семейства цветов — для быстрого фильтра (red, blue, green, ...)
         color_families: normalizedColorFamilies.length ? normalizedColorFamilies : null,
+
+        // Probabilistic family weights — для точного ранжирования
+        color_family_weights: normalizedColorFamilyWeights.length ? normalizedColorFamilyWeights : null,
 
         // Координаты цветов на изображении (для маркеров)
         color_positions: normalizedColorPositions.length ? normalizedColorPositions : null,

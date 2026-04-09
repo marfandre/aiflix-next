@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAspectRatioString } from '@/app/utils/aspectRatio';
+import { hexToFamily } from '@/lib/color-utils';
 // import { getImageEmbedding } from '@/lib/clipEmbedding'; // TODO: вернуть для кнопки "Похожие"
 
 // Если используешь проверку подписи Mux — оставь/добавь её здесь.
@@ -272,38 +273,6 @@ export async function POST(req: NextRequest) {
           // Авто-Тегирование (Imagga) отключено на бэкенде: теперь оно происходит на фронтенде перед загрузкой.
 
           // === Генерируем NTC-имена и семейства цветов для поиска ===
-          function hexToFamily(hex: string): string {
-            const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-            if (!m) return 'black';
-            let r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
-            const max = Math.max(r, g, b), min = Math.min(r, g, b);
-            const l = (max + min) / 2 * 100;
-            let s = 0, h = 0;
-            if (max !== min) {
-              const d = max - min;
-              s = (l > 50 ? d / (2 - max - min) : d / (max + min)) * 100;
-              if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6 * 360;
-              else if (max === g) h = ((b - r) / d + 2) / 6 * 360;
-              else h = ((r - g) / d + 4) / 6 * 360;
-            }
-            if (s < 15) { if (l < 15) return 'black'; if (l > 70) return 'white'; return 'brown'; }
-            if (s < 30) { if (l < 15) return 'black'; if (l < 50) return 'brown'; return 'pink'; }
-            if (l < 8) return 'black';
-            if (l > 95) return 'white';
-            if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
-            if (h < 15) return l > 70 ? 'pink' : 'red';
-            if (h < 40) return 'orange';
-            if (h < 65) return 'yellow';
-            if (h < 160) return 'green';
-            if (h < 185) return 'teal';
-            if (h < 210) return 'cyan';
-            if (h < 260) return 'blue';
-            if (h < 290) return 'indigo';
-            if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-            if (h < 346) return 'pink';
-            return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
-          }
-
           let colorNames: string[] = [];
           let colorFamilies: string[] = [];
           try {

@@ -112,7 +112,7 @@ const COLOR_PALETTE = [
 // Оттенки для AI-контента: более насыщенные, с неоновыми акцентами
 const COLOR_SHADES: Record<string, string[]> = {
   red: ['#FFCDD2', '#FF8A80', '#FF5252', '#FF1744', '#D50000', '#B71C1C', '#7F0000'],
-  orange: ['#FFE0B2', '#FFAB40', '#FF9100', '#FF6D00', '#E65100', '#BF360C', '#8D2000'],
+  orange: ['#FFE0B2', '#FFAB40', '#FF9100', '#FF6D00', '#E65100', '#FFB07C', '#FA8072'],
   yellow: ['#FFF9C4', '#FFFF00', '#FFEA00', '#FFD600', '#FFC400', '#FFAB00', '#FF8F00'],
   green: ['#B9F6CA', '#69F0AE', '#00E676', '#00C853', '#00A843', '#008836', '#006B24'],
   teal: ['#A7FFEB', '#64FFDA', '#1DE9B6', '#00BFA5', '#009688', '#00796B', '#004D40'],
@@ -120,7 +120,7 @@ const COLOR_SHADES: Record<string, string[]> = {
   blue: ['#BBDEFB', '#82B1FF', '#448AFF', '#2979FF', '#2962FF', '#1A46CC', '#0D2899'],
   indigo: ['#D1C4E9', '#B388FF', '#7C4DFF', '#651FFF', '#6200EA', '#4A00B0', '#2E0076'],
   purple: ['#E1BEE7', '#EA80FC', '#E040FB', '#D500F9', '#AA00FF', '#8000BF', '#560080'],
-  pink: ['#F8BBD0', '#FF80AB', '#FF4081', '#F50057', '#C51162', '#960D4A', '#670833'],
+  pink: ['#F8BBD0', '#FF80AB', '#FF4081', '#F50057', '#C51162', '#B784A7', '#C8A2C8'],
   brown: ['#D7CCC8', '#BCAAA4', '#A1887F', '#8D6E63', '#6D4C41', '#4E342E', '#3E2723'],
   black: ['#FAFAFA', '#E0E0E0', '#9E9E9E', '#616161', '#424242', '#212121', '#121212'],
   // white не имеет оттенков
@@ -370,8 +370,24 @@ export default function SearchButton() {
     params.set('t', 'images');
 
     if (simpleSelectedColors.length) {
+      // Map each selected hex to its family. If the hex comes from COLOR_SHADES,
+      // use the parent family directly (mapHexToBucket uses simple RGB distance
+      // which misclassifies mauve→brown, light mauve→white, etc.).
+      const hexToParentFamily = (hex: string): string | null => {
+        const h = hex.toLowerCase();
+        // Check palette first
+        const paletteMatch = COLOR_PALETTE.find((c) => c.hex.toLowerCase() === h);
+        if (paletteMatch) return paletteMatch.id;
+        // Check shades
+        for (const [baseId, shades] of Object.entries(COLOR_SHADES)) {
+          if (shades.some((s) => s.toLowerCase() === h)) return baseId;
+        }
+        // Fallback to bucket mapping
+        return mapHexToBucket(hex);
+      };
+
       const families = [...new Set(
-        simpleSelectedColors.map((hex) => mapHexToBucket(hex)).filter((f): f is string => !!f)
+        simpleSelectedColors.map((hex) => hexToParentFamily(hex)).filter((f): f is string => !!f)
       )];
       if (families.length) params.set('families', families.join(','));
     }

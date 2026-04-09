@@ -13,11 +13,12 @@ type Props = {
   initialImages?: ImageRow[];
   showAuthor?: boolean;
   isOwnerView?: boolean;
+  profileId?: string;
 };
 
 const PAGE_SIZE = 40;
 
-export default function ImageFeedClient({ userId, searchParams = {}, initialImages, showAuthor = true, isOwnerView = false }: Props) {
+export default function ImageFeedClient({ userId, searchParams = {}, initialImages, showAuthor = true, isOwnerView = false, profileId }: Props) {
   const [images, setImages] = useState<ImageRow[]>(initialImages ?? []);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -85,28 +86,106 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
     const POSITION_WEIGHT = [35, 25, 20, 12, 8]; // фолбэк-веса (≈площадь в %)
 
+    // "Drain" neighbors — families specifically designed to catch false positives
+    // of the requested family (e.g. mauve/peach were introduced to drain dirty
+    // pinks). Asymmetric dominance: requested total must be >= each drain total,
+    // otherwise the image is perceptually closer to that drain bucket and we drop it.
+    // Non-drain neighbors (e.g. red vs pink) are NOT checked — they often coexist
+    // legitimately (pink object on red scene), so dominance there would over-filter.
+    const DRAIN_NEIGHBORS: Record<string, string[]> = {
+      pink:   ['mauve', 'peach'],
+      red:    ['brown', 'peach'],
+      purple: ['mauve', 'indigo'],
+      orange: ['peach', 'brown'],
+    };
+
+    // Union of drain neighbors for the requested families, minus the requested ones.
+    const requestedSet = new Set(fams);
+    const drains = new Set<string>();
+    for (const f of fams) {
+      for (const d of DRAIN_NEIGHBORS[f] ?? []) {
+        if (!requestedSet.has(d)) drains.add(d);
+      }
+    }
+
     const scored = rows.map((img) => {
       const families: string[] = (img as any).color_families ?? [];
       const weights: number[] | null = (img as any).color_weights ?? null;
+      const familyWeights: Array<Record<string, number>> | null =
+        (img as any).color_family_weights ?? null;
+
       let score = 0;
-      for (let i = 0; i < families.length && i < 5; i++) {
-        if (fams.includes(families[i])) {
-          score += weights?.[i] ?? POSITION_WEIGHT[i] ?? 5;
+      const totals: Record<string, number> = {};
+      const colorCount = Math.max(families.length, familyWeights?.length ?? 0);
+      // True if the requested family was the classifier's top-1 in at least one
+      // slot — i.e. it's listed in color_families. In that case the classifier
+      // already committed to "this is X" and we should not let soft probability
+      // sums of drain neighbors veto it.
+      const requestedIsTop1 = fams.some((f) => families.includes(f));
+
+      for (let i = 0; i < colorCount && i < 5; i++) {
+        const pixelWeight = weights?.[i] ?? POSITION_WEIGHT[i] ?? 5;
+
+        if (familyWeights && familyWeights[i]) {
+          // Sum probabilistic contributions across all slots. Also accumulate
+          // per-family totals for the dominance check below.
+          const fw = familyWeights[i];
+          for (const [fam, prob] of Object.entries(fw)) {
+            totals[fam] = (totals[fam] ?? 0) + pixelWeight * prob;
+          }
+          for (const f of fams) {
+            const prob = fw[f] ?? 0;
+            if (prob > 0) score += pixelWeight * prob;
+          }
+        } else if (fams.includes(families[i])) {
+          // Legacy fallback: top-1 family match
+          score += pixelWeight;
+          totals[families[i]] = (totals[families[i]] ?? 0) + pixelWeight;
         }
       }
-      return { img, score };
+
+      // Asymmetric dominance: requested total must be >= the strongest drain
+      // neighbor (mauve/peach for pink, etc). Non-drain neighbors are ignored.
+      let maxDrain = 0;
+      for (const d of drains) {
+        if ((totals[d] ?? 0) > maxDrain) maxDrain = totals[d];
+      }
+      const requestedTotal = fams.reduce((acc, f) => acc + (totals[f] ?? 0), 0);
+
+      // Share check: requested family must account for a minimum fraction of
+      // the image's total color mass. Thresholds differ by family type:
+      // "dominant" families (pink, red, orange, peach) occupy large areas when
+      // truly present → higher threshold filters accent-only noise.
+      // "ambient" families (indigo, blue, green, purple, mauve, etc.) often
+      // appear as secondary colors at 12-17% → lower threshold avoids over-filtering.
+      const totalMass = Object.values(totals).reduce((a, b) => a + b, 0);
+      const share = totalMass > 0 ? requestedTotal / totalMass : 0;
+
+      return { img, score, requestedTotal, maxDrain, share, requestedIsTop1 };
     });
 
-    const MIN_WEIGHT = 15; // не показываем если совпавшие цвета < 15% площади
+    const SHARE_HIGH: Record<string, boolean> = {
+      pink: true, red: true, orange: true, peach: true,
+    };
+    // Use the highest applicable threshold when searching multiple families.
+    const shareMin = fams.some(f => SHARE_HIGH[f]) ? 0.18 : 0.10;
+
+    const MIN_WEIGHT = 3;
     scored.sort((a, b) => b.score - a.score);
-    return scored.filter((s) => s.score >= MIN_WEIGHT).map((s) => s.img);
+    return scored
+      .filter((s) =>
+        s.score >= MIN_WEIGHT &&
+        (s.requestedIsTop1 || s.requestedTotal >= s.maxDrain) &&
+        s.share >= shareMin
+      )
+      .map((s) => s.img);
   }, [familiesKey]);
 
   // ---------- Build query with filters ----------
   const buildQuery = useCallback((cursor?: string) => {
     // Для цветового поиска добавляем color_families в select для ранжирования
     const selectFields = isColorSearch
-      ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, color_families, color_weights, profiles(username, avatar_url)"
+      ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, color_families, color_weights, color_family_weights, profiles(username, avatar_url)"
       : "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)";
 
     let query = supa
@@ -119,7 +198,13 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
     if (searchParams.families) {
       const families = searchParams.families.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
-      if (families.length) query = query.contains("color_families", families);
+      if (families.length === 1) {
+        query = query.contains("color_families", families);
+      } else if (families.length > 1) {
+        // OR: image must contain at least one of the requested families
+        const orClauses = families.map((f) => `color_families.cs.{${f}}`).join(",");
+        query = query.or(orClauses);
+      }
     }
 
     if (searchParams.colors) {
@@ -144,8 +229,12 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       query = query.eq("aspect_ratio", searchParams.aspect);
     }
 
+    if (profileId) {
+      query = query.eq("user_id", profileId);
+    }
+
     return query;
-  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect, isColorSearch]);
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect, isColorSearch, profileId]);
 
   // ---------- Load feed (initial) ----------
   useEffect(() => {
@@ -163,7 +252,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
         console.error("image fetch with filters:", error);
         setImages([]);
       } else {
-        let rows = (data ?? []) as ImageRow[];
+        let rows = (data ?? []) as unknown as ImageRow[];
         if (isColorSearch) rows = rankByColorRelevance(rows);
         setImages(rows);
         setHasMore(isColorSearch ? false : rows.length >= PAGE_SIZE);
@@ -183,7 +272,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     if (error) {
       console.error("image fetch more:", error);
     } else {
-      const rows = (data ?? []) as ImageRow[];
+      const rows = (data ?? []) as unknown as ImageRow[];
       setImages((prev) => [...prev, ...rows]);
       setHasMore(rows.length >= PAGE_SIZE);
     }

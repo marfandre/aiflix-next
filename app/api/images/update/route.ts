@@ -6,39 +6,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { createClient as createService } from "@supabase/supabase-js";
-
-// --- HSL-based color family mapping (same as batch-generate) ---
-function hexToFamily(hex: string): string {
-    const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-    if (!m) return 'black';
-    let r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const l = (max + min) / 2 * 100;
-    let s = 0, h = 0;
-    if (max !== min) {
-        const d = max - min;
-        s = (l > 50 ? d / (2 - max - min) : d / (max + min)) * 100;
-        if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6 * 360;
-        else if (max === g) h = ((b - r) / d + 2) / 6 * 360;
-        else h = ((r - g) / d + 4) / 6 * 360;
-    }
-    if (s < 15) { if (l < 15) return 'black'; if (l > 70) return 'white'; return 'brown'; }
-    if (s < 30) { if (l < 15) return 'black'; if (l < 50) return 'brown'; return 'pink'; }
-    if (l < 8) return 'black';
-    if (l > 95) return 'white';
-    if (h >= 10 && h < 40 && l < 45 && s < 80) return 'brown';
-    if (h < 15) return l > 70 ? 'pink' : 'red';
-    if (h < 40) return 'orange';
-    if (h < 65) return 'yellow';
-    if (h < 160) return 'green';
-    if (h < 185) return 'teal';
-    if (h < 210) return 'cyan';
-    if (h < 260) return 'blue';
-    if (h < 290) return 'indigo';
-    if (h < 330) return s > 40 && l > 40 ? 'pink' : 'purple';
-    if (h < 346) return 'pink';
-    return l > 70 || (l > 50 && s < 60) ? 'pink' : 'red';
-}
+import { hexToFamily, hexToFamilyWeights } from "@/lib/color-utils";
 
 const BUCKET_BASE_COLORS = [
     { id: "red", r: 255, g: 23, b: 68 },
@@ -103,7 +71,7 @@ export async function POST(req: Request) {
         // Проверяем владельца картинки
         const { data: imageData, error: fetchErr } = await supa
             .from("images_meta")
-            .select("user_id")
+            .select("user_id, colors, color_weights")
             .eq("id", id)
             .single();
 
@@ -146,11 +114,47 @@ export async function POST(req: Request) {
             // Пересчитываем color_families и dominant/secondary/third при изменении цветов
             if (finalColors && finalColors.length > 0) {
                 updateData.color_families = finalColors.map((c: string) => hexToFamily(c));
+                updateData.color_family_weights = finalColors.map((c: string) => hexToFamilyWeights(c));
                 updateData.dominant_color = mapHexToBucket(finalColors[0]) ?? null;
                 updateData.secondary_color = finalColors[1] ? mapHexToBucket(finalColors[1]) : null;
                 updateData.third_color = finalColors[2] ? mapHexToBucket(finalColors[2]) : null;
+
+                // Перепривязываем color_weights к новому массиву цветов: для каждого
+                // оставшегося hex берём его старый вес, для добавленных — средний
+                // вес из ещё не использованных. В конце нормализуем до 100.
+                const oldColors: string[] = (imageData as any).colors ?? [];
+                const oldWeights: number[] = (imageData as any).color_weights ?? [];
+                const norm = (h: string) => h.toLowerCase();
+                const oldMap = new Map<string, number>();
+                for (let i = 0; i < oldColors.length; i++) {
+                    if (oldWeights[i] != null) oldMap.set(norm(oldColors[i]), oldWeights[i]);
+                }
+                const usedOld = new Set<string>();
+                const matched: number[] = finalColors.map((c: string) => {
+                    const k = norm(c);
+                    if (oldMap.has(k)) {
+                        usedOld.add(k);
+                        return oldMap.get(k)!;
+                    }
+                    return NaN;
+                });
+                // Среднее из неиспользованных старых весов — для новых hex'ов.
+                const leftover: number[] = [];
+                for (const [k, w] of oldMap.entries()) {
+                    if (!usedOld.has(k)) leftover.push(w);
+                }
+                const fallback = leftover.length
+                    ? leftover.reduce((a, b) => a + b, 0) / leftover.length
+                    : 100 / finalColors.length;
+                const filled = matched.map((w) => (Number.isNaN(w) ? fallback : w));
+                const sum = filled.reduce((a, b) => a + b, 0);
+                updateData.color_weights = sum > 0
+                    ? filled.map((w) => Math.round((w / sum) * 1000) / 10)
+                    : finalColors.map(() => Math.round((100 / finalColors.length) * 10) / 10);
             } else {
                 updateData.color_families = null;
+                updateData.color_family_weights = null;
+                updateData.color_weights = null;
                 updateData.dominant_color = null;
                 updateData.secondary_color = null;
                 updateData.third_color = null;

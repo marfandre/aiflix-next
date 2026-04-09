@@ -113,30 +113,38 @@ export default function EditImagePage({ params }: PageProps) {
             setColors(image.colors || []);
             setAccentColors((image.accent_colors || []).filter((c: string) => c && c.trim() !== ''));
 
-            // Загружаем позиции маркеров из БД если есть, иначе генерируем
-            const savedPositions = image.color_positions;
+            // Выстраиваем позиции маркеров параллельно массиву colors:
+            // для каждого цвета по индексу берём подходящий маркер из БД (по hex),
+            // а если такого нет — генерируем дефолтную позицию. Это гарантирует,
+            // что colors[i] всегда соответствует colorPositions[i] и удаление/
+            // редактирование по индексу работает корректно.
+            const savedPositions: any[] = Array.isArray(image.color_positions)
+                ? image.color_positions
+                : [];
             const existingColors: string[] = image.colors || [];
 
-            if (savedPositions && Array.isArray(savedPositions) && savedPositions.length > 0) {
-                // Фильтруем позиции — оставляем только те, чей hex есть в текущих colors
-                const filtered = savedPositions
-                    .map((pos: any) => ({
-                        hex: pos.hex || '#000000',
+            const usedPositionIdx = new Set<number>();
+            const aligned: ColorMarker[] = existingColors.map((hex: string, i: number) => {
+                const targetHex = hex.toLowerCase();
+                // Ищем первый ещё не использованный маркер с тем же hex.
+                const foundIdx = savedPositions.findIndex((pos, idx) =>
+                    !usedPositionIdx.has(idx) &&
+                    typeof pos?.hex === 'string' &&
+                    pos.hex.toLowerCase() === targetHex
+                );
+                if (foundIdx !== -1) {
+                    usedPositionIdx.add(foundIdx);
+                    const pos = savedPositions[foundIdx];
+                    return {
+                        hex,
                         x: typeof pos.x === 'number' ? pos.x : 0.5,
                         y: typeof pos.y === 'number' ? pos.y : 0.5,
-                    }))
-                    .filter((pos: ColorMarker) =>
-                        existingColors.some(c => c.toLowerCase() === pos.hex.toLowerCase())
-                    );
-                setColorPositions(filtered);
-            } else {
-                // Генерируем координаты для существующих цветов (для старых изображений)
-                setColorPositions(existingColors.map((hex: string, i: number) => ({
-                    hex,
-                    x: 0.15 + (i * 0.17),
-                    y: 0.3 + (i * 0.1),
-                })));
-            }
+                    };
+                }
+                // Дефолтная позиция, если в БД маркера для этого цвета не было.
+                return { hex, x: 0.15 + (i * 0.17), y: 0.3 + (i * 0.1) };
+            });
+            setColorPositions(aligned);
 
             setLoading(false);
         })();
@@ -201,18 +209,26 @@ export default function EditImagePage({ params }: PageProps) {
         if (colors.includes(colorHex)) return; // Уже есть такой цвет
         if (colors.length >= 5) return; // Максимум 5
 
+        // Создаём маркер с дефолтной позицией, чтобы colors и colorPositions
+        // оставались синхронны. Пользователь может перетащить маркер на нужное
+        // место картинки. Без этого после сохранения color_positions окажется
+        // короче colors → данные рассинхронятся.
+        const idx = colors.length;
         setColors(prev => [...prev, colorHex]);
+        setColorPositions(prev => [
+            ...prev,
+            { hex: colorHex, x: 0.15 + (idx * 0.17), y: 0.3 + (idx * 0.1) },
+        ]);
         setActiveSlot(null); // Сбрасываем активный слот
     }
 
-    // Удаление цвета по индексу
+    // Удаление цвета по индексу. Должно быть симметрично clipping массивов:
+    // удаляем слот index из colors И тот же index из colorPositions.
+    // Раньше фильтровали позиции по hex — это удаляло сразу оба маркера, если
+    // в массиве встречались два одинаковых hex.
     function removeColor(index: number) {
-        const removedHex = colors[index];
         setColors(prev => prev.filter((_, i) => i !== index));
-        // Удаляем соответствующую позицию маркера
-        if (removedHex) {
-            setColorPositions(prev => prev.filter(p => p.hex.toLowerCase() !== removedHex.toLowerCase()));
-        }
+        setColorPositions(prev => prev.filter((_, i) => i !== index));
     }
 
     // Получение публичного URL картинки
@@ -351,10 +367,12 @@ export default function EditImagePage({ params }: PageProps) {
                                 onColorsChange={(newColors) => {
                                     setColorPositions(newColors);
                                     setColors(newColors.map(c => c.hex));
+                                    setActiveSlot(null);
                                 }}
                                 onHoverChange={setHoveredMarker}
                                 maxColors={5}
                                 maxHeight="60vh"
+                                pickerActive={activeSlot !== null && activeSlot < 100}
                             />
                         ) : (
                             <div className="flex h-48 w-full items-center justify-center bg-gray-100 text-gray-400">
@@ -388,20 +406,24 @@ export default function EditImagePage({ params }: PageProps) {
                                     </button>
                                 ))}
                                 {/* Пустые слоты для основных */}
-                                {Array.from({ length: 5 - colors.length }).map((_, i) => (
-                                    <button
-                                        key={`empty-${i}`}
-                                        type="button"
-                                        onClick={() => setActiveSlot(colors.length + i)}
-                                        className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed transition ${activeSlot === colors.length + i
-                                            ? 'border-blue-500 bg-blue-50 text-blue-500'
-                                            : 'border-gray-400 text-gray-400 hover:border-gray-500'
-                                            }`}
-                                        title="Нажмите, затем выберите цвет из палитры"
-                                    >
-                                        <span className="text-sm">+</span>
-                                    </button>
-                                ))}
+                                {Array.from({ length: 5 - colors.length }).map((_, i) => {
+                                    const slotIdx = colors.length + i;
+                                    const isActive = activeSlot === slotIdx;
+                                    return (
+                                        <button
+                                            key={`empty-${i}`}
+                                            type="button"
+                                            onClick={() => setActiveSlot(isActive ? null : slotIdx)}
+                                            className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed transition ${isActive
+                                                ? 'border-blue-500 bg-blue-50 text-blue-500'
+                                                : 'border-gray-400 text-gray-400 hover:border-gray-500'
+                                                }`}
+                                            title="Нажмите, затем выберите цвет из палитры"
+                                        >
+                                            <span className="text-sm">+</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -426,20 +448,24 @@ export default function EditImagePage({ params }: PageProps) {
                                     </button>
                                 ))}
                                 {/* Пустые слоты для акцентов */}
-                                {Array.from({ length: 3 - accentColors.length }).map((_, i) => (
-                                    <button
-                                        key={`empty-accent-${i}`}
-                                        type="button"
-                                        onClick={() => setActiveSlot(100 + accentColors.length + i)}
-                                        className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed transition ${activeSlot === 100 + accentColors.length + i
-                                            ? 'border-purple-500 bg-purple-50 text-purple-500'
-                                            : 'border-gray-400 text-gray-400 hover:border-purple-400'
-                                            }`}
-                                        title="Нажмите, затем выберите цвет для акцента"
-                                    >
-                                        <span className="text-xs">+</span>
-                                    </button>
-                                ))}
+                                {Array.from({ length: 3 - accentColors.length }).map((_, i) => {
+                                    const slotIdx = 100 + accentColors.length + i;
+                                    const isActive = activeSlot === slotIdx;
+                                    return (
+                                        <button
+                                            key={`empty-accent-${i}`}
+                                            type="button"
+                                            onClick={() => setActiveSlot(isActive ? null : slotIdx)}
+                                            className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed transition ${isActive
+                                                ? 'border-purple-500 bg-purple-50 text-purple-500'
+                                                : 'border-gray-400 text-gray-400 hover:border-purple-400'
+                                                }`}
+                                            title="Нажмите, затем выберите цвет для акцента"
+                                        >
+                                            <span className="text-xs">+</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
