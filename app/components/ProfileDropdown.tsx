@@ -116,7 +116,6 @@ export default function ProfileDropdown() {
                         </svg>
                     </div>
                 )}
-                Профиль
                 <svg
                     className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
                     fill="none"
@@ -143,6 +142,13 @@ export default function ProfileDropdown() {
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
                         Личный кабинет
+                    </Link>
+                    <Link
+                        href="/saved"
+                        onClick={() => setOpen(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                        Сохранённое
                     </Link>
                     <Link
                         href="/favorites"

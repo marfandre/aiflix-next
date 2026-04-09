@@ -606,6 +606,100 @@ const MODEL_OVERRIDES: Record<number, ModelConfig> = {
     535: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Rose Glass Diner
     536: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Coupe at Dawn
     537: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Powder Balcony
+    // 52.1-52.10 (indices 593-602): Brown Storm Heroes, mixed dev/pro/banana
+    593: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Dust Walk
+    594: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Road to the Funnel
+    595: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Ash Veil Portrait
+    596: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Storm Gate
+    597: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Smoke Runner
+    598: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Dune Wall
+    599: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Burnt Wind
+    600: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sepia Spiral
+    601: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Ember Dust Hall
+    602: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sand Crown
+    // 53.1-53.10 (indices 603-612): Brown New Themes, mixed dev/pro/banana
+    603: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Excavated Colossus
+    604: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Walnut Oracle Hall
+    605: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Fossil Sun
+    606: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Velvet Canyon
+    607: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Rust Choir
+    608: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Coffee Observatory
+    609: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Sand Archive
+    610: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Bronze Orchard Gate
+    611: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Sepia Mirror Court
+    612: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Ember Staircase
+    // 54.1 (index 613): Brown Otherworld, flux-pro for max quality
+    613: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Fallen God's Library
+    // 55.1-55.10 (indices 614-623): Brown Ancient Civilizations, mixed dev/pro/banana
+    614: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Roman Dust Forum
+    615: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Gothic Ember Nave
+    616: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Bronze Caesar Gate
+    617: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sepia Aqueduct Storm
+    618: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Catacomb Crown
+    619: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Babylon Ash Terrace
+    620: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Gothic Reliquary Tower
+    621: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Roman Bath Eclipse
+    622: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Obsidian Senate Hall
+    623: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Empire of Arches
+    // 56.1-56.10 (indices 624-633): Gothic Mystic Dante, mixed dev/pro/banana
+    624: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Inferno Stair
+    625: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Cathedral of Smoke
+    626: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // River of Cinders
+    627: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Veiled Oracle
+    628: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Gate of the Damned
+    629: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Sepia Reliquary
+    630: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Ash Rose Nave
+    631: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' }, // Circle of Bells
+    632: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },       // Throne of Embers
+    633: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' }, // Procession Below
+    // 57.1-57.15 (indices 634-648): Collage Moodboard, mixed dev/pro/schnell
+    634: { endpoint: 'fal-ai/flux/schnell', name: 'flux/schnell' },   // Macro Rift
+    635: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Iridescent Metal Stack
+    636: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Anxious Child Illustration
+    637: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Cactus Bench Sphere
+    638: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Classical Hands and Tiny Figure
+    639: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Misty Rock Landscape
+    640: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Ink-Wash Mountain Range
+    641: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Woman Holding Pizza Box
+    642: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Minimal Perfume Bottle
+    643: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Paper-Cut Golfer Scene
+    644: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Crowd Under Blinding Light
+    645: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Floral Dress Paper Art
+    646: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Stone Medusa Head
+    647: { endpoint: 'fal-ai/flux/schnell', name: 'flux/schnell' },   // Blue Wind Silhouette
+    648: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Collage Moodboard
+    // 58.1-58.15 (indices 649-663): Second Collage, mixed dev/pro/schnell
+    649: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Sleeping Cat on Grass
+    650: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Cropped Dark Cinematic Scene
+    651: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Cream Floral Ribbon Abstract
+    652: { endpoint: 'fal-ai/flux/schnell', name: 'flux/schnell' },   // Cartoon Crocodile Doctor
+    653: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Child and White Dog at Bus Stop
+    654: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Marble Hair Sculpture Detail
+    655: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Golden-Hour Figure with Flowers
+    656: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Colorful Elephant Painting
+    657: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // White Blossom Garden Path
+    658: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Lime Bubble Office Installation
+    659: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Solitary Sunset Tree Painting
+    660: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Beauty Eye Macro
+    661: { endpoint: 'fal-ai/flux/schnell', name: 'flux/schnell' },   // Prism Beam Abstract
+    662: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Horned Creature Portrait
+    663: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Green-Gold Liquid Texture
+    // 59.1-59.15 (indices 664-678): Third Collage Color Shifted, mixed dev/pro/schnell/banana
+    664: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Ghost Rider on Horse
+    665: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Torn Pigment on Paper
+    666: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Hazelnut Spread on Alien Ground
+    667: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Astronaut at the Hatch
+    668: { endpoint: 'fal-ai/nano-banana', name: 'nano-banana' },    // Glass Bat Dragon
+    669: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Vintage Songbirds
+    670: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // House in a Biosphere
+    671: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Cyclists at Icy Dawn
+    672: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Dogs at the Table
+    673: { endpoint: 'fal-ai/flux/schnell', name: 'flux/schnell' },   // Symbol Sheet
+    674: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Big-Eyed Child in Hoodie
+    675: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Man with Vintage Car
+    676: { endpoint: 'fal-ai/flux-pro/v1.1', name: 'flux-pro' },     // Fossil Jaw Fragment
+    677: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Floral Interior Fragment
+    678: { endpoint: 'fal-ai/flux/dev', name: 'flux/dev' },           // Whole Moodboard Interpretation
 };
 
 function getModelForIndex(index: number): ModelConfig {

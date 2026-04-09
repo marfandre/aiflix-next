@@ -28,6 +28,9 @@ export default function ImageModal({
   const [showPrompt, setShowPrompt] = useState(false);
   const [showPromptOverlay, setShowPromptOverlay] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [promptSaved, setPromptSaved] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
+  const [savedPromptId, setSavedPromptId] = useState<string | null>(null);
+  const [paletteSaved, setPaletteSaved] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
   const [imageWidth, setImageWidth] = useState<number | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -75,6 +78,95 @@ export default function ImageModal({
       document.body.removeChild(input);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Проверяем, сохранён ли промт этой картинки
+  useEffect(() => {
+    let cancelled = false;
+    setSavedPromptId(null);
+    if (!selected.id) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/saved-prompts/check?source_type=image&source_id=${encodeURIComponent(selected.id)}`);
+        if (!res.ok) return;
+        const j = await res.json();
+        if (!cancelled) setSavedPromptId(j?.id ?? null);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [selected.id]);
+
+  const togglePromptSave = async () => {
+    if (!selected.prompt || promptSaved === 'saving') return;
+    setPromptSaved('saving');
+
+    // Уже сохранено — удаляем
+    if (savedPromptId) {
+      try {
+        const res = await fetch(`/api/saved-prompts/${savedPromptId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('delete failed');
+        setSavedPromptId(null);
+        setPromptSaved('idle');
+      } catch {
+        setPromptSaved('error');
+        setTimeout(() => setPromptSaved('idle'), 2000);
+      }
+      return;
+    }
+
+    // Не сохранено — создаём
+    try {
+      const res = await fetch('/api/saved-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: selected.prompt,
+          model: selected.model ?? null,
+          seed: selected.seed ?? null,
+          aspect_ratio: selected.aspect_ratio ?? null,
+          source_type: 'image',
+          source_id: selected.id,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        if (res.status === 401) { alert('Войдите, чтобы сохранять промты'); setPromptSaved('idle'); return; }
+        throw new Error(j?.error || 'Ошибка');
+      }
+      const j = await res.json();
+      setSavedPromptId(j?.id ?? null);
+      setPromptSaved('idle');
+    } catch {
+      setPromptSaved('error');
+      setTimeout(() => setPromptSaved('idle'), 2000);
+    }
+  };
+
+  const savePalette = async () => {
+    const colors = (currentColors || []).filter((c): c is string => !!c);
+    if (colors.length === 0 || paletteSaved === 'saving') return;
+    setPaletteSaved('saving');
+    try {
+      const res = await fetch('/api/saved-palettes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          colors: colors.slice(0, 10),
+          source_type: 'image',
+          source_id: selected.id,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        if (res.status === 401) { alert('Войдите, чтобы сохранять палитры'); setPaletteSaved('idle'); return; }
+        throw new Error(j?.error || 'Ошибка');
+      }
+      setPaletteSaved('done');
+      setTimeout(() => setPaletteSaved('idle'), 2000);
+    } catch {
+      setPaletteSaved('error');
+      setTimeout(() => setPaletteSaved('idle'), 2000);
     }
   };
 
@@ -662,25 +754,50 @@ export default function ImageModal({
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative group/prompt">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(selected.prompt || '');
-                        const icon = document.getElementById('copy-prompt-icon');
-                        const check = document.getElementById('copy-prompt-check');
-                        if (icon && check) { icon.classList.add('hidden'); check.classList.remove('hidden'); setTimeout(() => { icon.classList.remove('hidden'); check.classList.add('hidden'); }, 1500); }
-                      }}
-                      className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
-                      title="\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0440\u043E\u043C\u0442"
-                    >
-                      <svg id="copy-prompt-icon" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                      <svg id="copy-prompt-check" className="h-4 w-4 hidden text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(selected.prompt || '');
+                          const icon = document.getElementById('copy-prompt-icon');
+                          const check = document.getElementById('copy-prompt-check');
+                          if (icon && check) { icon.classList.add('hidden'); check.classList.remove('hidden'); setTimeout(() => { icon.classList.remove('hidden'); check.classList.add('hidden'); }, 1500); }
+                        }}
+                        className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
+                        title="Скопировать промт"
+                      >
+                        <svg id="copy-prompt-icon" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        <svg id="copy-prompt-check" className="h-4 w-4 hidden text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={togglePromptSave}
+                        disabled={promptSaved === 'saving'}
+                        className={`transition p-1 rounded-md hover:bg-white/10 ${
+                          promptSaved === 'error' ? 'text-red-400' :
+                          savedPromptId ? 'text-white' :
+                          'text-white/30 hover:text-white/70'
+                        }`}
+                        title={savedPromptId ? 'Убрать из сохранённого' : 'Сохранить промт'}
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill={savedPromptId ? 'currentColor' : 'none'}
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="max-h-[150px] overflow-y-auto pr-1 scrollbar-thin">
                     <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
@@ -693,6 +810,52 @@ export default function ImageModal({
                 </div>
               )}
 
+              {/* Palette */}
+              {Array.isArray(currentColors) && currentColors.filter(Boolean).length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3 pr-4">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Палитра</h3>
+                    <button
+                      type="button"
+                      onClick={savePalette}
+                      disabled={paletteSaved === 'saving'}
+                      className={`transition p-1 rounded-md hover:bg-white/10 ${
+                        paletteSaved === 'done' ? 'text-green-400' :
+                        paletteSaved === 'error' ? 'text-red-400' :
+                        'text-white/30 hover:text-white/70'
+                      }`}
+                      title="Сохранить палитру"
+                    >
+                      {paletteSaved === 'done' ? (
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {currentColors.map((c, i) => {
+                      if (!c) return null;
+                      const isHovered = modalHoveredColor === i;
+                      return (
+                        <div
+                          key={`panel-color-${c}-${i}`}
+                          className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white scale-110' : 'border border-white/30'}`}
+                          style={{ backgroundColor: c, width: 28, height: 28 }}
+                          title={c}
+                          onMouseEnter={() => setModalHoveredColor(i)}
+                          onMouseLeave={() => setModalHoveredColor(null)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               {selected.description && (
                 <div>
@@ -700,8 +863,6 @@ export default function ImageModal({
                   <p className="text-[13px] text-white/80 leading-relaxed">{selected.description}</p>
                 </div>
               )}
-
-              <hr className="border-white/10" />
 
               {/* Author */}
               <div>
@@ -797,41 +958,6 @@ export default function ImageModal({
 
           {/* Right page wrapper */}
           <div className="relative">
-            {/* Color circles — spine (when info panel open) */}
-            {showPrompt && Array.isArray(currentColors) && currentColors.length > 0 && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full flex-col gap-2 flex items-end z-10" style={{ paddingRight: '4px' }}>
-                {selected.accent_colors && selected.accent_colors.length > 0 && (
-                  selected.accent_colors.map((c, index) => (
-                    <div key={`accent-spine-${c}-${index}`} className="relative group/accent">
-                      <div className="rounded-full border-2 border-white/30 shadow-lg" style={{ backgroundColor: c, width: 18, height: 18 }} />
-                      <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-mono text-white/90 uppercase whitespace-nowrap opacity-0 group-hover/accent:opacity-100 transition-opacity duration-150 pointer-events-none">
-                        {c}
-                      </div>
-                    </div>
-                  ))
-                )}
-                {currentColors.map((c, index) => {
-                  if (!c) return null;
-                  const isHovered = modalHoveredColor === index;
-                  return (
-                    <div key={`spine-${c}-${index}`} className="relative">
-                      <div
-                        className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white scale-110' : 'border border-white/30'}`}
-                        style={{ backgroundColor: c, width: 28, height: 28 }}
-                        onMouseEnter={() => setModalHoveredColor(index)}
-                        onMouseLeave={() => setModalHoveredColor(null)}
-                      />
-                      {isHovered && (
-                        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-mono text-white/90 uppercase whitespace-nowrap pointer-events-none">
-                          {c}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
             {/* Image container */}
             <div className={`group relative flex max-h-[90vh] flex-col overflow-hidden ${showPrompt ? 'rounded-r-xl rounded-l-none' : 'rounded-xl'} shadow-2xl`}>
               {/* Image with overlay */}
