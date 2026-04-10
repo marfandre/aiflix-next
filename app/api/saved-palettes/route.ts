@@ -43,6 +43,20 @@ export async function POST(req: Request) {
     source_id = typeof body.source_id === 'string' ? body.source_id : null;
   }
 
+  // Дедуп: если уже сохранена палитра из этого источника — вернём существующий id.
+  if (source_type && source_id) {
+    const { data: existing } = await supa
+      .from('saved_palettes')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('source_type', source_type)
+      .eq('source_id', source_id)
+      .maybeSingle();
+    if (existing) {
+      return NextResponse.json({ ok: true, id: existing.id, already: true });
+    }
+  }
+
   const { data, error } = await supa
     .from('saved_palettes')
     .insert({

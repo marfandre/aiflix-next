@@ -161,6 +161,12 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
   const [modalWidth, setModalWidth] = useState(0);
   const [modalHeight, setModalHeight] = useState(0);
 
+  // Saved states
+  const [promptSaved, setPromptSaved] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [savedPromptId, setSavedPromptId] = useState<string | null>(null);
+  const [paletteSaved, setPaletteSaved] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [savedPaletteId, setSavedPaletteId] = useState<string | null>(null);
+
   const modalVideoRef = useRef<HTMLVideoElement | null>(null);
   const extTimelineRef = useRef<HTMLDivElement | null>(null);
   const extFillRef = useRef<HTMLDivElement | null>(null);
@@ -341,6 +347,68 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
   const nick = profile?.username ?? "user";
   const avatar = profile?.avatar_url ?? null;
   const colors = (selected.colors ?? []).slice(0, 5);
+
+  // Проверяем, сохранены ли промт и палитра этого видео
+  useEffect(() => {
+    let cancelled = false;
+    setSavedPromptId(null);
+    setSavedPaletteId(null);
+    if (!selected.id) return;
+    (async () => {
+      try {
+        const [pRes, plRes] = await Promise.all([
+          fetch(`/api/saved-prompts/check?source_type=film&source_id=${encodeURIComponent(selected.id)}`),
+          fetch(`/api/saved-palettes/check?source_type=film&source_id=${encodeURIComponent(selected.id)}`),
+        ]);
+        if (!cancelled && pRes.ok) { const j = await pRes.json(); setSavedPromptId(j?.id ?? null); }
+        if (!cancelled && plRes.ok) { const j = await plRes.json(); setSavedPaletteId(j?.id ?? null); }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [selected.id]);
+
+  const togglePromptSave = async () => {
+    if (!selected.prompt || promptSaved === 'saving') return;
+    setPromptSaved('saving');
+    if (savedPromptId) {
+      try {
+        const res = await fetch(`/api/saved-prompts/${savedPromptId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('delete failed');
+        setSavedPromptId(null); setPromptSaved('idle');
+      } catch { setPromptSaved('error'); setTimeout(() => setPromptSaved('idle'), 2000); }
+      return;
+    }
+    try {
+      const res = await fetch('/api/saved-prompts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: selected.prompt, model: selected.model ?? null, seed: selected.seed ?? null, aspect_ratio: selected.aspect_ratio ?? null, source_type: 'film', source_id: selected.id }),
+      });
+      if (!res.ok) { if (res.status === 401) { alert('Войдите, чтобы сохранять промты'); setPromptSaved('idle'); return; } throw new Error(); }
+      const j = await res.json(); setSavedPromptId(j?.id ?? null); setPromptSaved('idle');
+    } catch { setPromptSaved('error'); setTimeout(() => setPromptSaved('idle'), 2000); }
+  };
+
+  const togglePaletteSave = async () => {
+    const c = colors.filter(Boolean);
+    if (c.length === 0 || paletteSaved === 'saving') return;
+    setPaletteSaved('saving');
+    if (savedPaletteId) {
+      try {
+        const res = await fetch(`/api/saved-palettes/${savedPaletteId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('delete failed');
+        setSavedPaletteId(null); setPaletteSaved('idle');
+      } catch { setPaletteSaved('error'); setTimeout(() => setPaletteSaved('idle'), 2000); }
+      return;
+    }
+    try {
+      const res = await fetch('/api/saved-palettes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colors: c.slice(0, 10), source_type: 'film', source_id: selected.id }),
+      });
+      if (!res.ok) { if (res.status === 401) { alert('Войдите, чтобы сохранять палитры'); setPaletteSaved('idle'); return; } throw new Error(); }
+      const j = await res.json(); setSavedPaletteId(j?.id ?? null); setPaletteSaved('idle');
+    } catch { setPaletteSaved('error'); setTimeout(() => setPaletteSaved('idle'), 2000); }
+  };
 
   const shareVideo = async () => {
     const shareUrl = `${window.location.origin}/film/${selected.id}`;
@@ -604,28 +672,40 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
-                      <button
-                        type="button"
-                        onClick={copyPromptMobile}
-                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition ${promptCopiedMobile ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/50"}`}
-                      >
-                        {promptCopiedMobile ? (
-                          <>
-                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                            {"\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E"}
-                          </>
-                        ) : (
-                          <>
-                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                            </svg>
-                            {"\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C"}
-                          </>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={copyPromptMobile}
+                          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition ${promptCopiedMobile ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/50"}`}
+                        >
+                          {promptCopiedMobile ? (
+                            <>
+                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              {"\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E"}
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                              </svg>
+                              {"\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C"}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={togglePromptSave}
+                          disabled={promptSaved === 'saving'}
+                          className={`flex h-7 w-7 items-center justify-center rounded-full transition ${promptSaved === 'error' ? 'bg-red-500/20 text-red-400' : savedPromptId ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'}`}
+                        >
+                          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill={savedPromptId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <p className="text-[13px] text-white/80 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
                   </div>
@@ -642,7 +722,19 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {/* Colors */}
                 {colors.length > 0 && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0426\u0432\u0435\u0442\u0430"}</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0430\u043B\u0438\u0442\u0440\u0430"}</h3>
+                      <button
+                        type="button"
+                        onClick={togglePaletteSave}
+                        disabled={paletteSaved === 'saving'}
+                        className={`flex h-7 w-7 items-center justify-center rounded-full transition ${paletteSaved === 'error' ? 'bg-red-500/20 text-red-400' : savedPaletteId ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'}`}
+                      >
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill={savedPaletteId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </button>
+                    </div>
                     <div className="flex items-center gap-2">
                       {colors.map((c, index) => {
                         if (!c) return null;
@@ -704,16 +796,29 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                   <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative group/prompt">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
-                      <button
-                        type="button"
-                        onClick={() => navigator.clipboard.writeText(selected.prompt || "")}
-                        className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
-                        title="\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0440\u043E\u043C\u0442"
-                      >
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard.writeText(selected.prompt || "")}
+                          className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
+                          title="Скопировать промт"
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={togglePromptSave}
+                          disabled={promptSaved === 'saving'}
+                          className={`transition p-1 rounded-md hover:bg-white/10 ${promptSaved === 'error' ? 'text-red-400' : savedPromptId ? 'text-white' : 'text-white/30 hover:text-white/70'}`}
+                          title={savedPromptId ? 'Убрать из сохранённого' : 'Сохранить промт'}
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill={savedPromptId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <div className="max-h-[150px] overflow-y-auto pr-1 scrollbar-thin">
                       <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
@@ -726,6 +831,42 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                   </div>
                 )}
 
+                {/* Palette */}
+                {colors.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3 pr-4">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Палитра</h3>
+                      <button
+                        type="button"
+                        onClick={togglePaletteSave}
+                        disabled={paletteSaved === 'saving'}
+                        className={`transition p-1 rounded-md hover:bg-white/10 ${paletteSaved === 'error' ? 'text-red-400' : savedPaletteId ? 'text-white' : 'text-white/30 hover:text-white/70'}`}
+                        title={savedPaletteId ? 'Убрать из сохранённого' : 'Сохранить палитру'}
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill={savedPaletteId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {colors.map((c, i) => {
+                        if (!c) return null;
+                        const isHovered = modalHoveredColor === i;
+                        return (
+                          <div
+                            key={`vpanel-color-${c}-${i}`}
+                            className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white scale-110' : 'border border-white/30'}`}
+                            style={{ backgroundColor: c, width: 28, height: 28 }}
+                            title={c}
+                            onMouseEnter={() => setModalHoveredColor(i)}
+                            onMouseLeave={() => setModalHoveredColor(null)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Description */}
                 {selected.description && (
                   <div>
@@ -733,8 +874,6 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                     <p className="text-[13px] text-white/80 leading-relaxed">{selected.description}</p>
                   </div>
                 )}
-
-                <hr className="border-white/10" />
 
                 {/* Author */}
                 <div>

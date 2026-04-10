@@ -31,6 +31,7 @@ export default function ImageModal({
   const [promptSaved, setPromptSaved] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
   const [savedPromptId, setSavedPromptId] = useState<string | null>(null);
   const [paletteSaved, setPaletteSaved] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
+  const [savedPaletteId, setSavedPaletteId] = useState<string | null>(null);
   const [imageWidth, setImageWidth] = useState<number | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -81,17 +82,26 @@ export default function ImageModal({
     }
   };
 
-  // Проверяем, сохранён ли промт этой картинки
+  // Проверяем, сохранены ли промт и палитра этой картинки
   useEffect(() => {
     let cancelled = false;
     setSavedPromptId(null);
+    setSavedPaletteId(null);
     if (!selected.id) return;
     (async () => {
       try {
-        const res = await fetch(`/api/saved-prompts/check?source_type=image&source_id=${encodeURIComponent(selected.id)}`);
-        if (!res.ok) return;
-        const j = await res.json();
-        if (!cancelled) setSavedPromptId(j?.id ?? null);
+        const [pRes, plRes] = await Promise.all([
+          fetch(`/api/saved-prompts/check?source_type=image&source_id=${encodeURIComponent(selected.id)}`),
+          fetch(`/api/saved-palettes/check?source_type=image&source_id=${encodeURIComponent(selected.id)}`),
+        ]);
+        if (!cancelled && pRes.ok) {
+          const j = await pRes.json();
+          setSavedPromptId(j?.id ?? null);
+        }
+        if (!cancelled && plRes.ok) {
+          const j = await plRes.json();
+          setSavedPaletteId(j?.id ?? null);
+        }
       } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
@@ -143,10 +153,26 @@ export default function ImageModal({
     }
   };
 
-  const savePalette = async () => {
+  const togglePaletteSave = async () => {
     const colors = (currentColors || []).filter((c): c is string => !!c);
     if (colors.length === 0 || paletteSaved === 'saving') return;
     setPaletteSaved('saving');
+
+    // Уже сохранено — удаляем
+    if (savedPaletteId) {
+      try {
+        const res = await fetch(`/api/saved-palettes/${savedPaletteId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('delete failed');
+        setSavedPaletteId(null);
+        setPaletteSaved('idle');
+      } catch {
+        setPaletteSaved('error');
+        setTimeout(() => setPaletteSaved('idle'), 2000);
+      }
+      return;
+    }
+
+    // Не сохранено — создаём
     try {
       const res = await fetch('/api/saved-palettes', {
         method: 'POST',
@@ -162,8 +188,9 @@ export default function ImageModal({
         if (res.status === 401) { alert('Войдите, чтобы сохранять палитры'); setPaletteSaved('idle'); return; }
         throw new Error(j?.error || 'Ошибка');
       }
-      setPaletteSaved('done');
-      setTimeout(() => setPaletteSaved('idle'), 2000);
+      const j = await res.json();
+      setSavedPaletteId(j?.id ?? null);
+      setPaletteSaved('idle');
     } catch {
       setPaletteSaved('error');
       setTimeout(() => setPaletteSaved('idle'), 2000);
@@ -557,28 +584,41 @@ export default function ImageModal({
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
-                    <button
-                      type="button"
-                      onClick={copyPromptMobile}
-                      className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition ${promptCopiedMobile ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/50'}`}
-                    >
-                      {promptCopiedMobile ? (
-                        <>
-                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          {"\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E"}
-                        </>
-                      ) : (
-                        <>
-                          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                          </svg>
-                          {"\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C"}
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={copyPromptMobile}
+                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition ${promptCopiedMobile ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/50'}`}
+                      >
+                        {promptCopiedMobile ? (
+                          <>
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            {"\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E"}
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            {"\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C"}
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={togglePromptSave}
+                        disabled={promptSaved === 'saving'}
+                        className={`flex h-7 w-7 items-center justify-center rounded-full transition ${promptSaved === 'error' ? 'bg-red-500/20 text-red-400' : savedPromptId ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'}`}
+                        title={savedPromptId ? 'Убрать из сохранённого' : 'Сохранить промт'}
+                      >
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill={savedPromptId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <p className="text-[13px] text-white/80 leading-relaxed whitespace-pre-wrap">{selected.prompt}</p>
                 </div>
@@ -595,7 +635,20 @@ export default function ImageModal({
               {/* Colors */}
               {Array.isArray(currentColors) && currentColors.length > 0 && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0426\u0432\u0435\u0442\u0430"}</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0430\u043B\u0438\u0442\u0440\u0430"}</h3>
+                    <button
+                      type="button"
+                      onClick={togglePaletteSave}
+                      disabled={paletteSaved === 'saving'}
+                      className={`flex h-7 w-7 items-center justify-center rounded-full transition ${paletteSaved === 'error' ? 'bg-red-500/20 text-red-400' : savedPaletteId ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'}`}
+                      title={savedPaletteId ? 'Убрать из сохранённого' : 'Сохранить палитру'}
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill={savedPaletteId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2">
                     {currentColors.map((c, index) => {
                       if (!c) return null;
@@ -817,24 +870,26 @@ export default function ImageModal({
                     <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Палитра</h3>
                     <button
                       type="button"
-                      onClick={savePalette}
+                      onClick={togglePaletteSave}
                       disabled={paletteSaved === 'saving'}
                       className={`transition p-1 rounded-md hover:bg-white/10 ${
-                        paletteSaved === 'done' ? 'text-green-400' :
                         paletteSaved === 'error' ? 'text-red-400' :
+                        savedPaletteId ? 'text-white' :
                         'text-white/30 hover:text-white/70'
                       }`}
-                      title="Сохранить палитру"
+                      title={savedPaletteId ? 'Убрать из сохранённого' : 'Сохранить палитру'}
                     >
-                      {paletteSaved === 'done' ? (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                        </svg>
-                      )}
+                      <svg
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill={savedPaletteId ? 'currentColor' : 'none'}
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                      </svg>
                     </button>
                   </div>
                   <div className="flex items-center gap-2">

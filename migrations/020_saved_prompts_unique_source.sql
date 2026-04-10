@@ -21,3 +21,22 @@ WHERE id IN (
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_saved_prompts_user_source
   ON public.saved_prompts (user_id, source_type, source_id)
   WHERE source_id IS NOT NULL;
+
+-- 3. Дедуп для палитр по тому же принципу.
+DELETE FROM public.saved_palettes
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id,
+           ROW_NUMBER() OVER (
+             PARTITION BY user_id, source_type, source_id
+             ORDER BY created_at ASC, id ASC
+           ) AS rn
+    FROM public.saved_palettes
+    WHERE source_id IS NOT NULL
+  ) t
+  WHERE t.rn > 1
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_saved_palettes_user_source
+  ON public.saved_palettes (user_id, source_type, source_id)
+  WHERE source_id IS NOT NULL;
