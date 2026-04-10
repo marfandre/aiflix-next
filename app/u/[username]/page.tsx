@@ -7,7 +7,6 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
 
 import ProfileTabs from './ProfileTabs';
-import MessageButtons from '@/app/components/MessageButtons';
 import EditProfileModal from '@/app/components/EditProfileModal';
 import VideoFeedClient from '@/app/components/VideoFeedClient';
 import ImageFeedClient from '@/app/components/ImageFeedClient';
@@ -114,28 +113,18 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          {isOwn ? (
-            <>
-              <MessageButtons isOwn={true} profileId={profile.id} />
-              <EditProfileModal
-                initialFirst={profile.first_name ?? ''}
-                initialLast={profile.last_name ?? ''}
-                initialAvatarUrl={avatar}
-                initialBio={profile.bio ?? ''}
-                label="Редактировать"
-                className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold shadow ring-1 ring-gray-200 hover:bg-gray-50"
-              />
-            </>
-          ) : (
-            <Link
-              href={`/messages/new?to=${profile.id}`}
+        {isOwn && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <EditProfileModal
+              initialFirst={profile.first_name ?? ''}
+              initialLast={profile.last_name ?? ''}
+              initialAvatarUrl={avatar}
+              initialBio={profile.bio ?? ''}
+              label="Редактировать"
               className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold shadow ring-1 ring-gray-200 hover:bg-gray-50"
-            >
-              Сообщение
-            </Link>
-          )}
-        </div>
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-6 mb-14 flex justify-center">
