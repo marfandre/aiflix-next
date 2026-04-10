@@ -161,7 +161,7 @@ async function main() {
   for (const s of summary) {
     if (s.killShare === 0 && s.killDrain === 0) continue;
     console.log(`\n--- ${s.family.toUpperCase()} ---`);
-    if (s.killByShareSamples?.length || s.killShareSamples.length) {
+    if (s.killShareSamples?.length) {
       console.log(`  Killed by SHARE (<${s.shareMin}):`);
       for (const a of s.killShareSamples) {
         const fname = a.img.path?.split('/').pop() ?? a.img.id;

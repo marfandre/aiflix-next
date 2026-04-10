@@ -381,7 +381,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
     try {
       const res = await fetch('/api/saved-prompts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: selected.prompt, model: selected.model ?? null, seed: selected.seed ?? null, aspect_ratio: selected.aspect_ratio ?? null, source_type: 'film', source_id: selected.id }),
+        body: JSON.stringify({ prompt: selected.prompt, model: selected.model ?? null, seed: (selected as any).seed ?? null, aspect_ratio: selected.aspect_ratio ?? null, source_type: 'film', source_id: selected.id }),
       });
       if (!res.ok) { if (res.status === 401) { alert('Войдите, чтобы сохранять промты'); setPromptSaved('idle'); return; } throw new Error(); }
       const j = await res.json(); setSavedPromptId(j?.id ?? null); setPromptSaved('idle');

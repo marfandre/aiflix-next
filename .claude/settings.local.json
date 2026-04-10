@@ -149,7 +149,8 @@
       "Bash(node -e \"var hex='#AB5557';var m=hex.match\\(/^#?\\([a-f\\\\d]{2}\\)\\([a-f\\\\d]{2}\\)\\([a-f\\\\d]{2}\\)$/i\\);var r=parseInt\\(m[1],16\\)/255,g=parseInt\\(m[2],16\\)/255,b=parseInt\\(m[3],16\\)/255;var max=Math.max\\(r,g,b\\),min=Math.min\\(r,g,b\\);var l=\\(max+min\\)/2*100;var s=0,h=0;if\\(max!==min\\){var d=max-min;s=\\(l>50?d/\\(2-max-min\\):d/\\(max+min\\)\\)*100;if\\(max===r\\)h=\\(\\(g-b\\)/d+\\(g<b?6:0\\)\\)/6*360;}console.log\\('H:'+h.toFixed\\(1\\)+' S:'+s.toFixed\\(1\\)+' L:'+l.toFixed\\(1\\)\\);\")",
       "Bash(node -e \"console.log\\(require\\('./scripts/purple-prompts.json'\\).length\\)\")",
       "Bash(node -e \"const p = require\\('./scripts/purple-prompts.json'\\); console.log\\('Count:', p.length\\); console.log\\('Last ID:', p[p.length-1].id\\); console.log\\('Last title:', p[p.length-1].title\\)\")",
-      "Bash(node -e \"const p = require\\('./scripts/purple-prompts.json'\\); console.log\\('Промтов в JSON:', p.length\\)\")"
+      "Bash(node -e \"const p = require\\('./scripts/purple-prompts.json'\\); console.log\\('Промтов в JSON:', p.length\\)\")",
+      "Bash(npm run:*)"
     ]
   }
 }
