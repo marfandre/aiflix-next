@@ -909,30 +909,8 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
             </div>
 
             {/* Right page — video */}
-            <div className="relative flex flex-1">
-              {/* Color circles spine */}
-              {showPrompt && colors.length > 0 && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full flex-col gap-2 flex items-end z-30" style={{ paddingRight: 4 }}>
-                  {colors.map((c, index) => {
-                    const isHovered = modalHoveredColor === index;
-                    return (
-                      <div key={`spine-${c}-${index}`} className="flex items-center gap-1">
-                        <span className={`text-[9px] font-mono uppercase transition-all duration-150 ${isHovered ? "text-white/90" : "text-white/50"}`}>{c}</span>
-                        <div className={`w-8 h-[1px] transition-all duration-150 ${isHovered ? "bg-white/60" : "bg-white/30"}`} />
-                        <div
-                          className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 flex-shrink-0 ${isHovered ? "border border-white" : "border border-white/30"}`}
-                          style={{ backgroundColor: c, width: 28, height: 28 }}
-                          title={c}
-                          onMouseEnter={() => setModalHoveredColor(index)}
-                          onMouseLeave={() => setModalHoveredColor(null)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className={`relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-black rounded-none ${showPrompt ? "rounded-r-xl rounded-l-none" : "rounded-xl"} shadow-2xl h-full w-full`}>
+            <div className="relative flex flex-1 items-center">
+              <div className={`relative flex flex-1 flex-col items-center justify-center overflow-hidden ${showPrompt ? "rounded-r-xl rounded-l-none" : "rounded-xl"} shadow-2xl w-full`}>
                 {selected.playback_id ? (
                   <CustomVideoPlayer
                     src={`https://stream.mux.com/${selected.playback_id}/medium.mp4`}
