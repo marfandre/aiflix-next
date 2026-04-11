@@ -205,22 +205,38 @@ function AuthModal({ onClose }: { onClose: () => void }) {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 md:pt-28">
-            <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-                <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-xl font-semibold">Вход в аккаунт</h3>
-                    <button
-                        onClick={onClose}
-                        className="rounded px-2 py-1 text-gray-500 hover:bg-gray-100"
-                        aria-label="Закрыть"
-                    >
-                        ✕
-                    </button>
+        <div className="fixed inset-0 z-[60] flex items-start justify-center">
+            <div
+                className="absolute inset-0 bg-gray-900/25"
+                onClick={onClose}
+            />
+            <div className="relative z-10 mt-20 md:mt-24 w-full max-w-md rounded-2xl bg-white px-8 pb-8 pt-8 shadow-2xl">
+                <button
+                    onClick={onClose}
+                    className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Закрыть"
+                >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                <div className="mb-6 flex flex-col items-center text-center">
+                    <img
+                        src="/logo.png"
+                        alt="Waiva"
+                        className="mb-2 h-20 w-auto object-contain"
+                    />
+                    <h3 className="text-lg font-semibold text-[#1e3a5f]">
+                        Добро пожаловать
+                    </h3>
+                    <p className="mt-1.5 text-sm text-gray-500">
+                        Сохраняйте понравившееся и загружайте свои работы
+                    </p>
                 </div>
 
                 {err && (
-                    <div className="mb-3 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                         {err}
                     </div>
                 )}
@@ -228,7 +244,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
                 <button
                     onClick={signInWithGoogle}
                     disabled={loading}
-                    className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                    className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-3 text-base font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:shadow-md disabled:opacity-60"
                 >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -238,6 +254,11 @@ function AuthModal({ onClose }: { onClose: () => void }) {
                     </svg>
                     {loading ? 'Переход в Google…' : 'Войти через Google'}
                 </button>
+
+                <p className="mt-6 text-center text-xs text-gray-400">
+                    Продолжая, вы соглашаетесь с условиями использования
+                    <br />и политикой конфиденциальности
+                </p>
             </div>
         </div>
     );
