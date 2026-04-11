@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { createClient as createService } from "@supabase/supabase-js";
-// import { getImageEmbedding } from "@/lib/clipEmbedding"; // TODO: вернуть когда понадобится кнопка "Похожие"
+import { getImageEmbedding } from "@/lib/localEmbedding";
 
 type IncomingImage = {
   path?: string;
@@ -337,7 +337,34 @@ export async function POST(req: Request) {
 
     const ids = (data ?? []).map((r: any) => r.id);
 
-    // TODO: CLIP-эмбеддинги отключены. Вернуть когда понадобится кнопка "Похожие"
+    // Local Jina CLIP v1 эмбеддинги (фоновая задача, не блокирует ответ)
+    (async () => {
+      for (const row of rowsToInsert) {
+        if (!row.path) continue;
+        try {
+          const { data: urlData } = service.storage
+            .from("images")
+            .getPublicUrl(row.path);
+
+          const embedding = await getImageEmbedding(urlData.publicUrl);
+          if (!embedding) continue;
+
+          const insertedRow = data?.find((r: any) =>
+            rowsToInsert.find((ri) => ri.path === row.path)
+          );
+          if (!insertedRow) continue;
+
+          await service
+            .from("images_meta")
+            .update({ embedding_local: `[${embedding.join(",")}]` })
+            .eq("id", insertedRow.id);
+
+          console.log(`[LocalEmbed] Embedding saved for image ${insertedRow.id}`);
+        } catch (err) {
+          console.error("[LocalEmbed] Embedding error:", err);
+        }
+      }
+    })();
 
     return NextResponse.json({ ids });
   } catch (err: any) {

@@ -164,12 +164,15 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
   const openVideo = (v: VideoRow) => {
     setSelected(v);
-    window.history.pushState({ videoId: v.id }, "", `/film/${v.id}`);
+    // Сохраняем текущие searchParams, иначе useSearchParams() в HomeContent
+    // пересчитает tab и размонтирует модалку
+    const search = window.location.search;
+    window.history.pushState({ videoId: v.id }, "", `/film/${v.id}${search}`);
   };
 
   const closeModal = () => {
     setSelected(null);
-    window.history.pushState({}, "", window.location.pathname.startsWith("/film/") ? "/" : window.location.pathname + window.location.search);
+    window.history.pushState({}, "", window.location.pathname.startsWith("/film/") ? "/" + window.location.search : window.location.pathname + window.location.search);
   };
 
   const deleteVideo = async (videoId: string, e: React.MouseEvent) => {

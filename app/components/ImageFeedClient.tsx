@@ -1,11 +1,26 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import Masonry from "react-masonry-css";
 import ImageCard from "./image-feed/ImageCard";
 import ImageModal from "./image-feed/ImageModal";
 import type { ImageRow, ImageVariant, SearchParams } from "./image-feed/types";
+
+// Responsive column count — совпадает со старым react-masonry-css конфигом
+function colsForWidth(w: number): number {
+  if (w <= 500) return 2;
+  if (w <= 700) return 3;
+  if (w <= 900) return 4;
+  return 5;
+}
+
+// "16:9" → 16/9. Fallback = 1 (квадрат) при любой ошибке.
+function parseAspectRatio(ar: string | null | undefined): number {
+  if (!ar) return 1;
+  const [w, h] = ar.split(/[:\/]/).map(Number);
+  if (!w || !h) return 1;
+  return w / h;
+}
 
 type Props = {
   userId: string | null;
@@ -35,10 +50,23 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
   const originalUrlRef = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // ---------- Кастомная masonry-раскладка ----------
+  // SSR: 5 колонок (десктоп), на клиенте уточним через resize.
+  const [colCount, setColCount] = useState<number>(5);
+  useEffect(() => {
+    const update = () => setColCount(colsForWidth(window.innerWidth));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   // ---------- URL sync with modal ----------
   const pushImageUrl = useCallback((imageId: string) => {
     originalUrlRef.current = window.location.href;
-    window.history.pushState({ imageModal: imageId }, "", `/images/${imageId}`);
+    // Сохраняем текущие searchParams (особенно t=images), иначе в Next.js 14.1+
+    // useSearchParams() в HomeContent сбросит tab на 'video' и размонтирует модалку
+    const search = window.location.search;
+    window.history.pushState({ imageModal: imageId }, "", `/images/${imageId}${search}`);
   }, []);
 
   const restoreUrl = useCallback(() => {
@@ -75,6 +103,20 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       })
       .catch(() => { });
   }, []);
+
+  // ---------- Режим витрины (главная без фильтров) ----------
+  // Любой активный фильтр / поиск / страница профиля выключает курируемую ленту
+  // и возвращает обычный фид по всей базе.
+  const hasAnyFilter = !!(
+    searchParams.colors ||
+    searchParams.families ||
+    searchParams.models ||
+    searchParams.moods ||
+    searchParams.imageTypes ||
+    searchParams.tags ||
+    searchParams.aspect
+  );
+  const isFeaturedMode = !profileId && !initialImages && !hasAnyFilter;
 
   // ---------- Ранжирование по color_families ----------
   const isColorSearch = !!searchParams.families;
@@ -183,18 +225,31 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
   // ---------- Build query with filters ----------
   const buildQuery = useCallback((cursor?: string) => {
-    // Для цветового поиска добавляем color_families в select для ранжирования
+    // Для цветового поиска добавляем color_families в select для ранжирования.
+    // Для витрины добавляем featured_priority — по нему делаем scatter.
     const selectFields = isColorSearch
       ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, color_families, color_weights, color_family_weights, profiles(username, avatar_url)"
-      : "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)";
+      : isFeaturedMode
+        ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, featured_priority, profiles(username, avatar_url)"
+        : "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)";
+
+    const pageLimit = isFeaturedMode
+      ? 200
+      : isColorSearch && !cursor
+        ? 200
+        : PAGE_SIZE;
 
     let query = supa
       .from("images_meta")
       .select(selectFields)
       .order("created_at", { ascending: false })
-      .limit(isColorSearch && !cursor ? 200 : PAGE_SIZE);
+      .limit(pageLimit);
 
     if (cursor) query = query.lt("created_at", cursor);
+
+    if (isFeaturedMode) {
+      query = query.eq("is_featured", true);
+    }
 
     if (searchParams.families) {
       const families = searchParams.families.split(",").map((f) => f.trim().toLowerCase()).filter(Boolean);
@@ -234,7 +289,40 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     }
 
     return query;
-  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect, isColorSearch, profileId]);
+  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect, isColorSearch, isFeaturedMode, profileId]);
+
+  // ---------- Scatter для витрины: shuffle + priority наверху ----------
+  // Fisher–Yates shuffle.
+  const shuffleInPlace = useCallback(<T,>(arr: T[]) => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }, []);
+
+  // Рассыпаем priority-картинки по верху с шагом PRIORITY_STEP,
+  // между ними — случайные обычные featured. Всё остальное хвостом.
+  const scatterFeatured = useCallback((rows: ImageRow[]): ImageRow[] => {
+    const priority = rows.filter((r) => ((r as any).featured_priority ?? 0) > 0);
+    const rest = rows.filter((r) => ((r as any).featured_priority ?? 0) === 0);
+    shuffleInPlace(priority);
+    shuffleInPlace(rest);
+
+    const PRIORITY_STEP = 3;
+    const result: ImageRow[] = [];
+    const topSlots = priority.length * PRIORITY_STEP;
+    let pi = 0;
+    let ri = 0;
+    for (let i = 0; i < topSlots; i++) {
+      if (i % PRIORITY_STEP === 0 && pi < priority.length) {
+        result.push(priority[pi++]);
+      } else if (ri < rest.length) {
+        result.push(rest[ri++]);
+      }
+    }
+    while (ri < rest.length) result.push(rest[ri++]);
+    return result;
+  }, [shuffleInPlace]);
 
   // ---------- Load feed (initial) ----------
   useEffect(() => {
@@ -254,12 +342,13 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       } else {
         let rows = (data ?? []) as unknown as ImageRow[];
         if (isColorSearch) rows = rankByColorRelevance(rows);
+        if (isFeaturedMode) rows = scatterFeatured(rows);
         setImages(rows);
-        setHasMore(isColorSearch ? false : rows.length >= PAGE_SIZE);
+        setHasMore(isColorSearch || isFeaturedMode ? false : rows.length >= PAGE_SIZE);
       }
       setLoading(false);
     })();
-  }, [buildQuery, initialImages, isColorSearch, rankByColorRelevance]);
+  }, [buildQuery, initialImages, isColorSearch, isFeaturedMode, rankByColorRelevance, scatterFeatured]);
 
   // ---------- Load more (infinite scroll) ----------
   const loadMore = useCallback(async () => {
@@ -296,6 +385,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
   // ---------- Realtime subscription ----------
   useEffect(() => {
+    if (isFeaturedMode) return;
     if (searchParams.colors || searchParams.families || searchParams.models || searchParams.tags || searchParams.aspect) return;
 
     const channel = supa
@@ -320,7 +410,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       .subscribe();
 
     return () => { supa.removeChannel(channel); };
-  }, [supa, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect]);
+  }, [supa, isFeaturedMode, searchParams.colors, searchParams.families, searchParams.models, searchParams.tags, searchParams.aspect]);
 
   const publicImageUrl = (path: string) => {
     const { data } = supa.storage.from("images").getPublicUrl(path);
@@ -396,32 +486,69 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     }
   };
 
+  // ---------- Shortest-column-first packing ----------
+  // Вместо round-robin (react-masonry-css) раскладываем каждую карточку
+  // в самую низкую на данный момент колонку, используя aspect_ratio из БД
+  // как прокси высоты. Колонки в итоге выравниваются гораздо плотнее.
+  const columnsLayout = useMemo(() => {
+    const cols: ImageRow[][] = Array.from({ length: colCount }, () => []);
+    const heights = new Array(colCount).fill(0);
+    for (const img of images) {
+      // Ограничиваем клампом, т.к. ImageCard стягивает картинку в [180, 500]px.
+      const raw = 1 / parseAspectRatio((img as any).aspect_ratio);
+      const relH = Math.max(0.45, Math.min(1.8, raw));
+      let minIdx = 0;
+      for (let i = 1; i < colCount; i++) {
+        if (heights[i] < heights[minIdx]) minIdx = i;
+      }
+      cols[minIdx].push(img);
+      heights[minIdx] += relH;
+    }
+    return cols;
+  }, [images, colCount]);
+
+  const feedEnded = !hasMore && !loading && images.length > 0;
+
   if (loading) return <div className="py-6 text-gray-500">{"\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430..."}</div>;
   if (images.length === 0) return <div className="py-6 text-gray-500">{"\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E"}</div>;
 
   return (
     <>
-      {/* Masonry grid */}
-      <div className="overflow-hidden rounded-2xl w-full">
-        <Masonry
-          breakpointCols={{ default: 5, 1100: 5, 900: 4, 700: 3, 500: 2 }}
-          className="flex -ml-1 w-auto"
-          columnClassName="pl-1 bg-clip-padding"
-        >
-          {images.map((im) => (
-            <ImageCard
-              key={im.id}
-              image={im}
-              userId={userId}
-              showAuthor={showAuthor}
-              isOwnerView={isOwnerView}
-              deletingId={deletingId}
-              publicImageUrl={publicImageUrl}
-              onOpen={openImage}
-              onDelete={deleteImage}
-            />
+      {/* Custom masonry grid */}
+      <div
+        className="relative overflow-hidden rounded-2xl w-full"
+        style={
+          feedEnded
+            ? {
+                // Мягко растворяем последние ~120px общей высоты — маскирует
+                // остаточную неровность колонок после packing.
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, black 0%, black calc(100% - 120px), transparent 100%)",
+                maskImage:
+                  "linear-gradient(to bottom, black 0%, black calc(100% - 120px), transparent 100%)",
+              }
+            : undefined
+        }
+      >
+        <div className="flex gap-1 w-full">
+          {columnsLayout.map((col, ci) => (
+            <div key={ci} className="flex-1 min-w-0 flex flex-col">
+              {col.map((im) => (
+                <ImageCard
+                  key={im.id}
+                  image={im}
+                  userId={userId}
+                  showAuthor={showAuthor}
+                  isOwnerView={isOwnerView}
+                  deletingId={deletingId}
+                  publicImageUrl={publicImageUrl}
+                  onOpen={openImage}
+                  onDelete={deleteImage}
+                />
+              ))}
+            </div>
           ))}
-        </Masonry>
+        </div>
       </div>
 
       {/* Infinite scroll sentinel */}

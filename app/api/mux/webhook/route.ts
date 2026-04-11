@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAspectRatioString } from '@/app/utils/aspectRatio';
 import { hexToFamily } from '@/lib/color-utils';
-// import { getImageEmbedding } from '@/lib/clipEmbedding'; // TODO: вернуть для кнопки "Похожие"
+import { getImageEmbedding } from '@/lib/localEmbedding';
 
 // Если используешь проверку подписи Mux — оставь/добавь её здесь.
 // Ниже — упрощённый вариант без валидации подписи, чтобы не мешал типам.
@@ -328,7 +328,24 @@ export async function POST(req: NextRequest) {
 
           console.log(`Metadata saved for film ${updatedFilm.id}: base=${baseColors.length}, preview=${previewColors.length}, mode=${colorMode}`);
 
-          // TODO: CLIP-эмбеддинг отключён. Вернуть для кнопки "Похожие"
+          // Local Jina CLIP v1 эмбеддинг (фоновая задача)
+          if (playback_id && updatedFilm?.id) {
+            (async () => {
+              try {
+                const thumbUrl = `https://image.mux.com/${playback_id}/thumbnail.jpg?time=1&width=400`;
+                const embedding = await getImageEmbedding(thumbUrl);
+                if (embedding) {
+                  await supa
+                    .from('films')
+                    .update({ embedding_local: `[${embedding.join(',')}]` })
+                    .eq('id', updatedFilm.id);
+                  console.log(`[LocalEmbed] Embedding saved for film ${updatedFilm.id}`);
+                }
+              } catch (err) {
+                console.error('[LocalEmbed] Film embedding error:', err);
+              }
+            })();
+          }
         } catch (colorErr) {
           console.error('Color extraction error:', colorErr);
         }

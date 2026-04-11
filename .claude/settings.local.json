@@ -150,7 +150,24 @@
       "Bash(node -e \"console.log\\(require\\('./scripts/purple-prompts.json'\\).length\\)\")",
       "Bash(node -e \"const p = require\\('./scripts/purple-prompts.json'\\); console.log\\('Count:', p.length\\); console.log\\('Last ID:', p[p.length-1].id\\); console.log\\('Last title:', p[p.length-1].title\\)\")",
       "Bash(node -e \"const p = require\\('./scripts/purple-prompts.json'\\); console.log\\('Промтов в JSON:', p.length\\)\")",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebFetch(domain:docs.voyageai.com)",
+      "Bash(tee /tmp/voyage-backfill.log)",
+      "Bash(curl -sS -X POST https://api.voyageai.com/v1/multimodalembeddings -H 'Authorization: Bearer pa-5GQ2tZuVxlC1YJ8-7i0HzXrohOHwcfZvXUyYU9fzbiR' -H 'Content-Type: application/json' -d '{\"model\":\"voyage-multimodal-3.5\",\"inputs\":[{\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}],\"input_type\":\"query\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -sS -X POST https://api.voyageai.com/v1/multimodalembeddings -H 'Authorization: Bearer pa-5GQ2tZuVxlC1YJ8-7i0HzXrohOHwcfZvXUyYU9fzbiR' -H 'content-type: application/json' -d '{\"inputs\":[{\"content\":[{\"type\":\"text\",\"text\":\"This is a banana.\"}]}],\"model\":\"voyage-multimodal-3.5\"}' -w '\\\\nHTTP %{http_code}\\\\n' -i)",
+      "Bash(curl -sS -X POST https://api.voyageai.com/v1/embeddings -H 'Authorization: Bearer pa-5GQ2tZuVxlC1YJ8-7i0HzXrohOHwcfZvXUyYU9fzbiR' -H 'content-type: application/json' -d '{\"input\":[\"hello\"],\"model\":\"voyage-3.5\"}' -w '\\\\nHTTP %{http_code}\\\\n' -i)",
+      "Bash(curl -sS -X POST https://api.voyageai.com/v1/embeddings -H 'content-type: application/json' -d '{\"input\":[\"hello\"],\"model\":\"voyage-3.5\"}' -w '\\\\nHTTP %{http_code}\\\\n' -i)",
+      "Bash(curl -sS -X POST https://api.voyageai.com/v1/embeddings -H 'Authorization: Bearer totally-fake-key' -H 'content-type: application/json' -d '{\"input\":[\"hello\"],\"model\":\"voyage-3.5\"}' -w '\\\\nHTTP %{http_code}\\\\n' -i)",
+      "Bash(curl -sS https://api.voyageai.com/ -w \"\\\\nHTTP %{http_code}\\\\n\" -i)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://www.voyageai.com/)",
+      "Bash(curl -sS -X POST https://api.voyageai.com/v1/embeddings -H 'User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36' -H 'Authorization: Bearer pa-5GQ2tZuVxlC1YJ8-7i0HzXrohOHwcfZvXUyYU9fzbiR' -H 'content-type: application/json' -d '{\"input\":[\"hello\"],\"model\":\"voyage-3.5\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(nslookup api.voyageai.com)",
+      "Bash(curl -sS -X POST https://api.voyageai.com/v1/embeddings -H 'Authorization: Bearer pa-5GQ2tZuVxlC1YJ8-7i0HzXrohOHwcfZvXUyYU9fzbiR' -H 'content-type: application/json' -d '{\"input\":[\"hello\"],\"model\":\"voyage-3.5\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(tee /tmp/voyage-backfill2.log)",
+      "WebFetch(domain:www.khroma.co)",
+      "WebFetch(domain:inspire.savee.com)",
+      "WebFetch(domain:www.inspoai.io)",
+      "Bash(NEXT_PUBLIC_ENABLE_SEMANTIC_SEARCH=0 npm run build)"
     ]
   }
 }
