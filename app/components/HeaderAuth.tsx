@@ -151,7 +151,7 @@ export default function HeaderAuth() {
       {!hasSession && (
         <button
           onClick={() => setOpen(true)}
-          className="h-9 rounded-md bg-black px-4 text-sm text-white"
+          className="px-4 py-1.5 rounded-full text-base font-medium text-[#1e3a5f] ring-1 ring-[#1e3a5f] transition-all duration-200 hover:bg-[#1e3a5f] hover:text-white"
         >
           Войти
         </button>

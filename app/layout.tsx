@@ -41,9 +41,6 @@ export default function RootLayout({
                 <ProfileDropdown />
                 <NotificationBell />
               </div>
-              <Link href="/about" className="text-sm hover:underline">
-                О проекте
-              </Link>
             </div>
           </div>
         </header>
