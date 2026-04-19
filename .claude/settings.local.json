@@ -167,7 +167,28 @@
       "WebFetch(domain:www.khroma.co)",
       "WebFetch(domain:inspire.savee.com)",
       "WebFetch(domain:www.inspoai.io)",
-      "Bash(NEXT_PUBLIC_ENABLE_SEMANTIC_SEARCH=0 npm run build)"
+      "Bash(NEXT_PUBLIC_ENABLE_SEMANTIC_SEARCH=0 npm run build)",
+      "WebFetch(domain:hh.ru)",
+      "WebFetch(domain:www.reddit.com)",
+      "WebFetch(domain:old.reddit.com)",
+      "WebFetch(domain:en.eagle.cool)",
+      "Bash(python chain_mathieu.py)",
+      "Bash(pip install:*)",
+      "Bash(python chain_mathieu_crystal.py)",
+      "Bash(python chain_mathieu_soft.py)",
+      "Bash(python chain_superconductivity.py)",
+      "Bash(python chain_sc_v2.py)",
+      "Bash(python chain_sc_v3.py)",
+      "Bash(python chain_sc_room.py)",
+      "Bash(python gnome_search.py)",
+      "Bash(python mp_search.py 0KVIFuLV0bme13tVNXbTecA8s4J8stSy)",
+      "Bash(python mp_check_status.py)",
+      "Bash(python mgb2_doping.py)",
+      "Read(//c/Windows/Fonts/**)",
+      "Read(//c/Users/**)",
+      "Bash(python -c \"import matplotlib; print\\(matplotlib.matplotlib_fname\\(\\)\\)\")",
+      "Bash(python -c ':*)",
+      "Bash(python generate_report.py)"
     ]
   }
 }
