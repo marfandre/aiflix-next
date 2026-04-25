@@ -6,6 +6,7 @@ import TagSelector from '../components/TagSelector';
 import ColorPickerOverlay, { ColorMarker } from '../components/ColorPickerOverlay';
 import { getColorAtPosition } from '../utils/getColorAtPosition';
 import { getAspectRatioString } from '../utils/aspectRatio';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 const supabase = createClientComponentClient();
 
@@ -355,6 +356,7 @@ type LocalImage = {
 };
 
 export default function UploadPage() {
+  const t = useT();
   // AUTH
   const [sessionReady, setSessionReady] = useState(false);
   const [hasSession, setHasSession] = useState(false);
@@ -387,7 +389,7 @@ export default function UploadPage() {
     setAuthError(null);
     setAuthMsg(null);
     if (!authEmail || !authPassword) {
-      setAuthError('Введите почту и пароль.');
+      setAuthError(t('auth.emailPasswordRequired'));
       return;
     }
     const { error } = await supabase.auth.signUp({
@@ -396,14 +398,14 @@ export default function UploadPage() {
       options: { emailRedirectTo: redirectUrl },
     });
     if (error) setAuthError(error.message);
-    else setAuthMsg('Мы отправили письмо. Подтвердите почту и вернитесь на эту страницу.');
+    else setAuthMsg(t('upload.checkInbox'));
   }
 
   async function handleSignIn() {
     setAuthError(null);
     setAuthMsg(null);
     if (!authEmail || !authPassword) {
-      setAuthError('Введите почту и пароль.');
+      setAuthError(t('auth.emailPasswordRequired'));
       return;
     }
     const { error } = await supabase.auth.signInWithPassword({
@@ -411,7 +413,7 @@ export default function UploadPage() {
       password: authPassword,
     });
     if (error) setAuthError(error.message);
-    else setAuthMsg('Вход выполнен.');
+    else setAuthMsg(t('auth.signedIn'));
   }
 
   // UPLOAD STATE
@@ -581,7 +583,7 @@ export default function UploadPage() {
 
           return imgObj;
         } catch (err) {
-          console.error('Ошибка при предпросчёте палитры', err);
+          console.error(t('upload.error.paletteCalc'), err);
           return {
             file: f,
             previewUrl: url,
@@ -666,12 +668,12 @@ export default function UploadPage() {
     setSuccess(null);
 
     if (type === 'video' && !file) {
-      setError('Выберите видеофайл');
+      setError(t('upload.error.video.empty'));
       return;
     }
 
     if (type === 'image' && images.length === 0) {
-      setError('Добавьте хотя бы одну картинку');
+      setError(t('upload.error.images.empty'));
       return;
     }
 
@@ -699,7 +701,7 @@ export default function UploadPage() {
 
         const startData = await startRes.json();
         if (!startRes.ok) {
-          throw new Error(startData.error || 'Не удалось получить URL загрузки видео');
+          throw new Error(startData.error || t('upload.error.muxStartFailed'));
         }
 
         const uploadRes = await fetch(startData.url, {
@@ -707,9 +709,9 @@ export default function UploadPage() {
           headers: { 'Content-Type': 'application/octet-stream' },
           body: file as File,
         });
-        if (!uploadRes.ok) throw new Error('Загрузка в Mux завершилась с ошибкой');
+        if (!uploadRes.ok) throw new Error(t('upload.error.muxUploadFailed'));
 
-        setSuccess('Видео отправлено. Обработка началась.');
+        setSuccess(t('upload.success.video'));
         setTitle('');
         setDescription('');
         setPrompt('');
@@ -751,7 +753,7 @@ export default function UploadPage() {
             }),
           });
           if (!startRes.ok) {
-            throw new Error('Не удалось создать объект для картинки');
+            throw new Error(t('upload.error.imageObjectFailed'));
           }
           const startData = await startRes.json();
 
@@ -763,7 +765,7 @@ export default function UploadPage() {
             body: img.file,
           });
           if (!putRes.ok) {
-            throw new Error('Ошибка при загрузке картинки');
+            throw new Error(t('upload.error.imageUploadFailed'));
           }
 
           const colorsToSave =
@@ -833,11 +835,11 @@ export default function UploadPage() {
         });
 
         if (!completeRes.ok) {
-          const t = await completeRes.json().catch(() => ({}));
-          throw new Error(t?.error || 'Не удалось сохранить метаданные картинок');
+          const errJson = await completeRes.json().catch(() => ({}));
+          throw new Error(errJson?.error || t('upload.error.metaFailed'));
         }
 
-        setSuccess('Картинки загружены.');
+        setSuccess(t('upload.success.images'));
         setTitle('');
         setDescription('');
         setPrompt('');
@@ -861,25 +863,25 @@ export default function UploadPage() {
         setSelectedIndex(null);
       }
     } catch (err: any) {
-      setError(err.message ?? 'Неизвестная ошибка');
+      setError(err.message ?? t('upload.error.unknown'));
     } finally {
       setIsLoading(false);
     }
   }
 
   if (!sessionReady) {
-    return <div className="py-10 text-gray-500">Загрузка…</div>;
+    return <div className="py-10 text-gray-500">{t('common.loading')}</div>;
   }
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      <h1 className="mb-4 text-2xl sm:text-3xl font-bold hidden sm:block">Загрузка</h1>
+      <h1 className="mb-4 text-2xl sm:text-3xl font-bold hidden sm:block">{t('upload.heading')}</h1>
 
 
 
       {!hasSession && (
         <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-semibold">Войдите или зарегистрируйтесь</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t('upload.signInPrompt')}</h2>
 
           {authMsg && (
             <div className="mb-3 rounded border border-green-200 bg-green-50 p-2 text-sm text-green-700">
@@ -892,7 +894,7 @@ export default function UploadPage() {
             </div>
           )}
 
-          <label className="mb-1 block text-sm font-medium">Почта</label>
+          <label className="mb-1 block text-sm font-medium">{t('auth.email')}</label>
           <input
             type="email"
             className="mb-3 w-full rounded border px-3 py-2"
@@ -901,26 +903,26 @@ export default function UploadPage() {
             onChange={(e) => setAuthEmail(e.target.value)}
           />
 
-          <label className="mb-1 block text-sm font-medium">Пароль</label>
+          <label className="mb-1 block text-sm font-medium">{t('auth.password')}</label>
           <input
             type="password"
             className="mb-4 w-full rounded border px-3 py-2"
-            placeholder="минимум 6 символов"
+            placeholder={t('auth.passwordPlaceholder')}
             value={authPassword}
             onChange={(e) => setAuthPassword(e.target.value)}
           />
 
           <div className="flex gap-2">
             <button onClick={handleSignUp} className="flex-1 rounded bg-black py-2 text-white">
-              Зарегистрироваться
+              {t('auth.signUp')}
             </button>
             <button onClick={handleSignIn} className="flex-1 rounded border py-2">
-              Войти
+              {t('auth.signIn')}
             </button>
           </div>
 
           <p className="mt-4 text-sm text-gray-600">
-            Или вернитесь к просмотру: <a className="underline" href="/">на главную</a>
+            {t('upload.backToHomeLine')} <a className="underline" href="/">{t('upload.backToHome')}</a>
           </p>
         </div>
       )}
@@ -959,7 +961,7 @@ export default function UploadPage() {
                   }`}
                 style={type === 'video' ? { backgroundColor: '#1E3A5F' } : undefined}
               >
-                Видео
+                {t('upload.video')}
               </button>
               <button
                 type="button"
@@ -974,7 +976,7 @@ export default function UploadPage() {
                   }`}
                 style={type === 'image' ? { backgroundColor: '#1E3A5F' } : undefined}
               >
-                Картинка
+                {t('upload.image')}
               </button>
             </div>
 
@@ -983,24 +985,24 @@ export default function UploadPage() {
               <div className="w-full md:w-[380px] md:flex-shrink-0 space-y-4 order-2 md:order-1">
                 {/* Промт */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-600">Промт</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-600">{t('image.prompt')}</label>
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:border-gray-300 focus:bg-white focus:outline-none transition"
                     rows={4}
-                    placeholder={type === 'video' ? 'Опишите видео...' : 'Опишите изображение...'}
+                    placeholder={type === 'video' ? t('upload.promptPlaceholderVideo') : t('upload.promptPlaceholderImage')}
                   />
                 </div>
 
                 {/* Теги */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-600">Теги</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-600">{t('image.tags')}</label>
                   <TagSelector
                     selectedTags={selectedTags}
                     onTagsChange={setSelectedTags}
                     maxTags={10}
-                    placeholder="Добавить тег..."
+                    placeholder={t('upload.tagAdd')}
                   />
 
                   {/* Блок Авто-Тегов (только для картинок) */}
@@ -1012,11 +1014,11 @@ export default function UploadPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          <span>ИИ подбирает теги...</span>
+                          <span>{t('upload.aiTagsLoading')}</span>
                         </div>
                       ) : currentImage.tags && currentImage.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1.5 items-center">
-                          <span className="text-[11px] font-medium text-blue-500 uppercase tracking-wider mr-1">AI-Теги:</span>
+                          <span className="text-[11px] font-medium text-blue-500 uppercase tracking-wider mr-1">{t('upload.aiTagsLabel')}</span>
                           {currentImage.tags.map(t => {
                             // Проверяем, добавлен ли тег (как строка или как tag_id:en)
                             const isAdded = selectedTags.some(st =>
@@ -1054,12 +1056,12 @@ export default function UploadPage() {
 
                 {/* Модель */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-600">Модель</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-600">{t('image.model')}</label>
                   <input
                     list={`models-${type}`}
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
-                    placeholder="Выбрать или ввести..."
+                    placeholder={t('upload.modelChoose')}
                     className={`w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:border-gray-300 focus:bg-white focus:outline-none transition ${!model ? 'text-gray-400' : 'text-gray-900'}`}
                   />
                   <datalist id="models-video">
@@ -1099,7 +1101,7 @@ export default function UploadPage() {
                     inputMode="numeric"
                     value={seed}
                     onChange={(e) => setSeed(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="Необязательно"
+                    placeholder={t('upload.optional')}
                     className={`w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:border-gray-300 focus:bg-white focus:outline-none transition ${!seed ? 'text-gray-400' : 'text-gray-900'}`}
                   />
                 </div>
@@ -1119,22 +1121,22 @@ export default function UploadPage() {
                     >
                       <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
                     </svg>
-                    Источник
+                    {t('upload.source')}
                     {(sourceAuthor || sourceUrl) && (
-                      <span className="ml-1 text-xs text-blue-500">заполнено</span>
+                      <span className="ml-1 text-xs text-blue-500">{t('upload.sourceFilled')}</span>
                     )}
                   </button>
 
                   {showSource && (
                     <div className="mt-3 space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 animate-in fade-in slide-in-from-top-1 duration-200">
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-500">Платформа</label>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">{t('upload.platform')}</label>
                         <select
                           value={sourcePlatform}
                           onChange={(e) => setSourcePlatform(e.target.value)}
                           className={`w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-300 focus:outline-none transition ${!sourcePlatform ? 'text-gray-400' : 'text-gray-900'}`}
                         >
-                          <option value="">Не указана</option>
+                          <option value="">{t('upload.platformUnset')}</option>
                           <option value="civitai">Civitai</option>
                           <option value="lexica">Lexica</option>
                           <option value="openart">OpenArt</option>
@@ -1142,21 +1144,21 @@ export default function UploadPage() {
                           <option value="deviantart">DeviantArt</option>
                           <option value="reddit">Reddit</option>
                           <option value="twitter">Twitter / X</option>
-                          <option value="other">Другое</option>
+                          <option value="other">{t('upload.platformOther')}</option>
                         </select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-500">Автор</label>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">{t('upload.author')}</label>
                         <input
                           type="text"
                           value={sourceAuthor}
                           onChange={(e) => setSourceAuthor(e.target.value)}
-                          placeholder="Ник автора на платформе"
+                          placeholder={t('upload.authorPlaceholder')}
                           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-300 focus:outline-none transition"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-500">Ссылка</label>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">{t('upload.link')}</label>
                         <input
                           type="url"
                           value={sourceUrl}
@@ -1175,7 +1177,7 @@ export default function UploadPage() {
                   className="mt-4 w-full rounded-2xl bg-black px-6 py-3 text-white font-medium transition hover:bg-gray-800 disabled:opacity-50"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Загрузка…' : 'Загрузить'}
+                  {isLoading ? t('upload.cta.loading') : t('upload.uploadCta')}
                 </button>
 
                 {/* Сообщения об ошибках/успехе */}
@@ -1303,7 +1305,7 @@ export default function UploadPage() {
                                   <path d="M3 21v-3l9-9" />
                                   <path d="M14.5 5.5l4-4 4 4-4 4" />
                                 </svg>
-                                Кликните на цвет
+                                {t('upload.clickColor')}
                               </div>
                             </div>
                           )}
@@ -1311,14 +1313,14 @@ export default function UploadPage() {
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
                           {isVideoColorsLoading ? (
-                            <p className="text-sm">Загрузка...</p>
+                            <p className="text-sm">{t('upload.uploadingShort')}</p>
                           ) : (
                             <>
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16 mb-3 text-gray-300">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
                               </svg>
-                              <p className="text-sm font-medium">Нажмите, чтобы выбрать видео</p>
-                              <p className="text-xs text-gray-300 mt-1">MP4 или WEBM</p>
+                              <p className="text-sm font-medium">{t('upload.pickVideoHint')}</p>
+                              <p className="text-xs text-gray-300 mt-1">{t('upload.pickVideoFormats')}</p>
                             </>
                           )}
                         </div>
@@ -1454,7 +1456,7 @@ export default function UploadPage() {
                                 : 'border border-gray-200 hover:scale-105'
                                 }`}
                               style={{ width: 32, height: 32 }}
-                              title={isEditingVideoColors ? 'Нажмите для замены' : c}
+                              title={isEditingVideoColors ? t('upload.replaceColor') : c}
                             >
                               <span
                                 className="block rounded-full"
@@ -1496,7 +1498,7 @@ export default function UploadPage() {
                                       : 'border-2 border-dashed border-gray-300 hover:border-gray-400'
                                     }`}
                                   style={{ width: 22, height: 22 }}
-                                  title={accentColor || 'Добавить акцент'}
+                                  title={accentColor || t('upload.addAccent')}
                                 >
                                   {accentColor ? (
                                     <span className="block rounded-full" style={{ backgroundColor: accentColor, width: isAccentSelected ? 22 : 18, height: isAccentSelected ? 22 : 18 }} />
@@ -1521,7 +1523,7 @@ export default function UploadPage() {
                             setSelectedVideoAccentIdx(null);
                           }}
                           className="absolute -right-12 top-1/2 -translate-y-1/2 rounded-full bg-white p-2 text-gray-500 shadow border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition"
-                          title="Редактировать цвета"
+                          title={t('upload.editColors')}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                             <path d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
@@ -1539,7 +1541,7 @@ export default function UploadPage() {
                   <div className="sticky top-6 w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                     <div className="mb-4 flex items-center justify-between border-b pb-3">
                       <span className="text-sm font-semibold text-gray-700">
-                        Палитра для замены
+                        {t('upload.replacementPalette')}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
@@ -1557,7 +1559,7 @@ export default function UploadPage() {
                             }
                           }}
                           className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
-                          title="Удалить выбранный цвет"
+                          title={t('upload.deleteSelectedColor')}
                         >
                           Удалить
                         </button>
@@ -1960,7 +1962,7 @@ export default function UploadPage() {
                               setSelectedIndex(0);
                             }}
                             className="ml-2 md:absolute md:-right-12 md:top-1/2 md:-translate-y-1/2 rounded-full bg-white p-2 text-gray-500 shadow border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition flex-shrink-0"
-                            title="Редактировать цвета"
+                            title={t('upload.editColors')}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                               <path d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
@@ -1976,7 +1978,7 @@ export default function UploadPage() {
                       <div className="sticky top-6 w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                         <div className="mb-4 flex items-center justify-between border-b pb-3">
                           <span className="text-sm font-semibold text-gray-700">
-                            Палитра для замены
+                            {t('upload.replacementPalette')}
                           </span>
 
                           <div className="flex items-center gap-2">
@@ -2024,7 +2026,7 @@ export default function UploadPage() {
                                 }
                               }}
                               className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
-                              title="Удалить выбранный цвет"
+                              title={t('upload.deleteSelectedColor')}
                             >
                               Удалить
                             </button>

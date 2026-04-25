@@ -2,25 +2,28 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type Props = {
   className?: string;
-  label?: string;                 // текст на кнопке-триггере (по умолчанию — "Редактировать")
+  label?: string;
   initialFirst: string;
   initialLast: string;
-  initialAvatarUrl: string;       // текущий URL аватара из БД
+  initialAvatarUrl: string;
   initialBio: string;
 };
 
 export default function EditProfileModal({
   className,
-  label = 'Редактировать',
+  label,
   initialFirst,
   initialLast,
   initialAvatarUrl,
   initialBio,
 }: Props) {
   const supabase = createClientComponentClient();
+  const t = useT();
+  const triggerLabel = label ?? t('profile.editLabel');
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -54,7 +57,7 @@ export default function EditProfileModal({
       setError(null);
 
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) throw new Error('Не удалось определить пользователя');
+      if (authErr || !user) throw new Error(t('profile.userResolveFailed'));
 
       let newAvatarUrl = avatarUrl; // по умолчанию — оставляем прежний
 
@@ -93,7 +96,7 @@ export default function EditProfileModal({
       // Перезагрузим, чтобы сразу увидеть изменения
       if (typeof window !== 'undefined') window.location.reload();
     } catch (e: any) {
-      setError(e?.message || 'Ошибка при сохранении');
+      setError(e?.message || t('profile.saveErrorGeneric'));
     } finally {
       setSaving(false);
     }
@@ -110,7 +113,7 @@ export default function EditProfileModal({
           'rounded-full bg-white px-4 py-1.5 text-sm font-semibold shadow ring-1 ring-gray-200 hover:bg-gray-50'
         }
       >
-        {label}
+        {triggerLabel}
       </button>
 
       {!open ? null : (
@@ -120,11 +123,11 @@ export default function EditProfileModal({
             {/* Контент модалки со скроллом, чтобы не уползала вниз */}
             <div className="max-h-[85vh] overflow-auto p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Редактирование профиля</h3>
+                <h3 className="text-lg font-semibold">{t('profile.editTitle')}</h3>
                 <button
                   onClick={() => setOpen(false)}
                   className="rounded px-2 py-1 text-gray-500 hover:bg-gray-100"
-                  aria-label="Закрыть"
+                  aria-label={t('common.close')}
                 >
                   ✕
                 </button>
@@ -140,25 +143,25 @@ export default function EditProfileModal({
               <div className="mb-4 flex items-center gap-4">
                 <img
                   src={previewUrl}
-                  alt="avatar preview"
+                  alt={t('profile.avatarPreviewAlt')}
                   className="h-16 w-16 rounded-full object-cover ring-1 ring-gray-200"
                 />
                 <div className="flex-1">
-                  <label className="mb-1 block text-sm font-medium">Новый аватар (PNG/JPG)</label>
+                  <label className="mb-1 block text-sm font-medium">{t('profile.newAvatarLabel')}</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Можно не выбирать файл — тогда останется текущий аватар.
+                    {t('profile.avatarOptionalHint')}
                   </p>
                 </div>
               </div>
 
               {/* Имя */}
               <div className="mb-3">
-                <label className="mb-1 block text-sm">Имя</label>
+                <label className="mb-1 block text-sm">{t('profile.firstName')}</label>
                 <input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
@@ -168,7 +171,7 @@ export default function EditProfileModal({
 
               {/* Фамилия */}
               <div className="mb-3">
-                <label className="mb-1 block text-sm">Фамилия</label>
+                <label className="mb-1 block text-sm">{t('profile.lastName')}</label>
                 <input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
@@ -178,7 +181,7 @@ export default function EditProfileModal({
 
               {/* О себе */}
               <div>
-                <label className="mb-1 block text-sm">О себе</label>
+                <label className="mb-1 block text-sm">{t('profile.bioLabel')}</label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
@@ -193,14 +196,14 @@ export default function EditProfileModal({
                   onClick={() => setOpen(false)}
                   className="rounded border px-4 py-2 text-sm"
                 >
-                  Отмена
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={onSave}
                   disabled={saving}
                   className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-60"
                 >
-                  {saving ? 'Сохранение…' : 'Сохранить'}
+                  {saving ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </div>

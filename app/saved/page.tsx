@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type SavedPrompt = {
   id: string;
@@ -29,6 +30,7 @@ type SavedPalette = {
 type Tab = 'prompts' | 'palettes';
 
 export default function SavedPage() {
+  const t = useT();
   const [tab, setTab] = useState<Tab>('prompts');
   const [prompts, setPrompts] = useState<SavedPrompt[] | null>(null);
   const [palettes, setPalettes] = useState<SavedPalette[] | null>(null);
@@ -49,7 +51,7 @@ export default function SavedPage() {
         setPrompts(p.items ?? []);
         setPalettes(pl.items ?? []);
       } catch (e: any) {
-        setError(e?.message ?? 'Ошибка загрузки');
+        setError(e?.message ?? t('saved.loadError'));
       } finally {
         setLoading(false);
       }
@@ -57,20 +59,20 @@ export default function SavedPage() {
   }, []);
 
   async function deletePrompt(id: string) {
-    if (!confirm('Удалить сохранённый промт?')) return;
+    if (!confirm(t('saved.confirmDeletePrompt'))) return;
     const res = await fetch(`/api/saved-prompts/${id}`, { method: 'DELETE' });
     if (res.ok) setPrompts((prev) => (prev ?? []).filter((x) => x.id !== id));
   }
 
   async function deletePalette(id: string) {
-    if (!confirm('Удалить сохранённую палитру?')) return;
+    if (!confirm(t('saved.confirmDeletePalette'))) return;
     const res = await fetch(`/api/saved-palettes/${id}`, { method: 'DELETE' });
     if (res.ok) setPalettes((prev) => (prev ?? []).filter((x) => x.id !== id));
   }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold">Сохранённое</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{t('saved.title')}</h1>
 
       {/* Табы */}
       <div className="mb-6 flex gap-2 border-b">
@@ -82,7 +84,7 @@ export default function SavedPage() {
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          Промты {prompts ? `(${prompts.length})` : ''}
+          {t('saved.prompts')} {prompts ? `(${prompts.length})` : ''}
         </button>
         <button
           onClick={() => setTab('palettes')}
@@ -92,11 +94,11 @@ export default function SavedPage() {
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          Палитры {palettes ? `(${palettes.length})` : ''}
+          {t('saved.palettes')} {palettes ? `(${palettes.length})` : ''}
         </button>
       </div>
 
-      {loading && <div className="text-sm text-gray-500">Загрузка…</div>}
+      {loading && <div className="text-sm text-gray-500">{t('common.loading')}</div>}
       {error && <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {!loading && !error && tab === 'prompts' && (
@@ -110,8 +112,9 @@ export default function SavedPage() {
 }
 
 function PromptsList({ items, onDelete }: { items: SavedPrompt[]; onDelete: (id: string) => void }) {
+  const t = useT();
   if (items.length === 0) {
-    return <div className="text-sm text-gray-500">Пока ничего не сохранено.</div>;
+    return <div className="text-sm text-gray-500">{t('saved.empty')}</div>;
   }
   return (
     <div className="space-y-4">
@@ -127,16 +130,16 @@ function PromptsList({ items, onDelete }: { items: SavedPrompt[]; onDelete: (id:
                   href={p.source_type === 'film' ? `/film/${p.source_id}` : `/images/${p.source_id}`}
                   className="text-blue-600 hover:underline"
                 >
-                  источник →
+                  {t('saved.source')}
                 </Link>
               )}
             </div>
             <button
               onClick={() => onDelete(p.id)}
               className="text-xs text-gray-400 hover:text-red-600"
-              aria-label="Удалить"
+              aria-label={t('common.delete')}
             >
-              Удалить
+              {t('common.delete')}
             </button>
           </div>
 
@@ -159,8 +162,9 @@ function PromptsList({ items, onDelete }: { items: SavedPrompt[]; onDelete: (id:
 }
 
 function PalettesList({ items, onDelete }: { items: SavedPalette[]; onDelete: (id: string) => void }) {
+  const t = useT();
   if (items.length === 0) {
-    return <div className="text-sm text-gray-500">Пока ничего не сохранено.</div>;
+    return <div className="text-sm text-gray-500">{t('saved.empty')}</div>;
   }
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -190,7 +194,7 @@ function PalettesList({ items, onDelete }: { items: SavedPalette[]; onDelete: (i
                   href={p.source_type === 'film' ? `/film/${p.source_id}` : `/images/${p.source_id}`}
                   className="text-xs text-blue-600 hover:underline"
                 >
-                  источник →
+                  {t('saved.source')}
                 </Link>
               ) : (
                 <span className="text-xs text-gray-400">{p.title ?? ''}</span>
@@ -199,7 +203,7 @@ function PalettesList({ items, onDelete }: { items: SavedPalette[]; onDelete: (i
                 onClick={() => onDelete(p.id)}
                 className="text-xs text-gray-400 hover:text-red-600"
               >
-                Удалить
+                {t('common.delete')}
               </button>
             </div>
           </div>

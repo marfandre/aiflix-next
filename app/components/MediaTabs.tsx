@@ -3,12 +3,14 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchButton from './SearchButton';
 import ColorSearchButton from './ColorSearchButton';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type Tab = 'video' | 'images';
 
 export default function MediaTabs() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
 
   const currentTab: Tab =
     searchParams.get('t') === 'images' ? 'images' : 'video';
@@ -35,7 +37,7 @@ export default function MediaTabs() {
           onMouseEnter={(e) => { if (currentTab !== 'video') e.currentTarget.style.background = 'linear-gradient(180deg, rgba(253,200,160,0.5) 0%, rgba(250,170,110,0.4) 100%)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
         >
-          Видео
+          {t('tabs.video')}
         </button>
 
         <button
@@ -49,7 +51,7 @@ export default function MediaTabs() {
           onMouseEnter={(e) => { if (currentTab !== 'images') e.currentTarget.style.background = 'linear-gradient(180deg, rgba(253,200,160,0.5) 0%, rgba(250,170,110,0.4) 100%)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
         >
-          Картинки
+          {t('tabs.images')}
         </button>
       </div>
 

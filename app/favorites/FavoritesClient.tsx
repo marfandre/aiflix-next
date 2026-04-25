@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import LikeButton from '@/app/components/LikeButton';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 type ImageItem = {
     id: string;
@@ -52,14 +53,16 @@ const MODEL_LABELS: Record<string, string> = {
     leonardo: 'Leonardo',
 };
 
-function formatModelName(raw?: string | null): string {
-    if (!raw) return 'не указана';
+function formatModelName(raw: string | null | undefined, unknown: string): string {
+    if (!raw) return unknown;
     const key = raw.toLowerCase();
     return MODEL_LABELS[key] ?? raw;
 }
 
 export default function FavoritesClient({ images, currentUserId }: Props) {
     const supabase = createClientComponentClient();
+    const { t, locale } = useI18n();
+    const dateLocale = locale === 'ru' ? 'ru-RU' : 'en-US';
 
     const [selected, setSelected] = useState<ImageItem | null>(null);
     const [variants, setVariants] = useState<ImageVariant[]>([]);
@@ -146,7 +149,7 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
     if (images.length === 0) {
         return (
             <div className="text-center text-sm text-gray-500 py-12">
-                Вы ещё не поставили лайк ни на одну картинку.
+                {t('favorites.emptyImages')}
             </div>
         );
     }
@@ -213,7 +216,7 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
                                     <div className="rounded-lg bg-gray-50 p-3">
                                         <div className="mb-2 flex items-center justify-between gap-2">
                                             <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                                                Промт
+                                                {t('image.prompt')}
                                             </span>
                                             <button
                                                 type="button"
@@ -221,7 +224,7 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
                                                 disabled={!selected.prompt && !selected.description}
                                                 className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                                             >
-                                                Скопировать
+                                                {t('common.copy')}
                                             </button>
                                         </div>
                                         {selected.prompt || selected.description ? (
@@ -229,14 +232,14 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
                                                 {selected.prompt || selected.description}
                                             </p>
                                         ) : (
-                                            <p className="text-[11px] text-gray-400">Промт не указан.</p>
+                                            <p className="text-[11px] text-gray-400">{t('image.promptEmptyDot')}</p>
                                         )}
                                     </div>
 
                                     <div className="text-xs text-gray-600">
-                                        Модель:{' '}
+                                        {t('image.modelLabel')}{' '}
                                         <span className="font-medium">
-                                            {formatModelName(selected.model || selected.image_type)}
+                                            {formatModelName(selected.model || selected.image_type, t('image.modelUnknown'))}
                                         </span>
                                     </div>
                                 </div>
@@ -251,7 +254,7 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
                                         </Link>
                                         {selected.created_at && (
                                             <div className="mt-0.5">
-                                                {new Date(selected.created_at).toLocaleDateString('ru-RU')}
+                                                {new Date(selected.created_at).toLocaleDateString(dateLocale)}
                                             </div>
                                         )}
                                     </div>
@@ -331,7 +334,7 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
                                             )}
                                         </>
                                     ) : (
-                                        <p className="text-sm text-gray-500">Не удалось загрузить изображение.</p>
+                                        <p className="text-sm text-gray-500">{t('image.loadFailed')}</p>
                                     )}
                                 </div>
                             </div>

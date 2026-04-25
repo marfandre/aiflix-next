@@ -6,6 +6,7 @@ import LikeButton from "../LikeButton";
 import CustomVideoPlayer from "../CustomVideoPlayer";
 import { formatModelName, muxPoster } from "./utils";
 import type { VideoRow } from "./types";
+import { useI18n, useT } from "@/lib/i18n/I18nProvider";
 
 type Props = {
   selected: VideoRow;
@@ -26,6 +27,7 @@ function MobileVideo({
   rounded?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
 
@@ -51,7 +53,7 @@ function MobileVideo({
       if (video.canPlayType('application/vnd.apple.mpegURL')) {
         video.src = hlsUrl;
         video.addEventListener('canplay', () => tryAutoplay(), { once: true });
-        video.addEventListener('error', () => setError('Не удалось загрузить видео'), { once: true });
+        video.addEventListener('error', () => setError(t('video.loadFailedShort')), { once: true });
         return;
       }
 
@@ -74,7 +76,7 @@ function MobileVideo({
               // fallback to mp4
               video.src = mp4Url;
               video.addEventListener('canplay', () => tryAutoplay(), { once: true });
-              video.addEventListener('error', () => setError('Не удалось загрузить видео'), { once: true });
+              video.addEventListener('error', () => setError(t('video.loadFailedShort')), { once: true });
             }
           });
           return;
@@ -84,7 +86,7 @@ function MobileVideo({
       // Last fallback: mp4
       video.src = mp4Url;
       video.addEventListener('canplay', () => tryAutoplay(), { once: true });
-      video.addEventListener('error', () => setError('Не удалось загрузить видео'), { once: true });
+      video.addEventListener('error', () => setError(t('video.loadFailedShort')), { once: true });
     };
 
     setup();
@@ -153,6 +155,8 @@ function MobileVideo({
 }
 
 export default function VideoModal({ selected, videos, userId, onClose, onNavigate }: Props) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === 'ru' ? 'ru-RU' : 'en-US';
   const [showPrompt, setShowPrompt] = useState(false);
   const [copied, setCopied] = useState(false);
   const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
@@ -383,7 +387,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: selected.prompt, model: selected.model ?? null, seed: (selected as any).seed ?? null, aspect_ratio: selected.aspect_ratio ?? null, source_type: 'film', source_id: selected.id }),
       });
-      if (!res.ok) { if (res.status === 401) { alert('Войдите, чтобы сохранять промты'); setPromptSaved('idle'); return; } throw new Error(); }
+      if (!res.ok) { if (res.status === 401) { alert(t('image.signInToSavePrompt')); setPromptSaved('idle'); return; } throw new Error(); }
       const j = await res.json(); setSavedPromptId(j?.id ?? null); setPromptSaved('idle');
     } catch { setPromptSaved('error'); setTimeout(() => setPromptSaved('idle'), 2000); }
   };
@@ -405,7 +409,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ colors: c.slice(0, 10), source_type: 'film', source_id: selected.id }),
       });
-      if (!res.ok) { if (res.status === 401) { alert('Войдите, чтобы сохранять палитры'); setPaletteSaved('idle'); return; } throw new Error(); }
+      if (!res.ok) { if (res.status === 401) { alert(t('image.signInToSavePalette')); setPaletteSaved('idle'); return; } throw new Error(); }
       const j = await res.json(); setSavedPaletteId(j?.id ?? null); setPaletteSaved('idle');
     } catch { setPaletteSaved('error'); setTimeout(() => setPaletteSaved('idle'), 2000); }
   };
@@ -447,7 +451,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
       onClick={(e) => { e.stopPropagation(); const v = modalVideoRef.current; if (v) { v.paused ? v.play() : v.pause(); } }}
       className="flex items-center justify-center flex-shrink-0 text-white/80 hover:text-white transition-all rounded-full"
       style={{ width: 32, height: 32, ...glassStyle }}
-      title={modalPlaying ? "\u041F\u0430\u0443\u0437\u0430" : "\u0418\u0433\u0440\u0430\u0442\u044C"}
+      title={modalPlaying ? t('video.pause') : t('video.play')}
     >
       {modalPlaying ? (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
@@ -463,7 +467,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
       onClick={(e) => { e.stopPropagation(); const v = modalVideoRef.current; if (v) { v.muted = !v.muted; setModalMuted(v.muted); } }}
       className="flex items-center justify-center flex-shrink-0 text-white/80 hover:text-white transition-all rounded-full"
       style={{ width: 32, height: 32, ...glassStyle }}
-      title="\u0417\u0432\u0443\u043A"
+      title={t('video.sound')}
     >
       {modalMuted ? (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -565,10 +569,10 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
               {selected.status === "processing" ? (
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  <p>{"\u0412\u0438\u0434\u0435\u043E \u043E\u0431\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F..."}</p>
+                  <p>{t('video.processing')}</p>
                 </div>
               ) : (
-                <p>{"\u0412\u0438\u0434\u0435\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E"}</p>
+                <p>{t('video.unavailable')}</p>
               )}
             </div>
           )}
@@ -671,7 +675,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {selected.prompt && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.prompt')}</h3>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
@@ -683,7 +687,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
-                              {"\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E"}
+                              {t('common.copied')}
                             </>
                           ) : (
                             <>
@@ -691,7 +695,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                               </svg>
-                              {"\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C"}
+                              {t('common.copy')}
                             </>
                           )}
                         </button>
@@ -714,7 +718,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {/* Description */}
                 {selected.description && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.description')}</h3>
                     <p className="text-[13px] text-white/70 leading-relaxed">{selected.description}</p>
                   </div>
                 )}
@@ -723,7 +727,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {colors.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0430\u043B\u0438\u0442\u0440\u0430"}</h3>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.palette')}</h3>
                       <button
                         type="button"
                         onClick={togglePaletteSave}
@@ -759,12 +763,12 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {/* Model + Format */}
                 <div className="flex flex-wrap items-center gap-3">
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.model')}</h3>
                     <button type="button" onClick={() => { window.location.href = `/?t=video&models=${encodeURIComponent(selected.model || '')}`; }} className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25 cursor-pointer">{formatModelName(selected.model)}</button>
                   </div>
                   {selected.aspect_ratio && (
                     <div>
-                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u0424\u043E\u0440\u043C\u0430\u0442"}</h3>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.format')}</h3>
                       <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80">{selected.aspect_ratio}</span>
                     </div>
                   )}
@@ -773,8 +777,8 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {/* Date */}
                 {selected.created_at && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u0414\u0430\u0442\u0430"}</h3>
-                    <span className="text-sm text-white/50">{new Date(selected.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</span>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.date')}</h3>
+                    <span className="text-sm text-white/50">{new Date(selected.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}</span>
                   </div>
                 )}
               </div>
@@ -795,13 +799,13 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {selected.prompt ? (
                   <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative group/prompt">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.prompt')}</h3>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => navigator.clipboard.writeText(selected.prompt || "")}
                           className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
-                          title="Скопировать промт"
+                          title={t('image.copyPrompt')}
                         >
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -812,7 +816,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                           onClick={togglePromptSave}
                           disabled={promptSaved === 'saving'}
                           className={`transition p-1 rounded-md hover:bg-white/10 ${promptSaved === 'error' ? 'text-red-400' : savedPromptId ? 'text-white' : 'text-white/30 hover:text-white/70'}`}
-                          title={savedPromptId ? 'Убрать из сохранённого' : 'Сохранить промт'}
+                          title={savedPromptId ? t('image.unsave') : t('image.savePrompt')}
                         >
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill={savedPromptId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -826,8 +830,8 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                   </div>
                 ) : (
                   <div className="rounded-xl bg-white/5 border border-white/10 p-4 opacity-40">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
-                    <p className="text-[13px] text-white/50 italic">{"\u041F\u0440\u043E\u043C\u0442 \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D"}</p>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.prompt')}</h3>
+                    <p className="text-[13px] text-white/50 italic">{t('image.promptEmpty')}</p>
                   </div>
                 )}
 
@@ -835,13 +839,13 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {colors.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-3 pr-4">
-                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Палитра</h3>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.palette')}</h3>
                       <button
                         type="button"
                         onClick={togglePaletteSave}
                         disabled={paletteSaved === 'saving'}
                         className={`transition p-1 rounded-md hover:bg-white/10 ${paletteSaved === 'error' ? 'text-red-400' : savedPaletteId ? 'text-white' : 'text-white/30 hover:text-white/70'}`}
-                        title={savedPaletteId ? 'Убрать из сохранённого' : 'Сохранить палитру'}
+                        title={savedPaletteId ? t('image.unsave') : t('image.savePalette')}
                       >
                         <svg className="h-4 w-4" viewBox="0 0 24 24" fill={savedPaletteId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -870,14 +874,14 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {/* Description */}
                 {selected.description && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.description')}</h3>
                     <p className="text-[13px] text-white/80 leading-relaxed">{selected.description}</p>
                   </div>
                 )}
 
                 {/* Author */}
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0410\u0432\u0442\u043E\u0440"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.author')}</h3>
                   <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
                     {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
                     <span className="text-sm text-white font-medium">{nick}</span>
@@ -886,14 +890,14 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
 
                 {/* Model */}
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.model')}</h3>
                   <button type="button" onClick={() => { window.location.href = `/?t=video&models=${encodeURIComponent(selected.model || '')}`; }} className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20 cursor-pointer">{formatModelName(selected.model)}</button>
                 </div>
 
                 {/* Format */}
                 {selected.aspect_ratio && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0424\u043E\u0440\u043C\u0430\u0442"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.format')}</h3>
                     <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">{selected.aspect_ratio}</span>
                   </div>
                 )}
@@ -901,8 +905,8 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 {/* Date */}
                 {selected.created_at && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0414\u0430\u0442\u0430"}</h3>
-                    <span className="text-sm text-white/60">{new Date(selected.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</span>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.date')}</h3>
+                    <span className="text-sm text-white/60">{new Date(selected.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}</span>
                   </div>
                 )}
               </div>
@@ -931,12 +935,12 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                     {selected.status === "processing" ? (
                       <div className="flex flex-col items-center gap-3">
                         <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                        <p>{"\u0412\u0438\u0434\u0435\u043E \u043E\u0431\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F..."}</p>
+                        <p>{t('video.processing')}</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-2">
-                        <p>{"\u0412\u0438\u0434\u0435\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E"}</p>
-                        <p className="text-xs opacity-50">{"\u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0437\u0430\u043D\u043E\u0432\u043E"}</p>
+                        <p>{t('video.unavailable')}</p>
+                        <p className="text-xs opacity-50">{t('video.tryReupload')}</p>
                       </div>
                     )}
                   </div>
@@ -1010,7 +1014,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
                     <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
                   </svg>
-                  {"\u041F\u0440\u043E\u043C\u0442"}
+                  {t('image.prompt')}
                 </button>
 
                 <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-2 transition hover:opacity-80">
@@ -1033,7 +1037,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
               navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
             }}
             className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${copied ? "bg-green-500/80 text-white" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"}`}
-            title={copied ? "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E!" : "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F"}
+            title={copied ? t('image.copiedExcl') : t('image.share')}
           >
             {copied ? (
               <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -1056,7 +1060,7 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
             type="button"
             onClick={() => setShowPrompt((v) => !v)}
             className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${showPrompt ? "bg-white/30 text-white" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"}`}
-            title="\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F"
+            title={t('image.info')}
           >
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />

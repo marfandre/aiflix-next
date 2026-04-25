@@ -92,7 +92,7 @@ function ColorChart({
           ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.3)'
           : '0 1px 3px rgba(0,0,0,0.3)'
       }}
-      title={`\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0447\u0442\u043E\u0431\u044B ${isExpanded ? '\u0441\u0432\u0435\u0440\u043D\u0443\u0442\u044C' : '\u0443\u0432\u0435\u043B\u0438\u0447\u0438\u0442\u044C'}`}
+      title={`Нажмите чтобы ${isExpanded ? 'свернуть' : 'увеличить'}`}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
         {isExpanded && (

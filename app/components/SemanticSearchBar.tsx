@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type SearchResult = {
   id: string;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function SemanticSearchBar({ onResults, onClear, activeTab }: Props) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function SemanticSearchBar({ onResults, onClear, activeTab }: Pro
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || 'Ошибка поиска');
+        throw new Error(text || t('search.error'));
       }
 
       const json = await res.json();
@@ -61,7 +63,7 @@ export default function SemanticSearchBar({ onResults, onClear, activeTab }: Pro
       setHasResults(true);
     } catch (e: any) {
       console.error('semantic search error', e);
-      setError(e?.message ?? 'Ошибка поиска');
+      setError(e?.message ?? t('search.error'));
     } finally {
       setLoading(false);
     }
@@ -112,7 +114,7 @@ export default function SemanticSearchBar({ onResults, onClear, activeTab }: Pro
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Опишите что ищете..."
+          placeholder={t('search.placeholder')}
           disabled={loading}
           className="w-full pl-12 pr-24 py-3 rounded-2xl border border-gray-300 bg-white/80 backdrop-blur text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/30 focus:border-[#1e3a5f]/50 disabled:opacity-60"
         />
@@ -125,7 +127,7 @@ export default function SemanticSearchBar({ onResults, onClear, activeTab }: Pro
               onClick={handleClear}
               className="px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              Сбросить
+              {t('common.reset')}
             </button>
           )}
           <button
@@ -134,7 +136,7 @@ export default function SemanticSearchBar({ onResults, onClear, activeTab }: Pro
             disabled={loading || !query.trim()}
             className="px-3.5 py-1.5 text-xs font-medium text-white bg-[#1e3a5f] hover:bg-[#162d4a] rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Найти
+            {t('common.find')}
           </button>
         </div>
       </div>
@@ -149,7 +151,7 @@ export default function SemanticSearchBar({ onResults, onClear, activeTab }: Pro
       {/* Результат */}
       {hasResults && !error && (
         <p className="mt-1.5 text-center text-xs text-gray-500">
-          Результаты по запросу «{query}»
+          {t('search.resultsFor', { q: query })}
         </p>
       )}
     </div>

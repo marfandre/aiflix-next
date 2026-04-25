@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type Props = {
   initialFirst: string;
@@ -19,6 +20,7 @@ export default function EditProfileCard({
   variant = 'default',
 }: Props) {
   const supabase = createClientComponentClient();
+  const t = useT();
 
   const [open, setOpen] = useState(false);
   const [firstName, setFirstName] = useState(initialFirst);
@@ -79,7 +81,7 @@ export default function EditProfileCard({
     try {
       const { data: { user }, error: uerr } = await supabase.auth.getUser();
       if (uerr) throw uerr;
-      if (!user) throw new Error('Не удалось определить пользователя');
+      if (!user) throw new Error(t('profile.userResolveFailed'));
 
       const newAvatar = await uploadAvatar(user.id);
 
@@ -99,7 +101,7 @@ export default function EditProfileCard({
       setFile(null);
       setOpen(false);
     } catch (e: any) {
-      setError(e?.message ?? 'Ошибка сохранения');
+      setError(e?.message ?? t('profile.saveError'));
     } finally {
       setSaving(false);
     }
@@ -124,7 +126,7 @@ export default function EditProfileCard({
         aria-expanded={open}
         aria-controls="edit-profile-panel"
       >
-        {open ? 'Скрыть' : 'Редактировать профиль'}
+        {open ? t('profile.editTrigger.hide') : t('profile.editTrigger.show')}
       </button>
 
       {/* Всплывающая панель (absolute) */}
@@ -138,25 +140,25 @@ export default function EditProfileCard({
             <div className="flex gap-3">
               <div className="flex-1">
                 <label htmlFor="firstName" className="mb-1 block text-xs font-medium text-gray-600">
-                  Имя
+                  {t('profile.firstName')}
                 </label>
                 <input
                   id="firstName"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Имя"
+                  placeholder={t('profile.firstName')}
                   className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
                 />
               </div>
               <div className="flex-1">
                 <label htmlFor="lastName" className="mb-1 block text-xs font-medium text-gray-600">
-                  Фамилия
+                  {t('profile.lastName')}
                 </label>
                 <input
                   id="lastName"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Фамилия"
+                  placeholder={t('profile.lastName')}
                   className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
                 />
               </div>
@@ -165,13 +167,13 @@ export default function EditProfileCard({
             {/* Краткое описание с подписью и счётчиком */}
             <div>
               <label htmlFor="bio" className="mb-1 block text-xs font-medium text-gray-600">
-                Краткое описание
+                {t('profile.shortBio')}
               </label>
               <textarea
                 id="bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value.slice(0, 280))}
-                placeholder="О себе (до 280 символов)"
+                placeholder={t('profile.bioPlaceholder')}
                 rows={3}
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
               />
@@ -183,7 +185,7 @@ export default function EditProfileCard({
             {/* Аватар */}
             <div className="flex items-center gap-4">
               <div className="h-20 w-20 overflow-hidden rounded-full ring-1 ring-gray-300 bg-gray-100 shrink-0">
-                {preview && <img src={preview} alt="avatar preview" className="h-full w-full object-cover" />}
+                {preview && <img src={preview} alt={t('profile.avatarPreviewAlt')} className="h-full w-full object-cover" />}
               </div>
               <div className="text-sm">
                 <input
@@ -192,7 +194,7 @@ export default function EditProfileCard({
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />
                 <div className="mt-1 text-xs text-gray-500">
-                  Загрузите квадратное изображение (рекомендуется ≥ 256×256).
+                  {t('profile.avatarHint')}
                 </div>
               </div>
             </div>
@@ -206,14 +208,14 @@ export default function EditProfileCard({
                 disabled={disabled}
                 className="inline-flex items-center rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
-                {saving ? 'Сохранение...' : 'Сохранить'}
+                {saving ? t('common.saving') : t('common.save')}
               </button>
               <button
                 type="button"
                 onClick={onCancel}
                 className="inline-flex items-center rounded-lg border px-4 py-2 text-sm"
               >
-                Отмена
+                {t('common.cancel')}
               </button>
             </div>
           </div>

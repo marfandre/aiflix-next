@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import LikeButton from "@/app/components/LikeButton";
 import PromptModal from "@/app/components/PromptModal";
+import { useT } from "@/lib/i18n/I18nProvider";
 
 type ProfileImage = {
   id: string;
@@ -54,8 +55,8 @@ const MODEL_LABELS: Record<string, string> = {
   leonardo: "Leonardo",
 };
 
-function formatModelName(raw?: string | null): string {
-  if (!raw) return "не указана";
+function formatModelName(raw: string | null | undefined, unknown: string): string {
+  if (!raw) return unknown;
   const key = raw.toLowerCase();
   return MODEL_LABELS[key] ?? raw;
 }
@@ -75,6 +76,7 @@ export default function ProfileImagesClient({
   currentUserId,
 }: Props) {
   const supa = createClientComponentClient();
+  const t = useT();
 
   const [selected, setSelected] = useState<ProfileImage | null>(null);
   const [variants, setVariants] = useState<ImageVariant[]>([]);
@@ -173,7 +175,7 @@ export default function ProfileImagesClient({
                   className="relative block aspect-[4/5] w-full bg-gray-100 cursor-pointer">
                   <img
                     src={url}
-                    alt={(im.title ?? "").trim() || "Картинка"}
+                    alt={(im.title ?? "").trim() || t('image.fallbackTitle')}
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                   />
@@ -224,7 +226,7 @@ export default function ProfileImagesClient({
                             ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.3)'
                             : '0 1px 3px rgba(0,0,0,0.3)'
                         }}
-                        title={`Нажмите чтобы ${isExpanded ? 'свернуть' : 'увеличить'}`}
+                        title={isExpanded ? t('profile.colorChartHint.collapse') : t('profile.colorChartHint.expand')}
                       >
                         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
                           {isExpanded && (
@@ -310,7 +312,7 @@ export default function ProfileImagesClient({
           })}
 
           {images.length === 0 && (
-            <div className="text-sm text-gray-500">Здесь пока нет картинок.</div>
+            <div className="text-sm text-gray-500">{t('profile.emptyImages')}</div>
           )}
         </div>
       </div>
@@ -351,7 +353,7 @@ export default function ProfileImagesClient({
                   <>
                     <img
                       src={publicImageUrl(currentVariant.path)}
-                      alt={(selected.title ?? "").trim() || "Картинка"}
+                      alt={(selected.title ?? "").trim() || t('image.fallbackTitle')}
                       className="max-h-[90vh] w-auto max-w-full object-contain"
                     />
 
@@ -366,7 +368,7 @@ export default function ProfileImagesClient({
                             )
                           }
                           className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                          title="Предыдущее"
+                          title={t('profile.prev')}
                         >
                           <span className="block text-lg leading-none text-white">‹</span>
                         </button>
@@ -377,7 +379,7 @@ export default function ProfileImagesClient({
                             setSlideIndex((i) => (i + 1) % variants.length)
                           }
                           className="group absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                          title="Следующее"
+                          title={t('profile.next')}
                         >
                           <span className="block text-lg leading-none text-white">›</span>
                         </button>
@@ -429,7 +431,7 @@ export default function ProfileImagesClient({
                               <line x1="16" y1="13" x2="8" y2="13" />
                               <line x1="16" y1="17" x2="8" y2="17" />
                             </svg>
-                            Промт
+                            {t('image.prompt')}
                           </button>
                           {selected.created_at && (
                             <span className="text-[10px] text-white/50">
@@ -455,7 +457,7 @@ export default function ProfileImagesClient({
 
                         {/* Модель */}
                         <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">
-                          {formatModelName(selected.model)}
+                          {formatModelName(selected.model, t('image.modelUnknown'))}
                         </span>
 
                         {/* Теги */}
@@ -484,7 +486,7 @@ export default function ProfileImagesClient({
                   </>
                 ) : (
                   <p className="text-sm text-white/60">
-                    Не удалось загрузить изображение.
+                    {t('image.loadFailed')}
                   </p>
                 )}
               </div>

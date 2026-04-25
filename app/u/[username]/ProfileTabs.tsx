@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type Tab = 'video' | 'images';
 
@@ -8,6 +9,7 @@ export default function ProfileTabs() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useT();
 
   const current: Tab = (searchParams.get('t') === 'images' ? 'images' : 'video');
 
@@ -26,7 +28,7 @@ export default function ProfileTabs() {
           ${current === 'video' ? 'bg-white font-semibold shadow' : 'text-gray-700 hover:text-black'}`}
         aria-current={current === 'video' ? 'page' : undefined}
       >
-        Видео
+        {t('tabs.video')}
       </button>
       <button
         onClick={() => setTab('images')}
@@ -34,7 +36,7 @@ export default function ProfileTabs() {
           ${current === 'images' ? 'bg-white font-semibold shadow' : 'text-gray-700 hover:text-black'}`}
         aria-current={current === 'images' ? 'page' : undefined}
       >
-        Картинки
+        {t('tabs.images')}
       </button>
     </div>
   );

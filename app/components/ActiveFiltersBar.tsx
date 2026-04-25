@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useT } from '@/lib/i18n/I18nProvider';
+import type { DictKey } from '@/lib/i18n/dict';
 
 const MODEL_OPTIONS: Record<string, string> = {
   dalle: 'DALL·E', midjourney: 'Midjourney', sdxl: 'SDXL',
@@ -10,12 +12,7 @@ const MODEL_OPTIONS: Record<string, string> = {
   pika: 'Pika', runway: 'Runway',
 };
 
-const COLOR_LABELS: Record<string, string> = {
-  red: 'Красный', orange: 'Оранжевый', yellow: 'Жёлтый', green: 'Зелёный',
-  teal: 'Бирюзовый', cyan: 'Голубой', blue: 'Синий', indigo: 'Индиго',
-  purple: 'Фиолетовый', pink: 'Розовый', brown: 'Коричневый',
-  black: 'Чёрный', white: 'Белый',
-};
+const COLOR_KEYS = ['red','orange','yellow','green','teal','cyan','blue','indigo','purple','pink','brown','black','white'] as const;
 
 const COLOR_HEX: Record<string, string> = {
   red: '#FF1744', orange: '#FF6D00', yellow: '#FFEA00', green: '#00E676',
@@ -24,15 +21,17 @@ const COLOR_HEX: Record<string, string> = {
   black: '#121212', white: '#FAFAFA',
 };
 
-const ASPECT_OPTIONS = [
-  { value: '1:1', label: '1:1 — Квадрат' },
-  { value: '16:9', label: '16:9 — Широкий' },
-  { value: '9:16', label: '9:16 — Вертикаль' },
+type AspectOption = { value: string; labelKey?: DictKey; label?: string };
+
+const ASPECT_OPTIONS_RAW: AspectOption[] = [
+  { value: '1:1', labelKey: 'aspect.square' },
+  { value: '16:9', labelKey: 'aspect.wide' },
+  { value: '9:16', labelKey: 'aspect.vertical' },
   { value: '4:3', label: '4:3' },
   { value: '3:4', label: '3:4' },
   { value: '3:2', label: '3:2' },
   { value: '2:3', label: '2:3' },
-  { value: '21:9', label: '21:9 — Ультраширокий' },
+  { value: '21:9', labelKey: 'aspect.ultrawide' },
 ];
 
 /* ---- Единая капсула: ⊕ Категория  Значение1 × Значение2 × ---- */
@@ -43,6 +42,7 @@ function FilterCapsule({ label, items, options, onRemove, onAdd }: {
   onRemove: (key: string) => void;
   onAdd: (value: string) => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -99,7 +99,7 @@ function FilterCapsule({ label, items, options, onRemove, onAdd }: {
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Поиск..."
+                placeholder={t('common.searchPlaceholder')}
                 className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-gray-400"
                 autoFocus
               />
@@ -107,7 +107,7 @@ function FilterCapsule({ label, items, options, onRemove, onAdd }: {
           )}
           <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 && (
-              <div className="px-3 py-2 text-xs text-gray-400">Ничего не найдено</div>
+              <div className="px-3 py-2 text-xs text-gray-400">{t('common.notFound')}</div>
             )}
             {filtered.map(o => (
               <button
@@ -132,6 +132,15 @@ function FilterCapsule({ label, items, options, onRemove, onAdd }: {
 export default function ActiveFiltersBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
+
+  const COLOR_LABELS: Record<string, string> = Object.fromEntries(
+    COLOR_KEYS.map((k) => [k, t(`color.${k}` as DictKey)])
+  );
+  const ASPECT_OPTIONS = ASPECT_OPTIONS_RAW.map((o) => ({
+    value: o.value,
+    label: o.labelKey ? t(o.labelKey) : (o.label ?? o.value),
+  }));
 
   const tags = searchParams.get('tags')?.split(',').filter(Boolean) ?? [];
   const models = searchParams.get('models')?.split(',').filter(Boolean) ?? [];
@@ -192,7 +201,7 @@ export default function ActiveFiltersBar() {
   return (
     <div className="flex items-center justify-center gap-2 px-4 pb-4">
       <FilterCapsule
-        label="Модель"
+        label={t('filters.model')}
         items={models.map(key => ({ key, label: MODEL_OPTIONS[key] ?? key }))}
         options={availableModels.length > 0 ? availableModels : allModels.filter(m => !models.includes(m.value))}
         onRemove={(key) => remove('models', key)}
@@ -200,7 +209,7 @@ export default function ActiveFiltersBar() {
       />
 
       <FilterCapsule
-        label="Формат"
+        label={t('filters.format')}
         items={aspect ? [{ key: aspect, label: aspect }] : []}
         options={aspect ? availableAspects : allAspects}
         onRemove={() => remove('aspect')}
@@ -208,7 +217,7 @@ export default function ActiveFiltersBar() {
       />
 
       <FilterCapsule
-        label="Цвет"
+        label={t('filters.color')}
         items={families.map(id => ({ key: id, label: COLOR_LABELS[id] ?? id, hex: COLOR_HEX[id] }))}
         options={availableColors.length > 0 ? availableColors : allColors.filter(c => !families.includes(c.value))}
         onRemove={(key) => remove('families', key)}
@@ -217,7 +226,7 @@ export default function ActiveFiltersBar() {
 
       {tags.length > 0 && (
         <FilterCapsule
-          label="Теги"
+          label={t('filters.tags')}
           items={tags.map(tag => ({ key: tag, label: tag }))}
           options={[]}
           onRemove={(key) => remove('tags', key)}
@@ -226,7 +235,7 @@ export default function ActiveFiltersBar() {
       )}
 
       <button type="button" onClick={clearAll}
-        className="ml-1 text-gray-300 hover:text-gray-500 transition" title="Сбросить все фильтры">
+        className="ml-1 text-gray-300 hover:text-gray-500 transition" title={t('common.clearFilters')}>
         <svg viewBox="0 0 24 24" className="h-4 w-4"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
       </button>
     </div>

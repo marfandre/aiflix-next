@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 type Notification = {
     id: string;
@@ -27,6 +28,7 @@ type Notification = {
 
 export default function NotificationBell() {
     const supabase = createClientComponentClient();
+    const { t, locale } = useI18n();
     const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -132,7 +134,7 @@ export default function NotificationBell() {
             <button
                 onClick={handleOpen}
                 className="relative rounded-lg p-2 hover:bg-gray-100 transition"
-                aria-label="Уведомления"
+                aria-label={t('header.notifications')}
             >
                 <svg
                     className="h-5 w-5 text-gray-600"
@@ -158,19 +160,19 @@ export default function NotificationBell() {
             {open && (
                 <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border bg-white py-2 shadow-lg z-50">
                     <div className="px-4 py-2 border-b">
-                        <span className="text-sm font-semibold text-gray-800">Уведомления</span>
+                        <span className="text-sm font-semibold text-gray-800">{t('notif.title')}</span>
                     </div>
 
                     <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
                             <div className="px-4 py-6 text-center text-sm text-gray-500">
-                                Нет уведомлений
+                                {t('notif.empty')}
                             </div>
                         ) : (
                             notifications.map((n) => {
-                                const fromUsername = n.from_user?.username || 'Кто-то';
+                                const fromUsername = n.from_user?.username || t('common.someone');
                                 const isFilm = !!n.film_id;
-                                const contentType = isFilm ? 'видео' : 'картинку';
+                                const likeText = isFilm ? t('notif.likedYourVideo') : t('notif.likedYourImage');
                                 const contentHref = isFilm ? `/film/${n.film_id}` : `/images/${n.image_id}`;
                                 const profileHref = `/u/${encodeURIComponent(fromUsername)}`;
 
@@ -216,10 +218,10 @@ export default function NotificationBell() {
                                                     >
                                                         @{fromUsername}
                                                     </Link>
-                                                    {' '}лайкнул(а) вашу {contentType}
+                                                    {' '}{likeText}
                                                 </p>
                                                 <p className="text-xs text-gray-500 mt-0.5">
-                                                    {new Date(n.created_at).toLocaleDateString('ru-RU', {
+                                                    {new Date(n.created_at).toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', {
                                                         day: 'numeric',
                                                         month: 'short',
                                                         hour: '2-digit',

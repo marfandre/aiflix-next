@@ -10,6 +10,7 @@ import ProfileTabs from './ProfileTabs';
 import EditProfileModal from '@/app/components/EditProfileModal';
 import VideoFeedClient from '@/app/components/VideoFeedClient';
 import ImageFeedClient from '@/app/components/ImageFeedClient';
+import { ProfileNotFound, ProfileFallbackName, ProfileUploadCta } from './ProfileHeaderText';
 
 type PageProps = { params: { username: string }; searchParams?: { t?: string } };
 type Tab = 'video' | 'images';
@@ -67,13 +68,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
     .maybeSingle();
 
   if (!profile) {
-    return (
-      <div className="mx-auto max-w-4xl p-6">
-        <div className="rounded-xl border bg-white p-6 text-center shadow-sm">
-          Профиль не найден
-        </div>
-      </div>
-    );
+    return <ProfileNotFound />;
   }
 
   const isOwn = user?.id === profile.id;
@@ -93,7 +88,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
           />
           <div className="min-w-0">
             <div className="text-lg font-semibold leading-tight">
-              {fullName || nick || 'Профиль'}
+              {fullName || nick || <ProfileFallbackName />}
             </div>
             {nick && <div className="text-sm text-gray-500">@{nick}</div>}
             {profile.bio && (
@@ -107,7 +102,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
                 href="/upload"
                 className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold shadow ring-1 ring-gray-200 hover:bg-gray-50"
               >
-                Загрузить
+                <ProfileUploadCta />
               </Link>
             )}
           </div>
@@ -120,7 +115,6 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
               initialLast={profile.last_name ?? ''}
               initialAvatarUrl={avatar}
               initialBio={profile.bio ?? ''}
-              label="Редактировать"
               className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold shadow ring-1 ring-gray-200 hover:bg-gray-50"
             />
           </div>

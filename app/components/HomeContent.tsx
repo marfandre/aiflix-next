@@ -10,6 +10,7 @@ import VideoFeedClient from './VideoFeedClient';
 import ActiveFiltersBar from './ActiveFiltersBar';
 import type { ImageRow } from './image-feed/types';
 import type { VideoRow } from './video-feed/types';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type SearchResult = {
   id: string;
@@ -36,6 +37,7 @@ const SEMANTIC_SEARCH_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SEMANTIC_SEARCH =
 export default function HomeContent({ userId, searchParams }: Props) {
   const sp = useSearchParams();
   const tab = sp.get('t') === 'images' ? 'images' : 'video';
+  const t = useT();
 
   const [searchImages, setSearchImages] = useState<ImageRow[] | null>(null);
   const [searchVideos, setSearchVideos] = useState<VideoRow[] | null>(null);
@@ -111,10 +113,10 @@ export default function HomeContent({ userId, searchParams }: Props) {
               />
             ) : (
               <div className="text-center py-20 text-gray-400">
-                Нет видео по запросу «{searchQuery}»
+                {t('search.noVideos', { q: searchQuery })}
                 {searchImages && searchImages.length > 0 && (
                   <span className="block mt-2 text-gray-500">
-                    Найдено {searchImages.length} картинок — переключитесь на вкладку «Картинки»
+                    {t('search.foundImagesSwitch', { n: searchImages.length })}
                   </span>
                 )}
               </div>
@@ -136,10 +138,10 @@ export default function HomeContent({ userId, searchParams }: Props) {
               />
             ) : (
               <div className="text-center py-20 text-gray-400">
-                Нет картинок по запросу «{searchQuery}»
+                {t('search.noImages', { q: searchQuery })}
                 {searchVideos && searchVideos.length > 0 && (
                   <span className="block mt-2 text-gray-500">
-                    Найдено {searchVideos.length} видео — переключитесь на вкладку «Видео»
+                    {t('search.foundVideosSwitch', { n: searchVideos.length })}
                   </span>
                 )}
               </div>

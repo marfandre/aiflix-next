@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type Tab = 'video' | 'images';
 
 export default function FavoritesTabs() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const t = useT();
 
     const currentTab: Tab =
         searchParams.get('t') === 'images' ? 'images' : 'video';
@@ -33,7 +35,7 @@ export default function FavoritesTabs() {
                         : ' text-gray-700 hover:text-gray-900')
                 }
             >
-                Видео
+                {t('tabs.video')}
             </button>
 
             <button
@@ -47,7 +49,7 @@ export default function FavoritesTabs() {
                         : ' text-gray-700 hover:text-gray-900')
                 }
             >
-                Картинки
+                {t('tabs.images')}
             </button>
         </div>
     );

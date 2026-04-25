@@ -466,7 +466,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
   const deleteImage = async (imageId: string, imagePath: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u0443 \u043A\u0430\u0440\u0442\u0438\u043D\u043A\u0443?')) return;
+    if (!confirm('Удалить эту картинку?')) return;
     setDeletingId(imageId);
     try {
       const res = await fetch('/api/images/delete', {
@@ -477,7 +477,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         console.error('Delete error:', data.error);
-        alert('\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0438: ' + (data.error || '\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430'));
+        alert('Ошибка при удалении: ' + (data.error || 'Неизвестная ошибка'));
       } else {
         setImages(prev => prev.filter(im => im.id !== imageId));
       }
@@ -509,8 +509,8 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
 
   const feedEnded = !hasMore && !loading && images.length > 0;
 
-  if (loading) return <div className="py-6 text-gray-500">{"\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430..."}</div>;
-  if (images.length === 0) return <div className="py-6 text-gray-500">{"\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E"}</div>;
+  if (loading) return <div className="py-6 text-gray-500">{"Загрузка..."}</div>;
+  if (images.length === 0) return <div className="py-6 text-gray-500">{"Ничего не найдено"}</div>;
 
   return (
     <>

@@ -6,6 +6,7 @@ import LikeButton from "../LikeButton";
 import PromptModal from "../PromptModal";
 import { formatModelName, formatDate } from "./utils";
 import type { ImageRow, ImageVariant } from "./types";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 
 type Props = {
   selected: ImageRow;
@@ -23,6 +24,8 @@ export default function ImageModal({
   selected, variants, variantsLoading, tagsMap, userId, publicImageUrl, onClose,
   images, onNavigate,
 }: Props) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === 'ru' ? 'ru-RU' : 'en-US';
   const [slideIndex, setSlideIndex] = useState(0);
   const [modalHoveredColor, setModalHoveredColor] = useState<number | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -141,8 +144,8 @@ export default function ImageModal({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        if (res.status === 401) { alert('Войдите, чтобы сохранять промты'); setPromptSaved('idle'); return; }
-        throw new Error(j?.error || 'Ошибка');
+        if (res.status === 401) { alert(t('image.signInToSavePrompt')); setPromptSaved('idle'); return; }
+        throw new Error(j?.error || t('image.errorGeneric'));
       }
       const j = await res.json();
       setSavedPromptId(j?.id ?? null);
@@ -185,8 +188,8 @@ export default function ImageModal({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        if (res.status === 401) { alert('Войдите, чтобы сохранять палитры'); setPaletteSaved('idle'); return; }
-        throw new Error(j?.error || 'Ошибка');
+        if (res.status === 401) { alert(t('image.signInToSavePalette')); setPaletteSaved('idle'); return; }
+        throw new Error(j?.error || t('image.errorGeneric'));
       }
       const j = await res.json();
       setSavedPaletteId(j?.id ?? null);
@@ -431,7 +434,7 @@ export default function ImageModal({
                 <img
                   ref={imageRef}
                   src={publicImageUrl(currentVariant.path)}
-                  alt={(selected.title ?? "").trim() || "\u041A\u0430\u0440\u0442\u0438\u043D\u043A\u0430"}
+                  alt={(selected.title ?? "").trim() || t('image.fallbackTitle')}
                   className="max-w-full max-h-full object-contain"
                   onLoad={() => {
                     if (imageRef.current) setImageWidth(imageRef.current.offsetWidth);
@@ -483,7 +486,7 @@ export default function ImageModal({
               )}
             </>
           ) : (
-            <p className="text-sm text-white/60 p-8">{"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435."}</p>
+            <p className="text-sm text-white/60 p-8">{t('image.loadFailed')}</p>
           )}
         </div>
 
@@ -583,7 +586,7 @@ export default function ImageModal({
               {selected.prompt && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.prompt')}</h3>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
@@ -595,7 +598,7 @@ export default function ImageModal({
                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
-                            {"\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E"}
+                            {t('common.copied')}
                           </>
                         ) : (
                           <>
@@ -603,7 +606,7 @@ export default function ImageModal({
                               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                             </svg>
-                            {"\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C"}
+                            {t('common.copy')}
                           </>
                         )}
                       </button>
@@ -612,7 +615,7 @@ export default function ImageModal({
                         onClick={togglePromptSave}
                         disabled={promptSaved === 'saving'}
                         className={`flex h-7 w-7 items-center justify-center rounded-full transition ${promptSaved === 'error' ? 'bg-red-500/20 text-red-400' : savedPromptId ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'}`}
-                        title={savedPromptId ? 'Убрать из сохранённого' : 'Сохранить промт'}
+                        title={savedPromptId ? t('image.unsave') : t('image.savePrompt')}
                       >
                         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill={savedPromptId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -627,7 +630,7 @@ export default function ImageModal({
               {/* Description */}
               {selected.description && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.description')}</h3>
                   <p className="text-[13px] text-white/70 leading-relaxed">{selected.description}</p>
                 </div>
               )}
@@ -636,13 +639,13 @@ export default function ImageModal({
               {Array.isArray(currentColors) && currentColors.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0430\u043B\u0438\u0442\u0440\u0430"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.palette')}</h3>
                     <button
                       type="button"
                       onClick={togglePaletteSave}
                       disabled={paletteSaved === 'saving'}
                       className={`flex h-7 w-7 items-center justify-center rounded-full transition ${paletteSaved === 'error' ? 'bg-red-500/20 text-red-400' : savedPaletteId ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'}`}
-                      title={savedPaletteId ? 'Убрать из сохранённого' : 'Сохранить палитру'}
+                      title={savedPaletteId ? t('image.unsave') : t('image.savePalette')}
                     >
                       <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill={savedPaletteId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -687,7 +690,7 @@ export default function ImageModal({
               {/* Source */}
               {selected.source && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u0418\u0441\u0442\u043E\u0447\u043D\u0438\u043A"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.source')}</h3>
                   <div className="flex items-center gap-2 flex-wrap">
                     {selected.source_author && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/80">
@@ -716,7 +719,7 @@ export default function ImageModal({
               {/* Model + Format row */}
               <div className="flex flex-wrap items-center gap-3">
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.model')}</h3>
                   <button
                     type="button"
                     onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
@@ -725,7 +728,7 @@ export default function ImageModal({
                 </div>
                 {selected.aspect_ratio && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u0424\u043E\u0440\u043C\u0430\u0442"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.format')}</h3>
                     <button
                       type="button"
                       onClick={() => { window.location.href = `/?t=images&aspect=${encodeURIComponent(selected.aspect_ratio || '')}`; }}
@@ -738,7 +741,7 @@ export default function ImageModal({
               {/* Tags */}
               {selected.tags && selected.tags.length > 0 && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0422\u0435\u0433\u0438"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.tags')}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {selected.tags.map((t) => (
                       <button
@@ -755,8 +758,8 @@ export default function ImageModal({
               {/* Date */}
               {selected.created_at && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{"\u0414\u0430\u0442\u0430"}</h3>
-                  <span className="text-sm text-white/50">{new Date(selected.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.date')}</h3>
+                  <span className="text-sm text-white/50">{new Date(selected.created_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 </div>
               )}
             </div>
@@ -776,7 +779,7 @@ export default function ImageModal({
                   key={`accent-${c}-${index}`}
                   className="rounded-full border-2 border-white/30 shadow-lg"
                   style={{ backgroundColor: c, width: 18, height: 18 }}
-                  title={`\u0410\u043A\u0446\u0435\u043D\u0442: ${c}`}
+                  title={t('image.accentColor', { hex: c })}
                 />
               ))
             )}
@@ -806,7 +809,7 @@ export default function ImageModal({
               {selected.prompt ? (
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4 relative group/prompt">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.prompt')}</h3>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -817,7 +820,7 @@ export default function ImageModal({
                           if (icon && check) { icon.classList.add('hidden'); check.classList.remove('hidden'); setTimeout(() => { icon.classList.remove('hidden'); check.classList.add('hidden'); }, 1500); }
                         }}
                         className="text-white/30 hover:text-white/70 transition p-1 rounded-md hover:bg-white/10"
-                        title="Скопировать промт"
+                        title={t('image.copyPrompt')}
                       >
                         <svg id="copy-prompt-icon" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -836,7 +839,7 @@ export default function ImageModal({
                           savedPromptId ? 'text-white' :
                           'text-white/30 hover:text-white/70'
                         }`}
-                        title={savedPromptId ? 'Убрать из сохранённого' : 'Сохранить промт'}
+                        title={savedPromptId ? t('image.unsave') : t('image.savePrompt')}
                       >
                         <svg
                           className="h-4 w-4"
@@ -858,8 +861,8 @@ export default function ImageModal({
                 </div>
               ) : (
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4 opacity-40">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041F\u0440\u043E\u043C\u0442"}</h3>
-                  <p className="text-[13px] text-white/50 italic">{"\u041F\u0440\u043E\u043C\u0442 \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D"}</p>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.prompt')}</h3>
+                  <p className="text-[13px] text-white/50 italic">{t('image.promptEmpty')}</p>
                 </div>
               )}
 
@@ -867,7 +870,7 @@ export default function ImageModal({
               {Array.isArray(currentColors) && currentColors.filter(Boolean).length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3 pr-4">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Палитра</h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('image.palette')}</h3>
                     <button
                       type="button"
                       onClick={togglePaletteSave}
@@ -877,7 +880,7 @@ export default function ImageModal({
                         savedPaletteId ? 'text-white' :
                         'text-white/30 hover:text-white/70'
                       }`}
-                      title={savedPaletteId ? 'Убрать из сохранённого' : 'Сохранить палитру'}
+                      title={savedPaletteId ? t('image.unsave') : t('image.savePalette')}
                     >
                       <svg
                         className="h-4 w-4"
@@ -914,14 +917,14 @@ export default function ImageModal({
               {/* Description */}
               {selected.description && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.description')}</h3>
                   <p className="text-[13px] text-white/80 leading-relaxed">{selected.description}</p>
                 </div>
               )}
 
               {/* Author */}
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0410\u0432\u0442\u043E\u0440"}</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.author')}</h3>
                 <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
                   {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
                   <span className="text-sm text-white font-medium">{nick}</span>
@@ -931,7 +934,7 @@ export default function ImageModal({
               {/* Source */}
               {selected.source && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0418\u0441\u0442\u043E\u0447\u043D\u0438\u043A"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.source')}</h3>
                   <div className="flex items-center gap-2 flex-wrap">
                     {selected.source_author && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-sm text-white/80">
@@ -964,7 +967,7 @@ export default function ImageModal({
 
               {/* Model */}
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u041C\u043E\u0434\u0435\u043B\u044C"}</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.model')}</h3>
                 <button
                   type="button"
                   onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
@@ -975,7 +978,7 @@ export default function ImageModal({
               {/* Format */}
               {selected.aspect_ratio && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0424\u043E\u0440\u043C\u0430\u0442"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.format')}</h3>
                   <button
                     type="button"
                     onClick={() => { window.location.href = `/?t=images&aspect=${encodeURIComponent(selected.aspect_ratio || '')}`; }}
@@ -987,7 +990,7 @@ export default function ImageModal({
               {/* Tags */}
               {selected.tags && selected.tags.length > 0 && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0422\u0435\u0433\u0438"}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.tags')}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {selected.tags.map((t) => (
                       <button
@@ -1004,8 +1007,8 @@ export default function ImageModal({
               {/* Date */}
               {selected.created_at && (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{"\u0414\u0430\u0442\u0430"}</h3>
-                  <span className="text-sm text-white/60">{new Date(selected.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.date')}</h3>
+                  <span className="text-sm text-white/60">{new Date(selected.created_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 </div>
               )}
             </div>
@@ -1022,7 +1025,7 @@ export default function ImageModal({
                     <div className="relative inline-flex">
                       <img
                         src={publicImageUrl(currentVariant.path)}
-                        alt={(selected.title ?? "").trim() || "\u041A\u0430\u0440\u0442\u0438\u043D\u043A\u0430"}
+                        alt={(selected.title ?? "").trim() || t('image.fallbackTitle')}
                         className="max-h-[90vh] max-w-full object-contain"
                         onLoad={(e) => setImageWidth((e.target as HTMLImageElement).offsetWidth)}
                       />
@@ -1050,7 +1053,7 @@ export default function ImageModal({
                           type="button"
                           onClick={() => setSlideIndex((i) => (i - 1 + variants.length) % variants.length)}
                           className="group absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 shadow-sm backdrop-blur-sm hover:bg-black/60"
-                          title="\u041F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0435\u0435 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435"
+                          title={t('image.prev')}
                         >
                           <span className="block text-lg leading-none text-white transition-transform group-hover:-translate-x-0.5">{"\u2039"}</span>
                         </button>
@@ -1087,7 +1090,7 @@ export default function ImageModal({
                               <line x1="16" y1="13" x2="8" y2="13" />
                               <line x1="16" y1="17" x2="8" y2="17" />
                             </svg>
-                            {"\u041F\u0440\u043E\u043C\u0442"}
+                            {t('image.prompt')}
                           </button>
                           {selected.created_at && (
                             <span className="text-[10px] text-white/50">{formatDate(selected.created_at)}</span>
@@ -1125,7 +1128,7 @@ export default function ImageModal({
                     </div>
                   </>
                 ) : (
-                  <p className="text-sm text-white/60 p-8">{"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435."}</p>
+                  <p className="text-sm text-white/60 p-8">{t('image.loadFailed')}</p>
                 )}
               </div>
             </div>
@@ -1138,7 +1141,7 @@ export default function ImageModal({
             type="button"
             onClick={shareImage}
             className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${copied ? 'bg-green-500/80 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'}`}
-            title={copied ? '\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E!' : '\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F'}
+            title={copied ? t('image.copiedExcl') : t('image.share')}
           >
             {copied ? (
               <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -1163,7 +1166,7 @@ export default function ImageModal({
             type="button"
             onClick={() => setShowPrompt((v) => !v)}
             className={`flex h-14 w-14 items-center justify-center rounded-xl transition ${showPrompt ? 'bg-white/30 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'}`}
-            title="\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F"
+            title={t('image.info')}
           >
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />

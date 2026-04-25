@@ -5,6 +5,7 @@ import Link from "next/link";
 import LikeButton from "../LikeButton";
 import ColorChart from "./ColorChart";
 import type { ImageRow } from "./types";
+import { useT } from "@/lib/i18n/I18nProvider";
 
 type Props = {
   image: ImageRow;
@@ -21,6 +22,7 @@ function ImageCard({
   image: im, userId, showAuthor, isOwnerView,
   deletingId, publicImageUrl, onOpen, onDelete,
 }: Props) {
+  const t = useT();
   const [expandedChart, setExpandedChart] = useState(false);
   const [hoveredColorIndex, setHoveredColorIndex] = useState<number | null>(null);
 
@@ -28,7 +30,7 @@ function ImageCard({
   const nick: string = p?.username ?? "user";
   const avatar: string | null = p?.avatar_url ?? null;
   const url = publicImageUrl(im.path);
-  const title = (im.title ?? "").trim() || "\u041A\u0430\u0440\u0442\u0438\u043D\u043A\u0430";
+  const title = (im.title ?? "").trim() || t('image.fallbackTitle');
   const imagesCount = typeof im.images_count === "number" ? im.images_count : 1;
   const showCarouselBadge = imagesCount > 1;
 
@@ -119,7 +121,7 @@ function ImageCard({
               type="button"
               onClick={(e) => { e.stopPropagation(); window.location.href = `/images/${im.id}/edit`; }}
               className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-              title="\u0420\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C"
+              title={t('image.editTooltip')}
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
@@ -130,7 +132,7 @@ function ImageCard({
               onClick={(e) => onDelete(im.id, im.path, e)}
               disabled={deletingId === im.id}
               className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-600 disabled:opacity-50"
-              title="\u0423\u0434\u0430\u043B\u0438\u0442\u044C"
+              title={t('image.deleteTooltip')}
             >
               {deletingId === im.id ? (
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />

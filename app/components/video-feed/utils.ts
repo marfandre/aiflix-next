@@ -17,7 +17,7 @@ const MODEL_LABELS: Record<string, string> = {
 };
 
 export function formatModelName(raw?: string | null): string {
-  if (!raw) return "\u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u0430";
+  if (!raw) return "не указана";
   const key = raw.toLowerCase();
   return MODEL_LABELS[key] ?? raw;
 }

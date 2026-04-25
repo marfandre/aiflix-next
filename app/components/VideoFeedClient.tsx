@@ -177,7 +177,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
 
   const deleteVideo = async (videoId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u043E \u0432\u0438\u0434\u0435\u043E?")) return;
+    if (!confirm("Удалить это видео?")) return;
     setDeletingId(videoId);
     try {
       const res = await fetch("/api/videos/delete", {
@@ -188,7 +188,7 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         console.error("Delete error:", data.error);
-        alert("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0438: " + (data.error || "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430"));
+        alert("Ошибка при удалении: " + (data.error || "Неизвестная ошибка"));
       } else {
         setVideos(prev => prev.filter(v => v.id !== videoId));
       }
@@ -197,8 +197,8 @@ export default function VideoFeedClient({ userId, initialVideos, showAuthor = tr
     }
   };
 
-  if (loading) return <div className="py-6 text-gray-500">{"\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430..."}</div>;
-  if (videos.length === 0) return <div className="py-6 text-gray-500">{"\u041D\u0435\u0442 \u0432\u0438\u0434\u0435\u043E"}</div>;
+  if (loading) return <div className="py-6 text-gray-500">{"Загрузка..."}</div>;
+  if (videos.length === 0) return <div className="py-6 text-gray-500">{"Нет видео"}</div>;
 
   return (
     <>

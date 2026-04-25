@@ -188,7 +188,12 @@
       "Read(//c/Users/**)",
       "Bash(python -c \"import matplotlib; print\\(matplotlib.matplotlib_fname\\(\\)\\)\")",
       "Bash(python -c ':*)",
-      "Bash(python generate_report.py)"
+      "Bash(python generate_report.py)",
+      "Bash(grep -n \"Картинка\\\\|041A\\\\\\\\\\\\\\\\u\" c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/app/components/image-feed/ImageCard.tsx)",
+      "Bash(python -c ' *)",
+      "Bash(grep -rl '\\\\\\\\u04' c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/app c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/lib)",
+      "Bash(python scripts/_decode_unicode_escapes.py)",
+      "Bash(grep -v '^[0-9]*:.*//')"
     ]
   }
 }

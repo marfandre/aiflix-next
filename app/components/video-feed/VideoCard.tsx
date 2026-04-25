@@ -5,6 +5,7 @@ import Link from "next/link";
 import LikeButton from "../LikeButton";
 import { muxPoster } from "./utils";
 import type { VideoRow } from "./types";
+import { useT } from "@/lib/i18n/I18nProvider";
 
 type Props = {
   video: VideoRow;
@@ -20,6 +21,7 @@ function VideoCard({
   video: v, userId, showAuthor, isOwnerView,
   deletingId, onOpen, onDelete,
 }: Props) {
+  const t = useT();
   const [expandedChart, setExpandedChart] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [hoverKey, setHoverKey] = useState(0);
@@ -27,7 +29,7 @@ function VideoCard({
   const p = Array.isArray(v.profiles) ? v.profiles[0] : v.profiles;
   const nick: string = p?.username ?? "user";
   const avatar: string | null = p?.avatar_url ?? null;
-  const title = (v.title ?? "").trim() || "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F";
+  const title = (v.title ?? "").trim() || t('video.fallbackTitle');
 
   // Color chart helpers
   const staticColors = (v.colors ?? []).slice(0, 5);
@@ -99,7 +101,7 @@ function VideoCard({
                   ? "0 4px 12px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.3)"
                   : "0 1px 3px rgba(0,0,0,0.3)",
               }}
-              title={`\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0447\u0442\u043E\u0431\u044B ${isExpanded ? "\u0441\u0432\u0435\u0440\u043D\u0443\u0442\u044C" : "\u0443\u0432\u0435\u043B\u0438\u0447\u0438\u0442\u044C"}`}
+              title={isExpanded ? t('video.colorChartHint.collapse') : t('video.colorChartHint.expand')}
             >
               <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-full overflow-hidden">
                 {isExpanded && (
@@ -150,7 +152,7 @@ function VideoCard({
             type="button"
             onClick={(e) => { e.stopPropagation(); window.location.href = `/film/${v.id}/edit`; }}
             className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-            title="Редактировать"
+            title={t('image.editTooltip')}
           >
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
@@ -161,7 +163,7 @@ function VideoCard({
             onClick={(e) => onDelete(v.id, e)}
             disabled={deletingId === v.id}
             className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-600 disabled:opacity-50"
-            title="Удалить видео"
+            title={t('video.deleteTooltip')}
           >
             {deletingId === v.id ? (
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />

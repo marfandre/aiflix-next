@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 /**
  * Выпадающее меню профиля с пунктами:
@@ -12,6 +13,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
  */
 export default function ProfileDropdown() {
     const supabase = createClientComponentClient();
+    const t = useT();
     const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
@@ -78,7 +80,7 @@ export default function ProfileDropdown() {
                     onClick={() => setAuthModalOpen(true)}
                     className="px-3 py-1 rounded-full text-sm font-medium text-[#1e3a5f] ring-1 ring-[#1e3a5f] transition-all duration-200 hover:bg-[#1e3a5f] hover:text-white"
                 >
-                    Войти
+                    {t('auth.signIn')}
                 </button>
                 {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
             </>
@@ -96,7 +98,7 @@ export default function ProfileDropdown() {
                 {avatarUrl ? (
                     <img
                         src={avatarUrl}
-                        alt="Аватар"
+                        alt={t('menu.avatarAlt')}
                         className="h-7 w-7 rounded-full object-cover"
                     />
                 ) : (
@@ -134,28 +136,28 @@ export default function ProfileDropdown() {
                         onClick={() => setOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                        Профиль
+                        {t('menu.profile')}
                     </Link>
                     <Link
                         href="/account"
                         onClick={() => setOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                        Личный кабинет
+                        {t('menu.account')}
                     </Link>
                     <Link
                         href="/saved"
                         onClick={() => setOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                        Сохранённое
+                        {t('menu.saved')}
                     </Link>
                     <Link
                         href="/favorites"
                         onClick={() => setOpen(false)}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                        Понравилось
+                        {t('menu.liked')}
                         <svg
                             className="h-4 w-4 text-red-400"
                             fill="none"
@@ -175,7 +177,7 @@ export default function ProfileDropdown() {
                         onClick={handleSignOut}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                     >
-                        Выйти
+                        {t('auth.signOut')}
                     </button>
                 </div>
             )}
@@ -186,6 +188,7 @@ export default function ProfileDropdown() {
 /** Встроенная модалка авторизации через Google */
 function AuthModal({ onClose }: { onClose: () => void }) {
     const supabase = createClientComponentClient();
+    const t = useT();
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -214,7 +217,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
                 <button
                     onClick={onClose}
                     className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-                    aria-label="Закрыть"
+                    aria-label={t('common.close')}
                 >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -228,10 +231,10 @@ function AuthModal({ onClose }: { onClose: () => void }) {
                         className="mb-2 h-20 w-auto object-contain"
                     />
                     <h3 className="text-lg font-semibold text-[#1e3a5f]">
-                        Добро пожаловать
+                        {t('auth.welcome')}
                     </h3>
                     <p className="mt-1.5 text-sm text-gray-500">
-                        Сохраняйте понравившееся и загружайте свои работы
+                        {t('auth.welcomeSub')}
                     </p>
                 </div>
 
@@ -252,12 +255,11 @@ function AuthModal({ onClose }: { onClose: () => void }) {
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
                     </svg>
-                    {loading ? 'Переход в Google…' : 'Войти через Google'}
+                    {loading ? t('auth.redirectGoogle') : t('auth.continueGoogle')}
                 </button>
 
-                <p className="mt-6 text-center text-xs text-gray-400">
-                    Продолжая, вы соглашаетесь с условиями использования
-                    <br />и политикой конфиденциальности
+                <p className="mt-6 text-center text-xs text-gray-400 whitespace-pre-line">
+                    {t('auth.terms')}
                 </p>
             </div>
         </div>

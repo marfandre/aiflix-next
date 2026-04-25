@@ -9,6 +9,7 @@ import Link from 'next/link';
 import FavoritesTabs from './FavoritesTabs';
 import FavoritesClient from './FavoritesClient';
 import LikeButton from '@/app/components/LikeButton';
+import { FavoritesHeader, FavoritesEmptyVideos } from './FavoritesHeader';
 
 type PageProps = { searchParams?: { t?: string } };
 type Tab = 'video' | 'images';
@@ -84,13 +85,7 @@ export default async function FavoritesPage({ searchParams }: PageProps) {
 
     return (
         <div className="mx-auto max-w-6xl p-4 sm:p-6">
-            {/* Заголовок */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold">Понравилось ❤️</h1>
-                <p className="mt-1 text-sm text-gray-500">
-                    Контент, на который вы поставили лайк
-                </p>
-            </div>
+            <FavoritesHeader />
 
             {/* Вкладки */}
             <div className="mb-6 flex justify-center">
@@ -125,11 +120,7 @@ export default async function FavoritesPage({ searchParams }: PageProps) {
                         </div>
                     ))}
 
-                    {videos.length === 0 && (
-                        <div className="col-span-full text-center text-sm text-gray-500 py-12">
-                            Вы ещё не поставили лайк ни на одно видео.
-                        </div>
-                    )}
+                    {videos.length === 0 && <FavoritesEmptyVideos />}
                 </div>
             )}
 
