@@ -6,9 +6,9 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 export default async function MyProfileRedirect() {
   const supa = createServerComponentClient({ cookies });
 
-  // 1) не залогинен → на страницу аккаунта
+  // 1) не залогинен → на страницу загрузки (там есть форма входа)
   const { data: { user } } = await supa.auth.getUser();
-  if (!user) redirect('/account');
+  if (!user) redirect('/upload');
 
   // 2) пробуем найти запись профиля
   const { data: profile } = await supa
@@ -17,11 +17,11 @@ export default async function MyProfileRedirect() {
     .eq('id', user.id)
     .maybeSingle();
 
-  // нет строки в profiles → первичная настройка
-  if (!profile) redirect('/account?setup=1');
+  // нет строки в profiles или нет ника → на главную, ник можно задать позже из публичного профиля
+  if (!profile) redirect('/');
 
   const username = profile?.username?.trim();
-  if (!username) redirect('/account?setup=1');
+  if (!username) redirect('/');
 
   // 3) всё ок → публичный профиль
   redirect(`/u/${encodeURIComponent(username)}`);

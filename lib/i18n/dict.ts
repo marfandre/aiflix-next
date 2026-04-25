@@ -97,7 +97,6 @@ export const dict: Record<Locale, Dict> = {
 
     // profile menu
     'menu.profile': 'Профиль',
-    'menu.account': 'Личный кабинет',
     'menu.saved': 'Сохранённое',
     'menu.liked': 'Понравилось',
     'menu.avatarAlt': 'Аватар',
@@ -268,6 +267,10 @@ export const dict: Record<Locale, Dict> = {
     'profile.bioLabel': 'О себе',
     'profile.avatarPreviewAlt': 'avatar preview',
     'profile.saveErrorGeneric': 'Ошибка при сохранении',
+    'profile.usernameLabel': 'Ник',
+    'profile.usernamePlaceholder': 'Ваш ник',
+    'profile.usernameLengthError': 'Ник от 2 до 32 символов',
+    'profile.usernameTaken': 'Этот ник уже занят',
 
     // favorites / saved
     'favorites.title': 'Понравившееся',
@@ -282,19 +285,6 @@ export const dict: Record<Locale, Dict> = {
     'saved.source': 'источник →',
 
     // account
-    'account.title': 'Личный кабинет',
-    'account.email': 'Почта',
-    'account.changePassword': 'Сменить пароль',
-    'account.deleteAccount': 'Удалить аккаунт',
-    'account.nicknameLabel': 'Ник:',
-    'account.noNickname': 'Без ника',
-    'account.editNickname': 'Изменить ник',
-    'account.nicknamePlaceholder': 'Ваш ник',
-    'account.nicknameSaveError': 'Не удалось сохранить ник',
-    'account.deleteImageError': 'Ошибка удаления',
-    'account.deleteImageFailed': 'Не удалось удалить',
-    'account.processing': 'Обработка…',
-    'account.empty': 'Пока пусто.',
 
     // language switcher
     'lang.label': 'Язык',
@@ -384,7 +374,6 @@ export const dict: Record<Locale, Dict> = {
     'aspect.ultrawide': '21:9 — Ultrawide',
 
     'menu.profile': 'Profile',
-    'menu.account': 'Account',
     'menu.saved': 'Saved',
     'menu.liked': 'Liked',
     'menu.avatarAlt': 'Avatar',
@@ -549,6 +538,10 @@ export const dict: Record<Locale, Dict> = {
     'profile.bioLabel': 'About',
     'profile.avatarPreviewAlt': 'avatar preview',
     'profile.saveErrorGeneric': 'Save failed',
+    'profile.usernameLabel': 'Username',
+    'profile.usernamePlaceholder': 'Your username',
+    'profile.usernameLengthError': 'Username must be 2–32 characters',
+    'profile.usernameTaken': 'This username is already taken',
 
     'favorites.title': 'Liked',
     'favorites.empty': 'Nothing liked yet',
@@ -561,19 +554,6 @@ export const dict: Record<Locale, Dict> = {
     'saved.confirmDeletePalette': 'Delete saved palette?',
     'saved.source': 'source →',
 
-    'account.title': 'Account',
-    'account.email': 'Email',
-    'account.changePassword': 'Change password',
-    'account.deleteAccount': 'Delete account',
-    'account.nicknameLabel': 'Nickname:',
-    'account.noNickname': 'No nickname',
-    'account.editNickname': 'Edit nickname',
-    'account.nicknamePlaceholder': 'Your nickname',
-    'account.nicknameSaveError': 'Failed to save nickname',
-    'account.deleteImageError': 'Delete failed',
-    'account.deleteImageFailed': 'Failed to delete',
-    'account.processing': 'Processing…',
-    'account.empty': 'Nothing here yet.',
 
     'lang.label': 'Language',
     'lang.ru': 'Русский',

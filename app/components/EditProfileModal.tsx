@@ -11,6 +11,7 @@ type Props = {
   initialLast: string;
   initialAvatarUrl: string;
   initialBio: string;
+  initialUsername: string;
 };
 
 export default function EditProfileModal({
@@ -20,6 +21,7 @@ export default function EditProfileModal({
   initialLast,
   initialAvatarUrl,
   initialBio,
+  initialUsername,
 }: Props) {
   const supabase = createClientComponentClient();
   const t = useT();
@@ -33,6 +35,7 @@ export default function EditProfileModal({
   const [firstName, setFirstName] = useState(initialFirst);
   const [lastName, setLastName] = useState(initialLast);
   const [bio, setBio] = useState(initialBio);
+  const [username, setUsername] = useState(initialUsername);
 
   // текущий аватар
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
@@ -55,6 +58,14 @@ export default function EditProfileModal({
     try {
       setSaving(true);
       setError(null);
+
+      const trimmedUsername = username.trim();
+      const usernameChanged = trimmedUsername !== initialUsername.trim();
+      if (usernameChanged && (trimmedUsername.length < 2 || trimmedUsername.length > 32)) {
+        setError(t('profile.usernameLengthError'));
+        setSaving(false);
+        return;
+      }
 
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr || !user) throw new Error(t('profile.userResolveFailed'));
@@ -80,21 +91,36 @@ export default function EditProfileModal({
         newAvatarUrl = pub.publicUrl;
       }
 
+      const updates: Record<string, unknown> = {
+        first_name: firstName,
+        last_name: lastName,
+        bio,
+        avatar_url: newAvatarUrl,
+      };
+      if (usernameChanged) updates.username = trimmedUsername;
+
       const { error: updErr } = await supabase
         .from('profiles')
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          bio,
-          avatar_url: newAvatarUrl,
-        })
+        .update(updates)
         .eq('id', user.id);
 
-      if (updErr) throw updErr;
+      if (updErr) {
+        // Postgres unique violation для username
+        if (updErr.code === '23505' || /unique|duplicate/i.test(updErr.message)) {
+          throw new Error(t('profile.usernameTaken'));
+        }
+        throw updErr;
+      }
 
       setOpen(false);
-      // Перезагрузим, чтобы сразу увидеть изменения
-      if (typeof window !== 'undefined') window.location.reload();
+      // Если ник поменяли — URL /u/[old] устарел, переходим на новый.
+      if (typeof window !== 'undefined') {
+        if (usernameChanged) {
+          window.location.href = `/u/${encodeURIComponent(trimmedUsername)}`;
+        } else {
+          window.location.reload();
+        }
+      }
     } catch (e: any) {
       setError(e?.message || t('profile.saveErrorGeneric'));
     } finally {
@@ -156,6 +182,22 @@ export default function EditProfileModal({
                   <p className="mt-1 text-xs text-gray-500">
                     {t('profile.avatarOptionalHint')}
                   </p>
+                </div>
+              </div>
+
+              {/* Ник */}
+              <div className="mb-3">
+                <label className="mb-1 block text-sm">{t('profile.usernameLabel')}</label>
+                <div className="flex items-center rounded border px-3 py-2 focus-within:ring-1 focus-within:ring-gray-400">
+                  <span className="text-gray-400 select-none">@</span>
+                  <input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder={t('profile.usernamePlaceholder')}
+                    minLength={2}
+                    maxLength={32}
+                    className="flex-1 bg-transparent outline-none ml-1"
+                  />
                 </div>
               </div>
 

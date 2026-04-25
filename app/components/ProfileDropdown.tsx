@@ -139,13 +139,6 @@ export default function ProfileDropdown() {
                         {t('menu.profile')}
                     </Link>
                     <Link
-                        href="/account"
-                        onClick={() => setOpen(false)}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                        {t('menu.account')}
-                    </Link>
-                    <Link
                         href="/saved"
                         onClick={() => setOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

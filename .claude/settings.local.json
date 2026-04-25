@@ -193,7 +193,8 @@
       "Bash(python -c ' *)",
       "Bash(grep -rl '\\\\\\\\u04' c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/app c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/lib)",
       "Bash(python scripts/_decode_unicode_escapes.py)",
-      "Bash(grep -v '^[0-9]*:.*//')"
+      "Bash(grep -v '^[0-9]*:.*//')",
+      "Bash(grep -v \"//.*account\")"
     ]
   }
 }

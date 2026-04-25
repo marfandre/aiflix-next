@@ -23,6 +23,6 @@ export default async function ProfileRedirectPage() {
     if (profile?.username) {
         redirect(`/u/${profile.username}`);
     } else {
-        redirect('/account'); // fallback if no username is set yet
+        redirect('/'); // no username yet — bring them home
     }
 }
