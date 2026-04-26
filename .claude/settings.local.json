@@ -194,7 +194,13 @@
       "Bash(grep -rl '\\\\\\\\u04' c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/app c:/Users/Андрей/Downloads/aiflix_mvp/aiflix/lib)",
       "Bash(python scripts/_decode_unicode_escapes.py)",
       "Bash(grep -v '^[0-9]*:.*//')",
-      "Bash(grep -v \"//.*account\")"
+      "Bash(grep -v \"//.*account\")",
+      "WebFetch(domain:waiva.art)",
+      "Bash(curl -sI https://waiva.art)",
+      "Bash(curl -sI https://www.waiva.art)",
+      "Bash(curl -s https://waiva.art)",
+      "Bash(curl -sL https://waiva.art -o /tmp/waiva.html)",
+      "Read(//tmp/**)"
     ]
   }
 }
