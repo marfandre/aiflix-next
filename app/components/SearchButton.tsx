@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { ColorWheel } from './ColorWheel';
 import TagSelector from './TagSelector';
+import { useT } from '@/lib/i18n/I18nProvider';
+import type { DictKey } from '@/lib/i18n/dict';
 
 type SearchResultFilm = {
   id: string;
@@ -79,34 +81,35 @@ const MODEL_SEARCH_KEYS: Record<string, string> = {
   'Runway': 'runway',
 };
 
-const ASPECT_RATIO_OPTIONS = [
-  { value: '1:1', label: '1:1', hint: 'Квадрат' },
-  { value: '16:9', label: '16:9', hint: 'Широкий' },
-  { value: '9:16', label: '9:16', hint: 'Вертикаль' },
-  { value: '4:3', label: '4:3', hint: '' },
-  { value: '3:4', label: '3:4', hint: '' },
-  { value: '3:2', label: '3:2', hint: '' },
-  { value: '2:3', label: '2:3', hint: '' },
-  { value: '21:9', label: '21:9', hint: 'Панорама' },
+const ASPECT_RATIO_OPTIONS: { value: string; label: string; hintKey?: DictKey }[] = [
+  { value: '1:1', label: '1:1', hintKey: 'aspect.hint.square' },
+  { value: '16:9', label: '16:9', hintKey: 'aspect.hint.wide' },
+  { value: '9:16', label: '9:16', hintKey: 'aspect.hint.vertical' },
+  { value: '4:3', label: '4:3' },
+  { value: '3:4', label: '3:4' },
+  { value: '3:2', label: '3:2' },
+  { value: '2:3', label: '2:3' },
+  { value: '21:9', label: '21:9', hintKey: 'aspect.hint.panorama' },
 ];
 
 // MOOD_SUGGESTIONS и IMAGE_TYPE_SUGGESTIONS удалены — теперь используем TagSelector
 
-// Палитра цветов для выбора (соответствует корзинам в БД)
-const COLOR_PALETTE = [
-  { id: 'red', hex: '#FF1744', label: 'Красный', en: 'red' },
-  { id: 'orange', hex: '#FF6D00', label: 'Оранжевый', en: 'orange' },
-  { id: 'yellow', hex: '#FFEA00', label: 'Жёлтый', en: 'yellow' },
-  { id: 'green', hex: '#00E676', label: 'Зелёный', en: 'green' },
-  { id: 'teal', hex: '#1DE9B6', label: 'Бирюзовый', en: 'teal' },
-  { id: 'cyan', hex: '#00E5FF', label: 'Голубой', en: 'cyan' },
-  { id: 'blue', hex: '#2979FF', label: 'Синий', en: 'blue' },
-  { id: 'indigo', hex: '#651FFF', label: 'Индиго', en: 'indigo' },
-  { id: 'purple', hex: '#D500F9', label: 'Фиолетовый', en: 'purple' },
-  { id: 'pink', hex: '#FF4081', label: 'Розовый', en: 'pink' },
-  { id: 'brown', hex: '#8D6E63', label: 'Коричневый', en: 'brown' },
-  { id: 'black', hex: '#121212', label: 'Чёрный', en: 'black' },
-  { id: 'white', hex: '#FAFAFA', label: 'Белый', en: 'white' },
+// Палитра цветов для выбора (соответствует корзинам в БД).
+// label берём из i18n (color.<id>) при рендере.
+const COLOR_PALETTE: { id: string; hex: string; en: string }[] = [
+  { id: 'red', hex: '#FF1744', en: 'red' },
+  { id: 'orange', hex: '#FF6D00', en: 'orange' },
+  { id: 'yellow', hex: '#FFEA00', en: 'yellow' },
+  { id: 'green', hex: '#00E676', en: 'green' },
+  { id: 'teal', hex: '#1DE9B6', en: 'teal' },
+  { id: 'cyan', hex: '#00E5FF', en: 'cyan' },
+  { id: 'blue', hex: '#2979FF', en: 'blue' },
+  { id: 'indigo', hex: '#651FFF', en: 'indigo' },
+  { id: 'purple', hex: '#D500F9', en: 'purple' },
+  { id: 'pink', hex: '#FF4081', en: 'pink' },
+  { id: 'brown', hex: '#8D6E63', en: 'brown' },
+  { id: 'black', hex: '#121212', en: 'black' },
+  { id: 'white', hex: '#FAFAFA', en: 'white' },
 ];
 
 // Оттенки для AI-контента: более насыщенные, с неоновыми акцентами
@@ -214,6 +217,7 @@ function hexToEnglishColorName(hex: string): string {
 
 export default function SearchButton() {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [includeVideo, setIncludeVideo] = useState(false);
   const [includeImages, setIncludeImages] = useState(false);
@@ -341,7 +345,7 @@ export default function SearchButton() {
         if (res.status === 503) {
           // Модель загружается — ждём и повторяем
           const retryAfter = Number(res.headers.get('Retry-After') ?? 5);
-          setError(`AI модель загружается... (${attempt + 1}/6)`);
+          setError(t('search.modal.aiLoading', { n: attempt + 1 }));
           await new Promise((r) => setTimeout(r, retryAfter * 1000));
           setError(null);
           continue;
@@ -349,17 +353,17 @@ export default function SearchButton() {
 
         if (!res.ok) {
           const text = await res.text();
-          throw new Error(text || 'Ошибка семантического поиска');
+          throw new Error(text || t('search.modal.semanticError'));
         }
 
         await res.json();
         return; // успех
       }
 
-      throw new Error('AI модель не загрузилась. Попробуйте ещё раз.');
+      throw new Error(t('search.modal.aiFailed'));
     } catch (e: any) {
       console.error('semantic search error', e);
-      setError(e?.message ?? 'Ошибка семантического поиска');
+      setError(e?.message ?? t('search.modal.semanticError'));
     } finally {
       setSemanticLoading(false);
     }
@@ -485,7 +489,7 @@ export default function SearchButton() {
 
   // Форматирование названия модели
   function formatModelName(raw?: string | null): string {
-    if (!raw) return 'не указана';
+    if (!raw) return t('image.modelUnknown');
     const labels: Record<string, string> = {
       sora: 'Sora', midjourney: 'MidJourney', 'stable diffusion xl': 'Stable Diffusion XL',
       sdxl: 'SDXL', flux: 'Flux', dalle: 'DALL·E', 'dalle 3': 'DALL·E 3',
@@ -508,7 +512,7 @@ export default function SearchButton() {
         type="button"
         onClick={() => setOpen(true)}
         className="flex items-center justify-center rounded-xl bg-gray-100 p-2.5 transition hover:bg-gray-200"
-        title="Поиск"
+        title={t('search.modal.title')}
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-gray-400">
           <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
@@ -526,9 +530,9 @@ export default function SearchButton() {
                 {/* Заголовок */}
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">Поиск</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('search.modal.title')}</h2>
                     <p className="mt-1 text-xs text-gray-500">
-                      Настрой фильтры по цветам, тегам и моделям.
+                      {t('search.modal.subtitle')}
                     </p>
                   </div>
                   <button
@@ -554,7 +558,7 @@ export default function SearchButton() {
                       : 'border-gray-200 text-gray-500'
                       }`}
                   >
-                    Видео
+                    {t('tabs.video')}
                   </button>
                   <button
                     type="button"
@@ -564,7 +568,7 @@ export default function SearchButton() {
                       : 'border-gray-200 text-gray-500'
                       }`}
                   >
-                    Картинки
+                    {t('tabs.images')}
                   </button>
                 </div>
 
@@ -581,19 +585,19 @@ export default function SearchButton() {
                     {/* Теги (жанры + атмосфера + сцена) */}
                     <div>
                       <label className="mb-1 block text-xs font-medium text-gray-600">
-                        Теги (жанры, атмосфера, сцена)
+                        {t('search.modal.tagsLabel')}
                       </label>
                       <TagSelector
                         selectedTags={selectedTags}
                         onTagsChange={setSelectedTags}
                         maxTags={10}
-                        placeholder="Введите тег..."
+                        placeholder={t('search.modal.tagsPlaceholder')}
                       />
                     </div>
 
                     {/* Модель */}
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">Модель</label>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">{t('search.modal.modelLabel')}</label>
                       <div className="relative" ref={modelDropdownRef}>
                         {/* Контейнер с чипами и input */}
                         <div
@@ -626,7 +630,7 @@ export default function SearchButton() {
                             value={modelInput}
                             onChange={(e) => setModelInput(e.target.value)}
                             onFocus={() => setDropdownModelOpen(true)}
-                            placeholder={selectedModels.length === 0 ? "начните вводить название модели" : ""}
+                            placeholder={selectedModels.length === 0 ? t('search.modal.modelPlaceholder') : ""}
                             className="flex-1 min-w-[100px] border-none outline-none bg-transparent text-sm placeholder:text-gray-400"
                           />
                         </div>
@@ -648,7 +652,7 @@ export default function SearchButton() {
                                 </button>
                               ))
                             ) : (
-                              <div className="px-3 py-1 text-gray-400">Модель не найдена</div>
+                              <div className="px-3 py-1 text-gray-400">{t('search.modal.modelNotFound')}</div>
                             )}
                           </div>
                         )}
@@ -657,7 +661,7 @@ export default function SearchButton() {
 
                     {/* Соотношение сторон */}
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">Соотношение сторон</label>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">{t('search.modal.aspectLabel')}</label>
                       <div className="relative" ref={aspectDropdownRef}>
                         <div
                           className="flex flex-wrap items-center gap-1.5 min-h-[40px] rounded-lg border border-gray-200 bg-white px-2 py-1.5 cursor-text"
@@ -680,31 +684,35 @@ export default function SearchButton() {
                             value={aspectInput}
                             onChange={(e) => { setAspectInput(e.target.value); setDropdownAspectOpen(true); }}
                             onFocus={() => setDropdownAspectOpen(true)}
-                            placeholder={selectedAspect ? '' : 'например 16:9 или 1:1'}
+                            placeholder={selectedAspect ? '' : t('search.modal.aspectPlaceholder')}
                             className="flex-1 min-w-[120px] border-none outline-none bg-transparent text-sm placeholder:text-gray-400"
                           />
                         </div>
                         {dropdownAspectOpen && (() => {
-                          const filtered = ASPECT_RATIO_OPTIONS.filter((opt) =>
-                            opt.value.includes(aspectInput) || opt.hint.toLowerCase().includes(aspectInput.toLowerCase())
-                          );
+                          const filtered = ASPECT_RATIO_OPTIONS.filter((opt) => {
+                            const hint = opt.hintKey ? t(opt.hintKey) : '';
+                            return opt.value.includes(aspectInput) || hint.toLowerCase().includes(aspectInput.toLowerCase());
+                          });
                           return filtered.length > 0 ? (
                             <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border bg-white text-xs shadow">
-                              {filtered.map((opt) => (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedAspect(opt.value);
-                                    setAspectInput('');
-                                    setDropdownAspectOpen(false);
-                                  }}
-                                  className={`flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-gray-100 ${selectedAspect === opt.value ? 'font-medium text-gray-900' : 'text-gray-700'}`}
-                                >
-                                  <span>{opt.label}</span>
-                                  {opt.hint && <span className="text-[10px] text-gray-400">{opt.hint}</span>}
-                                </button>
-                              ))}
+                              {filtered.map((opt) => {
+                                const hint = opt.hintKey ? t(opt.hintKey) : '';
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedAspect(opt.value);
+                                      setAspectInput('');
+                                      setDropdownAspectOpen(false);
+                                    }}
+                                    className={`flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-gray-100 ${selectedAspect === opt.value ? 'font-medium text-gray-900' : 'text-gray-700'}`}
+                                  >
+                                    <span>{opt.label}</span>
+                                    {hint && <span className="text-[10px] text-gray-400">{hint}</span>}
+                                  </button>
+                                );
+                              })}
                             </div>
                           ) : null;
                         })()}
@@ -714,13 +722,13 @@ export default function SearchButton() {
 
                   {/* Правая колонка: ЦВЕТА */}
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-gray-600">Поиск по цвету</label>
+                    <label className="mb-2 block text-xs font-medium text-gray-600">{t('search.modal.colorLabel')}</label>
 
 
                     {/* Выбор цветов */}
                     <div>
                       <p className="mb-2 text-[11px] text-gray-500">
-                        Выберите цвета — найдутся картинки, где эти цвета присутствуют в любой позиции палитры.
+                        {t('search.modal.colorHint')}
                       </p>
 
                       {/* 5 слотов для выбранных цветов */}
@@ -735,7 +743,7 @@ export default function SearchButton() {
                                 : 'border-dashed border-gray-300'
                                 }`}
                               style={{ backgroundColor: hexColor || '#f9fafb' }}
-                              title={hexColor ? `${hexColor} — нажмите чтобы удалить` : `Слот ${slotIdx + 1}`}
+                              title={hexColor ? t('search.modal.slotRemoveHint', { hex: hexColor }) : t('search.modal.slotN', { n: slotIdx + 1 })}
                               onClick={() => {
                                 if (hexColor) {
                                   setSimpleSelectedColors((prev) => prev.filter((_, i) => i !== slotIdx));
@@ -755,7 +763,7 @@ export default function SearchButton() {
                             type="button"
                             onClick={() => setSimpleSelectedColors([])}
                             className="ml-2 text-[10px] text-gray-400 hover:text-gray-600"
-                            title="Очистить все"
+                            title={t('search.modal.clearAll')}
                           >
                             ✕
                           </button>
@@ -772,7 +780,7 @@ export default function SearchButton() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                         >
-                          Палитра
+                          {t('search.modal.tabPalette')}
                         </button>
                         <button
                           type="button"
@@ -822,7 +830,7 @@ export default function SearchButton() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                         >
-                          Цветовая карта
+                          {t('search.modal.tabColorMap')}
                         </button>
                       </div>
 
@@ -843,7 +851,7 @@ export default function SearchButton() {
                                     : 'border-gray-200 hover:border-gray-400'
                                     }`}
                                   style={{ backgroundColor: color.hex }}
-                                  title={color.label}
+                                  title={t(`color.${color.id}` as DictKey)}
                                 />
                               );
                             })}
@@ -857,7 +865,7 @@ export default function SearchButton() {
                               className="mt-1 flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
                             >
                               <span>{showShades ? '▲' : '▼'}</span>
-                              <span>{showShades ? 'Скрыть оттенки' : 'Оттенки'}</span>
+                              <span>{showShades ? t('search.modal.shadesHide') : t('search.modal.shadesShow')}</span>
                             </button>
                           )}
 
@@ -874,7 +882,7 @@ export default function SearchButton() {
                                     <div
                                       className="h-5 w-5 rounded-full border-2 border-gray-900 flex-shrink-0"
                                       style={{ backgroundColor: baseColor.hex }}
-                                      title={baseColor.label}
+                                      title={t(`color.${baseColor.id}` as DictKey)}
                                     />
                                     {/* Оттенки в строку */}
                                     <div className="flex gap-1">
@@ -890,7 +898,7 @@ export default function SearchButton() {
                                               : 'border-gray-200 hover:border-gray-400'
                                               }`}
                                             style={{ backgroundColor: shadeHex }}
-                                            title={`${baseColor.label} оттенок ${idx + 1}`}
+                                            title={`${t(`color.${baseColor.id}` as DictKey)} ${idx + 1}`}
                                           />
                                         );
                                       })}
@@ -909,9 +917,9 @@ export default function SearchButton() {
                           {/* Переключатель вариантов */}
                           <div className="flex justify-center gap-1.5">
                             {([
-                              ['spectrum', 'Спектр'],
-                              ['heatmap', 'Тепловая'],
-                              ['bubbles', 'Пузырьки'],
+                              ['spectrum', t('search.modal.viewSpectrum')],
+                              ['heatmap', t('search.modal.viewHeatmap')],
+                              ['bubbles', t('search.modal.viewBubbles')],
                             ] as [ColorMapView, string][]).map(([key, label]) => (
                               <button
                                 key={key}
@@ -935,7 +943,7 @@ export default function SearchButton() {
                           )}
 
                           {!colorMapLoading && colorMapData.length === 0 && colorMapLoaded && (
-                            <p className="text-center text-xs text-gray-400 py-4">Нет данных о цветах</p>
+                            <p className="text-center text-xs text-gray-400 py-4">{t('search.modal.noColorData')}</p>
                           )}
 
                           {!colorMapLoading && colorMapData.length > 0 && (
@@ -1038,7 +1046,7 @@ export default function SearchButton() {
                                             type="button"
                                             className="h-full hover:brightness-110 transition-all"
                                             style={{ flex: 1, background: 'transparent' }}
-                                            title={seg.totalCount > 0 ? `${seg.colors.length} цветов, ${seg.totalCount} изобр.` : ''}
+                                            title={seg.totalCount > 0 ? `${seg.colors.length} · ${t('search.modal.cellImages', { n: seg.totalCount })}` : ''}
                                             onClick={() => {
                                               const best = [...seg.colors].sort((a, b) => b.count - a.count)[0];
                                               if (best && !simpleSelectedColors.includes(best.hex) && simpleSelectedColors.length < 5) {
@@ -1082,7 +1090,7 @@ export default function SearchButton() {
                                             type="button"
                                             className="h-full transition-all hover:bg-white/20"
                                             style={{ flex: 1 }}
-                                            title={seg.totalCount > 0 ? `${seg.totalCount} изобр.` : ''}
+                                            title={seg.totalCount > 0 ? t('search.modal.cellImages', { n: seg.totalCount }) : ''}
                                             onClick={() => {
                                               const best = [...seg.colors].sort((a, b) => b.count - a.count)[0];
                                               if (best && !simpleSelectedColors.includes(best.hex) && simpleSelectedColors.length < 5) {
@@ -1095,7 +1103,7 @@ export default function SearchButton() {
                                     </div>
 
                                     <p className="text-center text-[10px] text-gray-400 mt-1">
-                                      График показывает количество контента по цветам. Нажмите, чтобы искать.
+                                      {t('search.modal.spectrumHint')}
                                     </p>
                                   </div>
                                 );
@@ -1142,7 +1150,20 @@ export default function SearchButton() {
                                   }
                                 }
 
-                                const hueLabels = ['Кр', 'Ор', 'Жл', 'Зл', 'Зл', 'Бр', 'Гл', 'Сн', 'Ин', 'Фл', 'Рз', 'Рз'];
+                                const hueLabels = [
+                                  t('hueShort.red'),
+                                  t('hueShort.orange'),
+                                  t('hueShort.yellow'),
+                                  t('hueShort.green'),
+                                  t('hueShort.green'),
+                                  t('hueShort.teal'),
+                                  t('hueShort.cyan'),
+                                  t('hueShort.blue'),
+                                  t('hueShort.indigo'),
+                                  t('hueShort.purple'),
+                                  t('hueShort.pink'),
+                                  t('hueShort.pink'),
+                                ];
 
                                 return (
                                   <div className="flex flex-col gap-1.5">
@@ -1165,7 +1186,7 @@ export default function SearchButton() {
                                               opacity: cell.count > 0 ? 0.3 + intensity * 0.7 : 0.3,
                                               boxShadow: cell.count > 0 ? `inset 0 0 0 1px rgba(255,255,255,0.2)` : 'none',
                                             }}
-                                            title={cell.count > 0 ? `${cell.dominantHex} — ${cell.count} изобр.` : hueLabels[hIdx]}
+                                            title={cell.count > 0 ? `${cell.dominantHex} — ${t('search.modal.cellImages', { n: cell.count })}` : hueLabels[hIdx]}
                                           />
                                         );
                                       })}
@@ -1176,7 +1197,7 @@ export default function SearchButton() {
                                       ))}
                                     </div>
                                     <p className="text-center text-[10px] text-gray-400">
-                                      Яркость ячейки = количество контента. По горизонтали — оттенок, по вертикали — светлота.
+                                      {t('search.modal.heatmapHint')}
                                     </p>
                                   </div>
                                 );
@@ -1187,14 +1208,14 @@ export default function SearchButton() {
                                 const maxCount = Math.max(...colorMapData.map(c => c.count));
                                 // Группируем по hue-секторам для кластеризации
                                 const HUE_GROUPS = [
-                                  { label: 'Красные', from: 345, to: 15 },
-                                  { label: 'Оранжевые', from: 15, to: 45 },
-                                  { label: 'Жёлтые', from: 45, to: 70 },
-                                  { label: 'Зелёные', from: 70, to: 160 },
-                                  { label: 'Бирюзовые', from: 160, to: 200 },
-                                  { label: 'Синие', from: 200, to: 260 },
-                                  { label: 'Фиолетовые', from: 260, to: 310 },
-                                  { label: 'Розовые', from: 310, to: 345 },
+                                  { label: t('hueGroup.red'), from: 345, to: 15 },
+                                  { label: t('hueGroup.orange'), from: 15, to: 45 },
+                                  { label: t('hueGroup.yellow'), from: 45, to: 70 },
+                                  { label: t('hueGroup.green'), from: 70, to: 160 },
+                                  { label: t('hueGroup.teal'), from: 160, to: 200 },
+                                  { label: t('hueGroup.blue'), from: 200, to: 260 },
+                                  { label: t('hueGroup.purple'), from: 260, to: 310 },
+                                  { label: t('hueGroup.pink'), from: 310, to: 345 },
                                 ];
 
                                 const inRange = (h: number, from: number, to: number) => {
@@ -1217,7 +1238,7 @@ export default function SearchButton() {
                                   .sort((a, b) => b.count - a.count)
                                   .slice(0, 6);
                                 if (neutrals.length > 0) {
-                                  groups.push({ label: 'Нейтральные', colors: neutrals });
+                                  groups.push({ label: t('hueGroup.neutral'), colors: neutrals });
                                 }
 
                                 return (
@@ -1244,7 +1265,7 @@ export default function SearchButton() {
                                                   height: size,
                                                   boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
                                                 }}
-                                                title={`${c.hex} — ${c.count} изобр.`}
+                                                title={`${c.hex} — ${t('search.modal.cellImages', { n: c.count })}`}
                                               />
                                             );
                                           })}
@@ -1252,7 +1273,7 @@ export default function SearchButton() {
                                       </div>
                                     ))}
                                     <p className="text-center text-[10px] text-gray-400">
-                                      Размер пузырька = популярность цвета. Нажмите для поиска.
+                                      {t('search.modal.bubblesHint')}
                                     </p>
                                   </div>
                                 );
@@ -1275,7 +1296,7 @@ export default function SearchButton() {
                         onClick={resetAll}
                         className="rounded-full border px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
                       >
-                        Сбросить
+                        {t('common.reset')}
                       </button>
                       <button
                         type="button"
@@ -1283,7 +1304,7 @@ export default function SearchButton() {
                         disabled={semanticLoading}
                         className="rounded-full bg-gray-900 px-3 py-1 text-xs text-white hover:bg-gray-800 disabled:opacity-50"
                       >
-                        Найти
+                        {t('common.find')}
                       </button>
                     </div>
                   </div>

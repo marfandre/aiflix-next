@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useT } from '@/lib/i18n/I18nProvider';
+import Avatar from './Avatar';
 
 /**
  * Выпадающее меню профиля с пунктами:
@@ -16,6 +17,7 @@ export default function ProfileDropdown() {
     const t = useT();
     const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [username, setUsername] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -26,15 +28,14 @@ export default function ProfileDropdown() {
             setIsAuthed(!!user);
 
             if (user) {
-                // Загружаем аватар из profiles
-                const { data: profile, error } = await supabase
+                const { data: profile } = await supabase
                     .from('profiles')
-                    .select('avatar_url')
+                    .select('avatar_url, username')
                     .eq('id', user.id)
                     .maybeSingle();
 
-                console.log('ProfileDropdown avatar load:', { userId: user.id, profile, error });
                 setAvatarUrl(profile?.avatar_url || null);
+                setUsername(profile?.username || user.email || null);
             }
         }
 
@@ -44,6 +45,7 @@ export default function ProfileDropdown() {
             setIsAuthed(!!session?.user);
             if (!session?.user) {
                 setAvatarUrl(null);
+                setUsername(null);
             }
         });
 
@@ -94,30 +96,7 @@ export default function ProfileDropdown() {
                 onClick={() => setOpen(!open)}
                 className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-100 transition"
             >
-                {/* Аватар или placeholder */}
-                {avatarUrl ? (
-                    <img
-                        src={avatarUrl}
-                        alt={t('menu.avatarAlt')}
-                        className="h-7 w-7 rounded-full object-cover"
-                    />
-                ) : (
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-gray-300 bg-gray-100">
-                        <svg
-                            className="h-4 w-4 text-gray-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={1.5}
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                            />
-                        </svg>
-                    </div>
-                )}
+                <Avatar src={avatarUrl} name={username} size={28} />
                 <svg
                     className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
                     fill="none"

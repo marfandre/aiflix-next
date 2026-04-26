@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 
 type Tag = {
     id: string;
@@ -23,24 +24,24 @@ interface TagSelectorProps {
     placeholder?: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-    genre: "жанр",
-    mood: "атмосфера",
-    scene: "сцена",
-};
-
-const CATEGORY_LABELS_FULL: Record<string, string> = {
-    genre: "Жанры",
-    mood: "Атмосфера",
-    scene: "Сцена",
-};
-
 export default function TagSelector({
     selectedTags,
     onTagsChange,
     maxTags = 10,
-    placeholder = "Введите тег...",
+    placeholder,
 }: TagSelectorProps) {
+    const { t, locale } = useI18n();
+    const effectivePlaceholder = placeholder ?? t('search.modal.tagsPlaceholder');
+    const CATEGORY_LABELS: Record<string, string> = {
+        genre: t('tags.cat.short.genre'),
+        mood: t('tags.cat.short.mood'),
+        scene: t('tags.cat.short.scene'),
+    };
+    const CATEGORY_LABELS_FULL: Record<string, string> = {
+        genre: t('tags.cat.full.genre'),
+        mood: t('tags.cat.full.mood'),
+        scene: t('tags.cat.full.scene'),
+    };
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [tagsData, setTagsData] = useState<TagsData | null>(null);
@@ -172,10 +173,10 @@ export default function TagSelector({
     };
 
     const getTagDisplayName = (tagWithLang: string): string => {
-        const { tagId, lang } = parseTagWithLang(tagWithLang);
+        const { tagId } = parseTagWithLang(tagWithLang);
         const tag = tagsData?.all.find((t) => t.id === tagId);
         if (!tag) return tagId;
-        return lang === 'en' ? tag.name_en : tag.name_ru;
+        return locale === 'en' ? tag.name_en : tag.name_ru;
     };
 
     // Подсветка совпадений в тексте
@@ -215,7 +216,13 @@ export default function TagSelector({
         }
     }
 
-    const getDisplayName = (tag: Tag) => preferEnglish ? tag.name_en : tag.name_ru;
+    const getDisplayName = (tag: Tag) => {
+        if (search) {
+            if (hasLatin && !hasCyrillic) return tag.name_en;
+            if (hasCyrillic && !hasLatin) return tag.name_ru;
+        }
+        return locale === 'en' ? tag.name_en : tag.name_ru;
+    };
 
     // Первые 7 результатов для режима поиска
     const searchResults = filteredTags.slice(0, 7);
@@ -259,7 +266,7 @@ export default function TagSelector({
                         setShowAll(false);
                     }}
                     onFocus={() => setIsOpen(true)}
-                    placeholder={selectedTags.length === 0 ? placeholder : ""}
+                    placeholder={selectedTags.length === 0 ? effectivePlaceholder : ""}
                     className="flex-1 min-w-[100px] border-none outline-none bg-transparent text-sm placeholder:text-gray-400"
                 />
             </div>
@@ -269,19 +276,19 @@ export default function TagSelector({
                 <div className="absolute z-50 mt-1 w-full max-h-[320px] overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
                     {loading ? (
                         <div className="px-3 py-4 text-center text-sm text-gray-400">
-                            Загрузка тегов...
+                            {t('tags.loading')}
                         </div>
                     ) : !isSearching && !showAll ? (
                         // Начальное состояние
                         <div className="px-3 py-4 text-center text-sm text-gray-400">
-                            Введите название тега для поиска
+                            {t('tags.searchHint')}
                         </div>
                     ) : isSearching && !showAll ? (
                         // Режим поиска: простой список из 7 элементов
                         <>
                             {searchResults.length === 0 ? (
                                 <div className="px-3 py-4 text-center">
-                                    <p className="text-sm text-gray-400 mb-2">Теги не найдены</p>
+                                    <p className="text-sm text-gray-400 mb-2">{t('tags.notFound')}</p>
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -290,7 +297,7 @@ export default function TagSelector({
                                         }}
                                         className="text-xs text-gray-600 hover:text-gray-900"
                                     >
-                                        Все теги →
+                                        {t('tags.allTags')}
                                     </button>
                                 </div>
                             ) : (
@@ -338,7 +345,7 @@ export default function TagSelector({
                                             }}
                                             className="text-xs text-gray-500 hover:text-gray-700"
                                         >
-                                            Все теги →
+                                            {t('tags.allTags')}
                                         </button>
                                     </div>
                                 </div>
@@ -353,7 +360,7 @@ export default function TagSelector({
                                     onClick={() => setShowAll(false)}
                                     className="text-xs text-gray-500 hover:text-gray-700"
                                 >
-                                    ← Назад
+                                    ← {t('common.back')}
                                 </button>
                             </div>
 
@@ -394,9 +401,9 @@ export default function TagSelector({
                                                                     ? "bg-gray-50 text-gray-300 cursor-not-allowed"
                                                                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                                                 }`}
-                                                            title={tag.name_ru}
+                                                            title={locale === 'en' ? tag.name_ru : tag.name_en}
                                                         >
-                                                            {tag.name_en}
+                                                            {locale === 'en' ? tag.name_en : tag.name_ru}
                                                         </button>
                                                     );
                                                 })}
@@ -412,14 +419,14 @@ export default function TagSelector({
                     {selectedTags.length > 0 && (
                         <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2">
                             <span className="text-xs text-gray-400">
-                                Выбрано: {selectedTags.length}/{maxTags}
+                                {t('tags.selectedCount', { n: selectedTags.length, max: maxTags })}
                             </span>
                             <button
                                 type="button"
                                 onClick={() => onTagsChange([])}
                                 className="text-xs text-gray-500 hover:text-gray-700"
                             >
-                                Очистить
+                                {t('tags.clear')}
                             </button>
                         </div>
                     )}

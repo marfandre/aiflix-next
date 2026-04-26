@@ -10,19 +10,17 @@ export default async function MyProfileRedirect() {
   const { data: { user } } = await supa.auth.getUser();
   if (!user) redirect('/upload');
 
-  // 2) пробуем найти запись профиля
+  // 2) после триггера on_auth_user_created у каждого юзера есть строка
+  //    в profiles с автогенерированным ником. Если её всё-таки нет
+  //    (например, миграция не применена) — фолбэк на главную.
   const { data: profile } = await supa
     .from('profiles')
     .select('username')
     .eq('id', user.id)
     .maybeSingle();
 
-  // нет строки в profiles или нет ника → на главную, ник можно задать позже из публичного профиля
-  if (!profile) redirect('/');
-
   const username = profile?.username?.trim();
   if (!username) redirect('/');
 
-  // 3) всё ок → публичный профиль
   redirect(`/u/${encodeURIComponent(username)}`);
 }

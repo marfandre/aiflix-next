@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useT } from '@/lib/i18n/I18nProvider';
+import Avatar from './Avatar';
 
 type Props = {
   className?: string;
@@ -167,10 +168,11 @@ export default function EditProfileModal({
 
               {/* Аватар + загрузка файла */}
               <div className="mb-4 flex items-center gap-4">
-                <img
+                <Avatar
                   src={previewUrl}
-                  alt={t('profile.avatarPreviewAlt')}
-                  className="h-16 w-16 rounded-full object-cover ring-1 ring-gray-200"
+                  name={[initialFirst, initialLast].filter(Boolean).join(' ').trim() || initialUsername}
+                  size={64}
+                  ringClassName="ring-1 ring-gray-200"
                 />
                 <div className="flex-1">
                   <label className="mb-1 block text-sm font-medium">{t('profile.newAvatarLabel')}</label>

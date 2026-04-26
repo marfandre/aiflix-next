@@ -10,6 +10,7 @@ import ProfileTabs from './ProfileTabs';
 import EditProfileModal from '@/app/components/EditProfileModal';
 import VideoFeedClient from '@/app/components/VideoFeedClient';
 import ImageFeedClient from '@/app/components/ImageFeedClient';
+import Avatar from '@/app/components/Avatar';
 import { ProfileNotFound, ProfileFallbackName, ProfileUploadCta } from './ProfileHeaderText';
 
 type PageProps = { params: { username: string }; searchParams?: { t?: string } };
@@ -81,10 +82,10 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
       {/* Шапка профиля */}
       <div className="mb-2">
         <div className="flex items-start gap-4">
-          <img
-            src={avatar}
-            alt={nick}
-            className="h-16 w-16 shrink-0 rounded-full object-cover"
+          <Avatar
+            src={profile.avatar_url}
+            name={fullName || nick}
+            size={64}
           />
           <div className="min-w-0">
             <div className="text-lg font-semibold leading-tight">
