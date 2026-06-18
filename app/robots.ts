@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next';
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+import { getBaseUrl } from '@/lib/getBaseUrl';
 
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = getBaseUrl();
+
   return {
     rules: {
       userAgent: '*',
@@ -26,7 +27,7 @@ export default function robots(): MetadataRoute.Robots {
         '/film/*/edit',
       ],
     },
-    host: BASE_URL,
-    sitemap: `${BASE_URL}/sitemap.xml`,
+    host: baseUrl,
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
