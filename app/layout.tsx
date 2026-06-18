@@ -3,10 +3,24 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Header from "./components/Header";
 import { I18nProvider } from "@/lib/i18n/I18nProvider";
+import { getBaseUrl } from "@/lib/getBaseUrl";
 
 export const metadata: Metadata = {
-  title: "WAIVA",
-  description: "AI-generated content",
+  metadataBase: new URL(getBaseUrl()),
+  title: {
+    default: "WAIVA",
+    template: "%s | WAIVA",
+  },
+  description: "Explore AI-generated images and videos with prompts, color palettes, models, creators, and visual discovery tools.",
+  creator: "WAIVA",
+  publisher: "WAIVA",
+  openGraph: {
+    siteName: "WAIVA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({

@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .eq('id', params.id)
     .maybeSingle();
 
-  if (!data) return { title: 'Видео не найдено — Waiva' };
+  if (!data) return { title: 'Video not found' };
 
   const title = (data.title ?? '').trim() || 'AI Video';
   const description = data.prompt ?? data.description ?? `AI-generated video${data.model ? ` by ${data.model}` : ''}`;
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : undefined;
 
   return {
-    title: `${title} — Waiva`,
+    title,
     description,
     openGraph: {
       title,

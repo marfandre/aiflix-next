@@ -10,9 +10,12 @@ import FavoritesTabs from './FavoritesTabs';
 import FavoritesClient from './FavoritesClient';
 import LikeButton from '@/app/components/LikeButton';
 import { FavoritesHeader, FavoritesEmptyVideos } from './FavoritesHeader';
+import { noindexMetadata } from '@/lib/seoMetadata';
 
 type PageProps = { searchParams?: { t?: string } };
 type Tab = 'video' | 'images';
+
+export const metadata = noindexMetadata('Favorites');
 
 const muxPoster = (playback_id?: string | null) =>
     playback_id

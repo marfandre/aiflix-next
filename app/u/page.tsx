@@ -2,6 +2,9 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { noindexMetadata } from '@/lib/seoMetadata';
+
+export const metadata = noindexMetadata('Profile redirect');
 
 export default async function MyProfileRedirect() {
   const supa = createServerComponentClient({ cookies });

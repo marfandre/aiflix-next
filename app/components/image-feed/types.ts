@@ -14,6 +14,7 @@ export type ImageRow = {
   created_at: string | null;
   colors: string[] | null;
   accent_colors?: string[] | null;
+  color_families?: string[] | null;
   color_positions?: ColorPosition[] | null;
   model?: string | null;
   aspect_ratio?: string | null;

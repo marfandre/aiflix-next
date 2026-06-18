@@ -227,11 +227,11 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
   const buildQuery = useCallback((cursor?: string) => {
     // Для цветового поиска добавляем color_families в select для ранжирования.
     // Для витрины добавляем featured_priority — по нему делаем scatter.
-    const selectFields = isColorSearch
+    const selectFields: string = isColorSearch
       ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, color_families, color_weights, color_family_weights, profiles(username, avatar_url)"
       : isFeaturedMode
-        ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, featured_priority, profiles(username, avatar_url)"
-        : "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)";
+        ? "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_families, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, featured_priority, profiles(username, avatar_url)"
+        : "id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_families, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)";
 
     const pageLimit = isFeaturedMode
       ? 200
@@ -429,7 +429,7 @@ export default function ImageFeedClient({ userId, searchParams = {}, initialImag
     try {
       const { data: freshData, error: freshError } = await supa
         .from("images_meta")
-        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)")
+        .select("id, user_id, path, title, description, prompt, created_at, colors, accent_colors, color_families, color_positions, model, aspect_ratio, tags, images_count, source, source_author, source_url, seed, profiles(username, avatar_url)")
         .eq("id", im.id)
         .single();
 

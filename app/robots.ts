@@ -6,9 +6,27 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: '/',
-      disallow: ['/api/', '/auth/'],
+      allow: [
+        '/',
+        '/images',
+        '/images/',
+        '/film',
+        '/film/',
+        '/u',
+        '/u/',
+      ],
+      disallow: [
+        '/api/',
+        '/auth/',
+        '/upload',
+        '/saved',
+        '/favorites',
+        '/profile',
+        '/images/*/edit',
+        '/film/*/edit',
+      ],
     },
+    host: BASE_URL,
     sitemap: `${BASE_URL}/sitemap.xml`,
   };
 }

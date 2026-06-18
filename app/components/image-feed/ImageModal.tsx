@@ -7,6 +7,12 @@ import PromptModal from "../PromptModal";
 import { formatModelName, formatDate } from "./utils";
 import type { ImageRow, ImageVariant } from "./types";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import {
+  imageAspectLandingHref,
+  imageColorLandingHref,
+  imageModelLandingHref,
+  imageTagLandingHref,
+} from "@/app/images/_lib/seoLinks";
 
 type Props = {
   selected: ImageRow;
@@ -61,6 +67,7 @@ export default function ImageModal({
     currentVariant?.colors && currentVariant.colors.length
       ? currentVariant.colors
       : selected.colors ?? [];
+  const colorFamilyAt = (index: number) => selected.color_families?.[index] ?? null;
 
   const hasCarousel = !variantsLoading && variants.length > 1;
 
@@ -656,12 +663,26 @@ export default function ImageModal({
                     {currentColors.map((c, index) => {
                       if (!c) return null;
                       const isActive = modalHoveredColor === index;
+                      const family = colorFamilyAt(index);
+                      const swatchClass = `rounded-full transition-all duration-150 flex-shrink-0 ${isActive ? 'ring-2 ring-white scale-110' : 'ring-1 ring-white/30'}`;
+                      if (family) {
+                        return (
+                          <Link
+                            key={`sheet-${c}-${index}`}
+                            href={imageColorLandingHref(family)}
+                            className={swatchClass}
+                            style={{ backgroundColor: c, width: 32, height: 32 }}
+                            title={`${c} (${family})`}
+                            aria-label={`View ${family} AI images`}
+                          />
+                        );
+                      }
                       return (
                         <button
                           key={`sheet-${c}-${index}`}
                           type="button"
                           onClick={() => setModalHoveredColor(isActive ? null : index)}
-                          className={`rounded-full transition-all duration-150 flex-shrink-0 ${isActive ? 'ring-2 ring-white scale-110' : 'ring-1 ring-white/30'}`}
+                          className={swatchClass}
                           style={{ backgroundColor: c, width: 32, height: 32 }}
                         />
                       );
@@ -720,20 +741,28 @@ export default function ImageModal({
               <div className="flex flex-wrap items-center gap-3">
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.model')}</h3>
-                  <button
-                    type="button"
-                    onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
-                    className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25 cursor-pointer"
-                  >{formatModelName(selected.model)}</button>
+                  {selected.model ? (
+                    <Link
+                      href={imageModelLandingHref(selected.model)}
+                      className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25"
+                    >
+                      {formatModelName(selected.model)}
+                    </Link>
+                  ) : (
+                    <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80">
+                      {formatModelName(selected.model)}
+                    </span>
+                  )}
                 </div>
                 {selected.aspect_ratio && (
                   <div>
                     <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-1">{t('image.format')}</h3>
-                    <button
-                      type="button"
-                      onClick={() => { window.location.href = `/?t=images&aspect=${encodeURIComponent(selected.aspect_ratio || '')}`; }}
-                      className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25 cursor-pointer"
-                    >{selected.aspect_ratio}</button>
+                    <Link
+                      href={imageAspectLandingHref(selected.aspect_ratio)}
+                      className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/80 transition hover:bg-white/25"
+                    >
+                      {selected.aspect_ratio}
+                    </Link>
                   </div>
                 )}
               </div>
@@ -744,12 +773,13 @@ export default function ImageModal({
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.tags')}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {selected.tags.map((t) => (
-                      <button
+                      <Link
                         key={t}
-                        type="button"
-                        onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
-                        className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:bg-white/25 cursor-pointer"
-                      >{renderTagName(t)}</button>
+                        href={imageTagLandingHref(t)}
+                        className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:bg-white/25"
+                      >
+                        {renderTagName(t)}
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -786,10 +816,26 @@ export default function ImageModal({
             {currentColors.map((c, index) => {
               if (!c) return null;
               const isHovered = modalHoveredColor === index;
+              const family = colorFamilyAt(index);
+              const className = `rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white' : 'border border-white/30'}`;
+              if (family) {
+                return (
+                  <Link
+                    key={c + index}
+                    href={imageColorLandingHref(family)}
+                    className={className}
+                    style={{ backgroundColor: c, width: 28, height: 28 }}
+                    title={`${c} (${family})`}
+                    aria-label={`View ${family} AI images`}
+                    onMouseEnter={() => setModalHoveredColor(index)}
+                    onMouseLeave={() => setModalHoveredColor(null)}
+                  />
+                );
+              }
               return (
                 <div
                   key={c + index}
-                  className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white' : 'border border-white/30'}`}
+                  className={className}
                   style={{ backgroundColor: c, width: 28, height: 28 }}
                   title={c}
                   onMouseEnter={() => setModalHoveredColor(index)}
@@ -899,10 +945,26 @@ export default function ImageModal({
                     {currentColors.map((c, i) => {
                       if (!c) return null;
                       const isHovered = modalHoveredColor === i;
+                      const family = colorFamilyAt(i);
+                      const className = `rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white scale-110' : 'border border-white/30'}`;
+                      if (family) {
+                        return (
+                          <Link
+                            key={`panel-color-${c}-${i}`}
+                            href={imageColorLandingHref(family)}
+                            className={className}
+                            style={{ backgroundColor: c, width: 28, height: 28 }}
+                            title={`${c} (${family})`}
+                            aria-label={`View ${family} AI images`}
+                            onMouseEnter={() => setModalHoveredColor(i)}
+                            onMouseLeave={() => setModalHoveredColor(null)}
+                          />
+                        );
+                      }
                       return (
                         <div
                           key={`panel-color-${c}-${i}`}
-                          className={`rounded-full shadow-lg cursor-pointer transition-all duration-150 ${isHovered ? 'border border-white scale-110' : 'border border-white/30'}`}
+                          className={className}
                           style={{ backgroundColor: c, width: 28, height: 28 }}
                           title={c}
                           onMouseEnter={() => setModalHoveredColor(i)}
@@ -968,22 +1030,30 @@ export default function ImageModal({
               {/* Model */}
               <div>
                 <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.model')}</h3>
-                <button
-                  type="button"
-                  onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
-                  className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20 cursor-pointer"
-                >{formatModelName(selected.model)}</button>
+                {selected.model ? (
+                  <Link
+                    href={imageModelLandingHref(selected.model)}
+                    className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20"
+                  >
+                    {formatModelName(selected.model)}
+                  </Link>
+                ) : (
+                  <span className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80">
+                    {formatModelName(selected.model)}
+                  </span>
+                )}
               </div>
 
               {/* Format */}
               {selected.aspect_ratio && (
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.format')}</h3>
-                  <button
-                    type="button"
-                    onClick={() => { window.location.href = `/?t=images&aspect=${encodeURIComponent(selected.aspect_ratio || '')}`; }}
-                    className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20 cursor-pointer"
-                  >{selected.aspect_ratio}</button>
+                  <Link
+                    href={imageAspectLandingHref(selected.aspect_ratio)}
+                    className="inline-block rounded-full bg-white/5 px-3 py-1 text-sm font-mono text-white/80 transition hover:bg-white/20"
+                  >
+                    {selected.aspect_ratio}
+                  </Link>
                 </div>
               )}
 
@@ -993,12 +1063,13 @@ export default function ImageModal({
                   <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.tags')}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {selected.tags.map((t) => (
-                      <button
+                      <Link
                         key={t}
-                        type="button"
-                        onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
-                        className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:bg-white/25 cursor-pointer"
-                      >{renderTagName(t)}</button>
+                        href={imageTagLandingHref(t)}
+                        className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70 transition hover:bg-white/25"
+                      >
+                        {renderTagName(t)}
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -1100,23 +1171,31 @@ export default function ImageModal({
                           {avatar && <img src={avatar} alt={nick} className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40" />}
                           <span className="text-white">{nick}</span>
                         </Link>
-                        <button
-                          type="button"
-                          onClick={() => { window.location.href = `/?t=images&models=${encodeURIComponent(selected.model || '')}`; }}
-                          className="font-mono text-[11px] uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer flex-shrink-0"
-                        >{formatModelName(selected.model)}</button>
+                        {selected.model ? (
+                          <Link
+                            href={imageModelLandingHref(selected.model)}
+                            className="font-mono text-[11px] uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 flex-shrink-0"
+                          >
+                            {formatModelName(selected.model)}
+                          </Link>
+                        ) : (
+                          <span className="font-mono text-[11px] uppercase tracking-wider text-white/70 rounded-full px-2 py-0.5 flex-shrink-0">
+                            {formatModelName(selected.model)}
+                          </span>
+                        )}
                         {barTagCount > 0 && selected.tags && selected.tags.length > 0 && (() => {
                           const visible = selected.tags.slice(0, barTagCount);
                           const remaining = selected.tags.length - visible.length;
                           return (
                             <>
                               {visible.map((t) => (
-                                <button
+                                <Link
                                   key={t}
-                                  type="button"
-                                  onClick={() => { window.location.href = `/?t=images&tags=${encodeURIComponent(t)}`; }}
-                                  className="rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/35 cursor-pointer flex-shrink-0"
-                                >{renderTagName(t)}</button>
+                                  href={imageTagLandingHref(t)}
+                                  className="rounded-full bg-white/20 px-2 py-0.5 transition hover:bg-white/35 flex-shrink-0"
+                                >
+                                  {renderTagName(t)}
+                                </Link>
                               ))}
                               {remaining > 0 && (
                                 <span className="text-white/60 flex-shrink-0">+{remaining}</span>

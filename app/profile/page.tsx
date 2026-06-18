@@ -2,8 +2,10 @@
 import { cookies } from 'next/headers';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { redirect } from 'next/navigation';
+import { noindexMetadata } from '@/lib/seoMetadata';
 
 export const dynamic = 'force-dynamic';
+export const metadata = noindexMetadata('Profile');
 
 export default async function ProfileRedirectPage() {
     const supabase = createServerComponentClient({ cookies });

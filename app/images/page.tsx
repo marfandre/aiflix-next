@@ -1,14 +1,51 @@
 // aiflix/app/images/page.tsx
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
 
 import MediaTabs from '../components/MediaTabs';
 import LikeButton from '../components/LikeButton';
+import {
+  imageAspectLandingHref,
+  imageColorLandingHref,
+  imageModelLandingHref,
+  imageTagLandingHref,
+} from './_lib/seoLinks';
+import { absoluteSiteUrl } from '@/lib/seoMetadata';
 
 // страница должна быть динамической, без кеша
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: 'AI Image Gallery',
+  description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, creators, and color palettes.',
+  alternates: {
+    canonical: absoluteSiteUrl('/images'),
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+    },
+  },
+  openGraph: {
+    title: 'AI Image Gallery',
+    description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, creators, and color palettes.',
+    url: absoluteSiteUrl('/images'),
+    siteName: 'WAIVA',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'AI Image Gallery',
+    description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, creators, and color palettes.',
+  },
+};
 
 export default async function ImagesListPage() {
   const supabase = createServerComponentClient({ cookies });
@@ -27,6 +64,11 @@ export default async function ImagesListPage() {
       created_at,
       title,
       user_id,
+      colors,
+      color_families,
+      model,
+      aspect_ratio,
+      tags,
       profiles (
         username,
         avatar_url
@@ -63,6 +105,10 @@ export default async function ImagesListPage() {
               : row.profiles;
             const nick: string = p?.username ?? 'user';
             const avatar: string | null = p?.avatar_url ?? null;
+            const tags: string[] = row.tags ?? [];
+            const colorFamilies = Array.from(
+              new Set(((row.color_families ?? []) as string[]).filter(Boolean))
+            ).slice(0, 3);
             const title = (row.title ?? '').trim() || 'Картинка';
            
             const url = publicImageUrl(row.path);
@@ -110,6 +156,45 @@ export default async function ImagesListPage() {
                     />
 
                   </div>
+
+                  {(row.model || row.aspect_ratio || tags.length > 0 || colorFamilies.length > 0) && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {row.model && (
+                        <Link
+                          href={imageModelLandingHref(row.model)}
+                          className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-mono text-gray-600 transition hover:bg-gray-200 hover:text-gray-900"
+                        >
+                          {row.model}
+                        </Link>
+                      )}
+                      {row.aspect_ratio && (
+                        <Link
+                          href={imageAspectLandingHref(row.aspect_ratio)}
+                          className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-mono text-gray-600 transition hover:bg-gray-200 hover:text-gray-900"
+                        >
+                          {row.aspect_ratio}
+                        </Link>
+                      )}
+                      {tags.slice(0, 3).map((tag) => (
+                        <Link
+                          key={tag}
+                          href={imageTagLandingHref(tag)}
+                          className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 transition hover:bg-gray-200 hover:text-gray-900"
+                        >
+                          {tag.replace(/:(en|ru)$/i, '').replace(/[_-]+/g, ' ')}
+                        </Link>
+                      ))}
+                      {colorFamilies.map((family) => (
+                        <Link
+                          key={family}
+                          href={imageColorLandingHref(family)}
+                          className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 transition hover:bg-gray-200 hover:text-gray-900"
+                        >
+                          {family}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             );
