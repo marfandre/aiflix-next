@@ -33,7 +33,6 @@ function ImageCard({
   const title = (im.title ?? "").trim() || t('image.fallbackTitle');
   const imagesCount = typeof im.images_count === "number" ? im.images_count : 1;
   const showCarouselBadge = imagesCount > 1;
-  const detailHref = `/images/${encodeURIComponent(im.id)}`;
 
   return (
     <div className="group relative mb-1">
@@ -147,17 +146,6 @@ function ImageCard({
         )}
       </button>
 
-      <Link
-        href={detailHref}
-        onClick={(e) => e.stopPropagation()}
-        className="absolute left-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 shadow-sm transition hover:bg-black/80 focus:opacity-100 group-hover:opacity-100"
-        aria-label={`Open ${title} page`}
-      >
-        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 17 17 7" />
-          <path d="M8 7h9v9" />
-        </svg>
-      </Link>
     </div>
   );
 }
