@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getBaseUrl } from '@/lib/getBaseUrl';
 import { aspectToPathSegment, slugify } from '@/app/images/_lib/seoLinks';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
@@ -218,7 +219,7 @@ export async function GET() {
 
   let profileEntries: string[] = [];
   const authorIds = [...authorLatest.keys()];
-  if (authorIds.length > 0) {
+  if (SHOW_PUBLIC_AUTHOR_IDENTITY && authorIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, username, created_at')

@@ -14,6 +14,7 @@ import ImageFeedClient from '@/app/components/ImageFeedClient';
 import Avatar from '@/app/components/Avatar';
 import { ProfileNotFound, ProfileFallbackName, ProfileUploadCta } from './ProfileHeaderText';
 import { absoluteSiteUrl, noindexMetadata } from '@/lib/seoMetadata';
+import { PUBLIC_CREATOR_LABEL, SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 type PageProps = { params: { username: string }; searchParams?: { t?: string } };
 type Tab = 'video' | 'images';
@@ -68,11 +69,15 @@ function truncateText(value: string, maxLength: number): string {
 }
 
 function profileName(profile: ProfileRow): string {
+  if (!SHOW_PUBLIC_AUTHOR_IDENTITY) return PUBLIC_CREATOR_LABEL;
   const fullName = [profile.first_name, profile.last_name].map(cleanText).filter(Boolean).join(' ');
   return fullName || cleanText(profile.username) || 'WAIVA creator';
 }
 
 function profileDescription(profile: ProfileRow): string {
+  if (!SHOW_PUBLIC_AUTHOR_IDENTITY) {
+    return 'Explore AI-generated images and videos on WAIVA with prompts, models, palettes, and visual inspiration.';
+  }
   const bio = cleanText(profile.bio);
   if (bio) return truncateText(bio, 155);
 
@@ -255,6 +260,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const profile = await getProfileByUsername(supa, params.username);
 
   if (!profile) return noindexMetadata('Profile not found');
+  if (!SHOW_PUBLIC_AUTHOR_IDENTITY) return noindexMetadata('Creator profile');
 
   const name = profileName(profile);
   const nick = cleanText(profile.username);
@@ -342,27 +348,33 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
 
   return (
     <div className="mx-auto max-w-[2000px] p-4 sm:p-6">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
       {/* Шапка профиля */}
       <div className="mb-2">
         <div className="flex items-start gap-4">
-          <Avatar
-            src={profile.avatar_url}
-            name={fullName || nick}
-            size={64}
-          />
-          <div className="min-w-0">
-            <div className="text-lg font-semibold leading-tight">
-              {fullName || nick || <ProfileFallbackName />}
-            </div>
-            {nick && <div className="text-sm text-gray-500">@{nick}</div>}
-            {profile.bio && (
-              <div className="mt-3 max-w-prose text-sm text-gray-700">{profile.bio}</div>
-            )}
-          </div>
+          {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+            <>
+              <Avatar
+                src={profile.avatar_url}
+                name={fullName || nick}
+                size={64}
+              />
+              <div className="min-w-0">
+                <div className="text-lg font-semibold leading-tight">
+                  {fullName || nick || <ProfileFallbackName />}
+                </div>
+                {nick && <div className="text-sm text-gray-500">@{nick}</div>}
+                {profile.bio && (
+                  <div className="mt-3 max-w-prose text-sm text-gray-700">{profile.bio}</div>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="ml-auto shrink-0">
             {isOwn && (

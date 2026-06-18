@@ -11,6 +11,7 @@ import {
   imageModelLandingHref,
   imageTagLandingHref,
 } from '@/app/images/_lib/seoLinks';
+import { PUBLIC_CREATOR_LABEL, SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 type Props = { params: { id: string } };
 
@@ -303,7 +304,7 @@ export default async function ImageViewByIdPage({ params }: Props) {
     'AI art',
     'WAIVA',
   ]);
-  const creatorUrl = nick ? absoluteUrl(`/u/${encodeURIComponent(nick)}`) : undefined;
+  const creatorUrl = SHOW_PUBLIC_AUTHOR_IDENTITY && nick ? absoluteUrl(`/u/${encodeURIComponent(nick)}`) : undefined;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -335,8 +336,8 @@ export default async function ImageViewByIdPage({ params }: Props) {
         datePublished: data.created_at ?? undefined,
         encodingFormat: inferEncodingFormat(data.path),
         representativeOfPage: true,
-        creator: nick ? { '@type': 'Person', name: nick, url: creatorUrl } : undefined,
-        creditText: nick,
+        creator: SHOW_PUBLIC_AUTHOR_IDENTITY && nick ? { '@type': 'Person', name: nick, url: creatorUrl } : { '@type': 'Organization', name: PUBLIC_CREATOR_LABEL },
+        creditText: SHOW_PUBLIC_AUTHOR_IDENTITY ? nick : PUBLIC_CREATOR_LABEL,
         keywords: keywordList.join(', '),
         additionalProperty: [
           modelLabel ? { '@type': 'PropertyValue', name: 'AI model', value: modelLabel } : undefined,
@@ -448,19 +449,21 @@ export default async function ImageViewByIdPage({ params }: Props) {
                 )}
 
                 {/* Автор */}
-                <Link
-                  href={`/u/${encodeURIComponent(nick)}`}
-                  className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
-                >
-                  {avatar && (
-                    <img
-                      src={avatar}
-                      alt={nick}
-                      className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
-                    />
-                  )}
-                  <span className="text-white">{nick}</span>
-                </Link>
+                {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                  <Link
+                    href={`/u/${encodeURIComponent(nick)}`}
+                    className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                  >
+                    {avatar && (
+                      <img
+                        src={avatar}
+                        alt={nick}
+                        className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                      />
+                    )}
+                    <span className="text-white">{nick}</span>
+                  </Link>
+                )}
 
                 {/* Модель */}
                 {rawModel && modelLabel && (

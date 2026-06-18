@@ -7,6 +7,7 @@ import CustomVideoPlayer from "../CustomVideoPlayer";
 import { formatModelName, muxPoster } from "./utils";
 import type { VideoRow } from "./types";
 import { useI18n, useT } from "@/lib/i18n/I18nProvider";
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from "@/lib/publicIdentity";
 
 type Props = {
   selected: VideoRow;
@@ -612,10 +613,12 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
           {/* Collapsed: author + actions + prompt preview */}
           <div className="px-4 pb-3">
             <div className="flex items-center justify-between mb-2">
-              <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-2 min-w-0">
-                {avatar && <img src={avatar} alt={nick} className="h-7 w-7 rounded-full object-cover ring-1 ring-white/30 flex-shrink-0" />}
-                <span className="text-sm text-white font-medium truncate">{nick}</span>
-              </Link>
+              {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-2 min-w-0">
+                  {avatar && <img src={avatar} alt={nick} className="h-7 w-7 rounded-full object-cover ring-1 ring-white/30 flex-shrink-0" />}
+                  <span className="text-sm text-white font-medium truncate">{nick}</span>
+                </Link>
+              )}
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Like */}
@@ -880,13 +883,15 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                 )}
 
                 {/* Author */}
-                <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.author')}</h3>
-                  <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
-                    {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
-                    <span className="text-sm text-white font-medium">{nick}</span>
-                  </Link>
-                </div>
+                {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                  <div>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.author')}</h3>
+                    <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
+                      {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
+                      <span className="text-sm text-white font-medium">{nick}</span>
+                    </Link>
+                  </div>
+                )}
 
                 {/* Model */}
                 <div>
@@ -1017,10 +1022,12 @@ export default function VideoModal({ selected, videos, userId, onClose, onNaviga
                   {t('image.prompt')}
                 </button>
 
-                <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-2 transition hover:opacity-80">
-                  {avatar && <img src={avatar} alt={nick} className="h-5 w-5 rounded-full object-cover ring-1 ring-white/30" />}
-                  <span className="text-white font-medium text-xs">{nick}</span>
-                </Link>
+                {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                  <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-2 transition hover:opacity-80">
+                    {avatar && <img src={avatar} alt={nick} className="h-5 w-5 rounded-full object-cover ring-1 ring-white/30" />}
+                    <span className="text-white font-medium text-xs">{nick}</span>
+                  </Link>
+                )}
 
                 <button type="button" onClick={() => { window.location.href = `/?t=video&models=${encodeURIComponent(selected.model || '')}`; }} className="font-mono text-xs uppercase tracking-wider text-white/70 transition hover:text-white hover:bg-white/20 rounded-full px-2 py-0.5 cursor-pointer">{formatModelName(selected.model)}</button>
               </div>

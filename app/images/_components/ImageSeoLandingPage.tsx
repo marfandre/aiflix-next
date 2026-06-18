@@ -11,6 +11,7 @@ import {
   imageColorLandingHref,
   imageModelLandingHref,
 } from '../_lib/seoLinks';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 type Props = {
   config: LandingConfig;
@@ -144,9 +145,11 @@ export default async function ImageSeoLandingPage({ config }: Props) {
                   </Link>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                    <Link href={`/u/${encodeURIComponent(username)}`} className="hover:text-gray-900 hover:underline">
-                      @{username}
-                    </Link>
+                    {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                      <Link href={`/u/${encodeURIComponent(username)}`} className="hover:text-gray-900 hover:underline">
+                        @{username}
+                      </Link>
+                    )}
                     {image.model && (
                       <Link href={imageModelLandingHref(image.model)} className="font-mono uppercase tracking-wide hover:text-gray-900 hover:underline">
                         {image.model}

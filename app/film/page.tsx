@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import MediaTabs from '../components/MediaTabs';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 type Row = {
   id: string;
@@ -78,7 +79,7 @@ export default async function Page() {
                     {title}
                   </Link>
                   <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="text-gray-700">👤 {nick}</span>
+                    {SHOW_PUBLIC_AUTHOR_IDENTITY && <span className="text-gray-700">👤 {nick}</span>}
                     <span className="text-xs text-gray-500">{dateStr}</span>
                   </div>
                 </div>

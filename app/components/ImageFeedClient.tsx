@@ -5,6 +5,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ImageCard from "./image-feed/ImageCard";
 import ImageModal from "./image-feed/ImageModal";
 import type { ImageRow, ImageVariant, SearchParams } from "./image-feed/types";
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from "@/lib/publicIdentity";
 
 // Responsive column count — совпадает со старым react-masonry-css конфигом
 function colsForWidth(w: number): number {
@@ -33,7 +34,7 @@ type Props = {
 
 const PAGE_SIZE = 40;
 
-export default function ImageFeedClient({ userId, searchParams = {}, initialImages, showAuthor = true, isOwnerView = false, profileId }: Props) {
+export default function ImageFeedClient({ userId, searchParams = {}, initialImages, showAuthor = SHOW_PUBLIC_AUTHOR_IDENTITY, isOwnerView = false, profileId }: Props) {
   const [images, setImages] = useState<ImageRow[]>(initialImages ?? []);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);

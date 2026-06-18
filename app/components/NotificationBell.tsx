@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/I18nProvider';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 type Notification = {
     id: string;
@@ -188,36 +189,42 @@ export default function NotificationBell() {
                                     >
                                         <div className="flex items-start gap-3">
                                             {/* Аватар — ведёт на профиль */}
-                                            <Link
-                                                href={profileHref}
-                                                onClick={() => setOpen(false)}
-                                                className="shrink-0 hover:opacity-80 transition"
-                                            >
-                                                {n.from_user?.avatar_url ? (
-                                                    <img
-                                                        src={n.from_user.avatar_url}
-                                                        alt=""
-                                                        className="h-8 w-8 rounded-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                                        </svg>
-                                                    </div>
-                                                )}
-                                            </Link>
+                                            {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                                                <Link
+                                                    href={profileHref}
+                                                    onClick={() => setOpen(false)}
+                                                    className="shrink-0 hover:opacity-80 transition"
+                                                >
+                                                    {n.from_user?.avatar_url ? (
+                                                        <img
+                                                            src={n.from_user.avatar_url}
+                                                            alt=""
+                                                            className="h-8 w-8 rounded-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                </Link>
+                                            )}
 
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm text-gray-800">
                                                     {/* Никнейм — ведёт на профиль */}
-                                                    <Link
-                                                        href={profileHref}
-                                                        onClick={() => setOpen(false)}
-                                                        className="font-medium hover:underline"
-                                                    >
-                                                        @{fromUsername}
-                                                    </Link>
+                                                    {SHOW_PUBLIC_AUTHOR_IDENTITY ? (
+                                                        <Link
+                                                            href={profileHref}
+                                                            onClick={() => setOpen(false)}
+                                                            className="font-medium hover:underline"
+                                                        >
+                                                            @{fromUsername}
+                                                        </Link>
+                                                    ) : (
+                                                        <span className="font-medium">{t('common.someone')}</span>
+                                                    )}
                                                     {' '}{likeText}
                                                 </p>
                                                 <p className="text-xs text-gray-500 mt-0.5">

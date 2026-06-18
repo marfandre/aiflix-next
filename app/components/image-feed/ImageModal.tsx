@@ -13,6 +13,7 @@ import {
   imageModelLandingHref,
   imageTagLandingHref,
 } from "@/app/images/_lib/seoLinks";
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from "@/lib/publicIdentity";
 
 type Props = {
   selected: ImageRow;
@@ -520,13 +521,15 @@ export default function ImageModal({
           <div className="px-4 pb-3">
             {/* Author + action buttons */}
             <div className="flex items-center justify-between mb-2">
-              <Link
-                href={`/u/${encodeURIComponent(nick)}`}
-                className="flex items-center gap-2 min-w-0"
-              >
-                {avatar && <img src={avatar} alt={nick} className="h-7 w-7 rounded-full object-cover ring-1 ring-white/30 flex-shrink-0" />}
-                <span className="text-sm text-white font-medium truncate">{nick}</span>
-              </Link>
+              {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                <Link
+                  href={`/u/${encodeURIComponent(nick)}`}
+                  className="flex items-center gap-2 min-w-0"
+                >
+                  {avatar && <img src={avatar} alt={nick} className="h-7 w-7 rounded-full object-cover ring-1 ring-white/30 flex-shrink-0" />}
+                  <span className="text-sm text-white font-medium truncate">{nick}</span>
+                </Link>
+              )}
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Like */}
@@ -985,13 +988,15 @@ export default function ImageModal({
               )}
 
               {/* Author */}
-              <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.author')}</h3>
-                <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
-                  {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
-                  <span className="text-sm text-white font-medium">{nick}</span>
-                </Link>
-              </div>
+              {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">{t('image.author')}</h3>
+                  <Link href={`/u/${encodeURIComponent(nick)}`} className="inline-flex items-center gap-2.5 rounded-full bg-white/5 px-3 py-1.5 transition hover:bg-white/10">
+                    {avatar && <img src={avatar} alt={nick} className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30" />}
+                    <span className="text-sm text-white font-medium">{nick}</span>
+                  </Link>
+                </div>
+              )}
 
               {/* Source */}
               {selected.source && (
@@ -1167,10 +1172,12 @@ export default function ImageModal({
                             <span className="text-[10px] text-white/50">{formatDate(selected.created_at)}</span>
                           )}
                         </div>
-                        <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20 flex-shrink-0">
-                          {avatar && <img src={avatar} alt={nick} className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40" />}
-                          <span className="text-white">{nick}</span>
-                        </Link>
+                        {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                          <Link href={`/u/${encodeURIComponent(nick)}`} className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20 flex-shrink-0">
+                            {avatar && <img src={avatar} alt={nick} className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40" />}
+                            <span className="text-white">{nick}</span>
+                          </Link>
+                        )}
                         {selected.model ? (
                           <Link
                             href={imageModelLandingHref(selected.model)}

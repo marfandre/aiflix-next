@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import LikeButton from '@/app/components/LikeButton';
 import { useI18n } from '@/lib/i18n/I18nProvider';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 type ImageItem = {
     id: string;
@@ -186,7 +187,7 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
                                 )}
                             </button>
                             <div className="p-3 flex items-center justify-between">
-                                <span className="text-xs text-gray-500">@{im.username}</span>
+                                {SHOW_PUBLIC_AUTHOR_IDENTITY && <span className="text-xs text-gray-500">@{im.username}</span>}
                                 <LikeButton
                                     target="image"
                                     id={im.id}
@@ -246,12 +247,14 @@ export default function FavoritesClient({ images, currentUserId }: Props) {
 
                                 <div className="space-y-3">
                                     <div className="mt-4 border-t pt-2 text-xs text-gray-500">
-                                        <Link
-                                            href={`/u/${encodeURIComponent(selected.username)}`}
-                                            className="font-medium text-gray-700 hover:underline"
-                                        >
-                                            @{selected.username}
-                                        </Link>
+                                        {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                                            <Link
+                                                href={`/u/${encodeURIComponent(selected.username)}`}
+                                                className="font-medium text-gray-700 hover:underline"
+                                            >
+                                                @{selected.username}
+                                            </Link>
+                                        )}
                                         {selected.created_at && (
                                             <div className="mt-0.5">
                                                 {new Date(selected.created_at).toLocaleDateString(dateLocale)}

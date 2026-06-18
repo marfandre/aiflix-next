@@ -11,6 +11,7 @@ import FavoritesClient from './FavoritesClient';
 import LikeButton from '@/app/components/LikeButton';
 import { FavoritesHeader, FavoritesEmptyVideos } from './FavoritesHeader';
 import { noindexMetadata } from '@/lib/seoMetadata';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 type PageProps = { searchParams?: { t?: string } };
 type Tab = 'video' | 'images';
@@ -112,7 +113,7 @@ export default async function FavoritesPage({ searchParams }: PageProps) {
                                 />
                             </Link>
                             <div className="p-3 flex items-center justify-between">
-                                <div className="text-xs text-gray-500">@{v.username}</div>
+                                {SHOW_PUBLIC_AUTHOR_IDENTITY && <div className="text-xs text-gray-500">@{v.username}</div>}
                                 <LikeButton
                                     target="film"
                                     id={v.id}

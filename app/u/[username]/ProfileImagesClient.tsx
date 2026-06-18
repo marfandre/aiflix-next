@@ -6,6 +6,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import LikeButton from "@/app/components/LikeButton";
 import PromptModal from "@/app/components/PromptModal";
 import { useT } from "@/lib/i18n/I18nProvider";
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from "@/lib/publicIdentity";
 
 type ProfileImage = {
   id: string;
@@ -278,22 +279,24 @@ export default function ProfileImagesClient({
                   })()}
 
                   {/* Никнейм при наведении */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <Link
-                      href={`/u/${encodeURIComponent(nick)}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
-                    >
-                      {avatarUrl && (
-                        <img
-                          src={avatarUrl}
-                          alt={nick}
-                          className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
-                        />
-                      )}
-                      <span className="truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
-                    </Link>
-                  </div>
+                  {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <Link
+                        href={`/u/${encodeURIComponent(nick)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="pointer-events-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-white transition hover:bg-white/20"
+                      >
+                        {avatarUrl && (
+                          <img
+                            src={avatarUrl}
+                            alt={nick}
+                            className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                          />
+                        )}
+                        <span className="truncate text-[11px] font-medium drop-shadow-md">{nick}</span>
+                      </Link>
+                    </div>
+                  )}
 
                   {/* Кнопка лайка при наведении */}
                   <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -441,19 +444,21 @@ export default function ProfileImagesClient({
                         </div>
 
                         {/* Автор */}
-                        <Link
-                          href={`/u/${encodeURIComponent(nick)}`}
-                          className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
-                        >
-                          {avatarUrl && (
-                            <img
-                              src={avatarUrl}
-                              alt={nick}
-                              className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
-                            />
-                          )}
-                          <span className="text-white">{nick}</span>
-                        </Link>
+                        {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                          <Link
+                            href={`/u/${encodeURIComponent(nick)}`}
+                            className="flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-white/20"
+                          >
+                            {avatarUrl && (
+                              <img
+                                src={avatarUrl}
+                                alt={nick}
+                                className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40"
+                              />
+                            )}
+                            <span className="text-white">{nick}</span>
+                          </Link>
+                        )}
 
                         {/* Модель */}
                         <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">

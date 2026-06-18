@@ -2,8 +2,11 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 export default async function PublicProfileLink() {
+  if (!SHOW_PUBLIC_AUTHOR_IDENTITY) return null;
+
   const supa = createServerComponentClient({ cookies });
   const { data: { user } } = await supa.auth.getUser();
   if (!user) return null;

@@ -7,6 +7,7 @@ import Masonry from "react-masonry-css";
 import VideoCard from "./video-feed/VideoCard";
 import VideoModal from "./video-feed/VideoModal";
 import type { VideoRow } from "./video-feed/types";
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from "@/lib/publicIdentity";
 
 type Props = {
   userId: string | null;
@@ -18,7 +19,7 @@ type Props = {
 
 const PAGE_SIZE = 40;
 
-export default function VideoFeedClient({ userId, initialVideos, showAuthor = true, isOwnerView = false, profileId }: Props) {
+export default function VideoFeedClient({ userId, initialVideos, showAuthor = SHOW_PUBLIC_AUTHOR_IDENTITY, isOwnerView = false, profileId }: Props) {
   const [videos, setVideos] = useState<VideoRow[]>(initialVideos ?? []);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);

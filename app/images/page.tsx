@@ -13,6 +13,7 @@ import {
   imageTagLandingHref,
 } from './_lib/seoLinks';
 import { absoluteSiteUrl } from '@/lib/seoMetadata';
+import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 // страница должна быть динамической, без кеша
 export const dynamic = 'force-dynamic';
@@ -134,19 +135,21 @@ export default async function ImagesListPage() {
                   
 
                   <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                    <Link
-                      href={`/u/${encodeURIComponent(nick)}`}
-                      className="flex min-w-0 items-center gap-2 hover:underline"
-                    >
-                      {avatar && (
-                        <img
-                          src={avatar}
-                          alt={nick}
-                          className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-gray-300"
-                        />
-                      )}
-                      <span className="truncate">@{nick}</span>
-                    </Link>
+                    {SHOW_PUBLIC_AUTHOR_IDENTITY && (
+                      <Link
+                        href={`/u/${encodeURIComponent(nick)}`}
+                        className="flex min-w-0 items-center gap-2 hover:underline"
+                      >
+                        {avatar && (
+                          <img
+                            src={avatar}
+                            alt={nick}
+                            className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-gray-300"
+                          />
+                        )}
+                        <span className="truncate">@{nick}</span>
+                      </Link>
+                    )}
 
                     <LikeButton
                       target="image"
