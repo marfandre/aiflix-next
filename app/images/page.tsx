@@ -14,6 +14,7 @@ import {
 } from './_lib/seoLinks';
 import { absoluteSiteUrl } from '@/lib/seoMetadata';
 import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
+import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME } from '@/lib/siteSeo';
 
 // страница должна быть динамической, без кеша
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,8 @@ export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: 'AI Image Gallery',
-  description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, creators, and color palettes.',
+  description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, styles, and color palettes.',
+  keywords: SITE_KEYWORDS,
   alternates: {
     canonical: absoluteSiteUrl('/images'),
   },
@@ -36,17 +38,101 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'AI Image Gallery',
-    description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, creators, and color palettes.',
+    description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, styles, and color palettes.',
     url: absoluteSiteUrl('/images'),
-    siteName: 'WAIVA',
+    siteName: SITE_NAME,
     type: 'website',
   },
   twitter: {
     card: 'summary',
     title: 'AI Image Gallery',
-    description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, creators, and color palettes.',
+    description: 'Browse AI-generated images on WAIVA by prompts, models, tags, aspect ratios, styles, and color palettes.',
   },
 };
+
+function cleanText(value?: string | null): string {
+  return (value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function humanizeTag(tag: string): string {
+  return tag.replace(/:(en|ru)$/i, '').replace(/[_-]+/g, ' ').trim();
+}
+
+function publicImageUrl(path: string) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? '';
+  const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+  return `${base}/storage/v1/object/public/images/${encodedPath}`;
+}
+
+function imageTitle(row: any): string {
+  const title = cleanText(row.title);
+  if (title) return title;
+
+  const tags = ((row.tags ?? []) as string[]).map(humanizeTag).filter(Boolean).slice(0, 2);
+  if (tags.length) return `${tags.join(', ')} AI image`;
+  if (row.model) return `${row.model} AI image`;
+  return 'AI image';
+}
+
+function imageAlt(row: any): string {
+  return [
+    imageTitle(row),
+    row.model ? `created with ${row.model}` : 'AI-generated image',
+    row.aspect_ratio ? `${row.aspect_ratio} format` : null,
+    ((row.tags ?? []) as string[]).length ? `tagged ${((row.tags ?? []) as string[]).map(humanizeTag).slice(0, 3).join(', ')}` : null,
+  ].filter(Boolean).join('. ');
+}
+
+function imagesCollectionJsonLd(rows: any[]) {
+  const canonical = absoluteSiteUrl('/images');
+  const itemListElement = rows
+    .filter((row) => row.id && row.path)
+    .slice(0, 60)
+    .map((row, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: absoluteSiteUrl(`/images/${row.id}`),
+      item: {
+        '@type': 'ImageObject',
+        name: imageTitle(row),
+        description: cleanText(row.description) || cleanText(row.prompt) || imageAlt(row),
+        contentUrl: publicImageUrl(row.path),
+        thumbnailUrl: publicImageUrl(row.path),
+        url: absoluteSiteUrl(`/images/${row.id}`),
+      },
+    }));
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': canonical,
+        url: canonical,
+        name: 'AI Image Gallery',
+        description: SITE_DESCRIPTION,
+        isPartOf: {
+          '@type': 'WebSite',
+          name: SITE_NAME,
+          url: absoluteSiteUrl('/'),
+        },
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: rows.length,
+          itemListElement,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${canonical}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: SITE_NAME, item: absoluteSiteUrl('/') },
+          { '@type': 'ListItem', position: 2, name: 'Images', item: canonical },
+        ],
+      },
+    ],
+  };
+}
 
 export default async function ImagesListPage() {
   const supabase = createServerComponentClient({ cookies });
@@ -64,6 +150,8 @@ export default async function ImagesListPage() {
       path,
       created_at,
       title,
+      description,
+      prompt,
       user_id,
       colors,
       color_families,
@@ -76,6 +164,7 @@ export default async function ImagesListPage() {
       )
     `
     )
+    .not('path', 'is', null)
     .order('created_at', { ascending: false })
     .limit(120);
 
@@ -84,12 +173,15 @@ export default async function ImagesListPage() {
   }
 
   const rows = data ?? [];
-
-  const publicImageUrl = (path: string) =>
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${path}`;
+  const jsonLd = imagesCollectionJsonLd(rows);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <div className="mb-6 flex justify-center">
         <MediaTabs />
       </div>
@@ -123,10 +215,12 @@ export default async function ImagesListPage() {
                 <Link
                   href={href}
                   className="block relative aspect-[4/3] bg-gray-100"
+                  aria-label={title}
+                  title={imageTitle(row)}
                 >
                   <img
                     src={url}
-                    alt={title}
+                    alt={imageAlt(row)}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 </Link>

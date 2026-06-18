@@ -359,7 +359,7 @@ export default async function ImageViewByIdPage({ params }: Props) {
             '@type': 'ListItem',
             position: 2,
             name: 'Images',
-            item: absoluteUrl('/?t=images'),
+            item: absoluteUrl('/images'),
           },
           {
             '@type': 'ListItem',
@@ -381,7 +381,7 @@ export default async function ImageViewByIdPage({ params }: Props) {
       {/* Верхняя навигация */}
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <Link
-          href="/?t=images"
+          href="/images"
           className="flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

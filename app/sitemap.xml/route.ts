@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getBaseUrl } from '@/lib/getBaseUrl';
 import { aspectToPathSegment, slugify } from '@/app/images/_lib/seoLinks';
+import { MIN_INDEXABLE_LANDING_IMAGES } from '@/app/images/_lib/seoLanding';
 import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,8 @@ type ImageSitemapRow = {
   user_id: string | null;
   path: string | null;
   title: string | null;
+  description: string | null;
+  prompt: string | null;
   created_at: string | null;
   tags: string[] | null;
   model: string | null;
@@ -31,6 +34,11 @@ type ProfileSitemapRow = {
 };
 
 const MAX_URLS = 5000;
+
+type LandingStats = {
+  lastmod: string | null;
+  count: number;
+};
 
 function xmlEscape(value: string): string {
   return value
@@ -61,6 +69,16 @@ function cleanLandingValue(value: string): string {
   return value.replace(/:(en|ru)$/i, '').trim().toLowerCase();
 }
 
+function humanizeTag(value: string): string {
+  return value.replace(/:(en|ru)$/i, '').replace(/[_-]+/g, ' ').trim();
+}
+
+function truncateText(value: string, maxLength: number): string {
+  const clean = value.replace(/\s+/g, ' ').trim();
+  if (clean.length <= maxLength) return clean;
+  return `${clean.slice(0, Math.max(0, maxLength - 1)).trimEnd()}...`;
+}
+
 function rememberLatest(map: Map<string, string | null>, rawValue: string | null | undefined, date: string | null) {
   if (!rawValue) return;
   const value = cleanLandingValue(rawValue);
@@ -77,6 +95,38 @@ function rememberLatest(map: Map<string, string | null>, rawValue: string | null
   }
 }
 
+function rememberLanding(map: Map<string, LandingStats>, rawValue: string | null | undefined, date: string | null) {
+  if (!rawValue) return;
+  const value = cleanLandingValue(rawValue);
+  if (!value) return;
+
+  const current = map.get(value);
+  if (!current) {
+    map.set(value, { lastmod: date, count: 1 });
+    return;
+  }
+
+  current.count += 1;
+  if (!current.lastmod || (date && new Date(date).getTime() > new Date(current.lastmod).getTime())) {
+    current.lastmod = date;
+  }
+}
+
+function buildImageCaption(image: ImageSitemapRow): string {
+  const direct = image.description || image.prompt;
+  if (direct) return truncateText(direct, 180);
+
+  const tags = (image.tags ?? []).map(humanizeTag).filter(Boolean).slice(0, 4);
+  const parts = [
+    image.title,
+    image.model ? `AI model: ${image.model}` : null,
+    image.aspect_ratio ? `aspect ratio: ${image.aspect_ratio}` : null,
+    tags.length ? `tags: ${tags.join(', ')}` : null,
+  ].filter((part): part is string => !!part);
+
+  return truncateText(parts.join('. ') || 'AI-generated image on WAIVA', 180);
+}
+
 function urlEntry({
   loc,
   lastmod,
@@ -88,13 +138,14 @@ function urlEntry({
   lastmod: string;
   changefreq: 'daily' | 'weekly' | 'monthly';
   priority: string;
-  image?: { loc: string; title?: string | null };
+  image?: { loc: string; title?: string | null; caption?: string | null };
 }): string {
   const imageXml = image
     ? `
     <image:image>
       <image:loc>${xmlEscape(image.loc)}</image:loc>${image.title ? `
-      <image:title>${xmlEscape(image.title)}</image:title>` : ''}
+      <image:title>${xmlEscape(image.title)}</image:title>` : ''}${image.caption ? `
+      <image:caption>${xmlEscape(image.caption)}</image:caption>` : ''}
     </image:image>`
     : '';
 
@@ -130,7 +181,7 @@ export async function GET() {
 
   const { data: images, error } = await supabase
     .from('images_meta')
-    .select('id, user_id, path, title, created_at, tags, model, color_families, aspect_ratio')
+    .select('id, user_id, path, title, description, prompt, created_at, tags, model, color_families, aspect_ratio')
     .not('path', 'is', null)
     .order('created_at', { ascending: false })
     .limit(MAX_URLS);
@@ -161,52 +212,53 @@ export async function GET() {
         image: {
           loc: publicImageUrl(image.path as string),
           title: image.title,
+          caption: buildImageCaption(image),
         },
       })
     );
 
   const landingRows = ((images ?? []) as ImageSitemapRow[]).filter((image) => image.id && image.path);
-  const tags = new Map<string, string | null>();
-  const models = new Map<string, string | null>();
-  const colors = new Map<string, string | null>();
-  const aspects = new Map<string, string | null>();
+  const tags = new Map<string, LandingStats>();
+  const models = new Map<string, LandingStats>();
+  const colors = new Map<string, LandingStats>();
+  const aspects = new Map<string, LandingStats>();
 
   for (const image of landingRows) {
-    for (const tag of image.tags ?? []) rememberLatest(tags, tag, image.created_at);
-    rememberLatest(models, image.model, image.created_at);
-    for (const family of image.color_families ?? []) rememberLatest(colors, family, image.created_at);
-    rememberLatest(aspects, image.aspect_ratio, image.created_at);
+    for (const tag of image.tags ?? []) rememberLanding(tags, tag, image.created_at);
+    rememberLanding(models, image.model, image.created_at);
+    for (const family of image.color_families ?? []) rememberLanding(colors, family, image.created_at);
+    rememberLanding(aspects, image.aspect_ratio, image.created_at);
   }
 
   const landingEntries = [
-    ...[...tags.entries()].map(([tag, modified]) =>
+    ...[...tags.entries()].filter(([, stats]) => stats.count >= MIN_INDEXABLE_LANDING_IMAGES).map(([tag, stats]) =>
       urlEntry({
         loc: absoluteUrl(`/images/tags/${slugify(tag)}`),
-        lastmod: lastModified(modified),
+        lastmod: lastModified(stats.lastmod),
         changefreq: 'weekly',
         priority: '0.6',
       })
     ),
-    ...[...models.entries()].map(([model, modified]) =>
+    ...[...models.entries()].filter(([, stats]) => stats.count >= MIN_INDEXABLE_LANDING_IMAGES).map(([model, stats]) =>
       urlEntry({
         loc: absoluteUrl(`/images/models/${slugify(model)}`),
-        lastmod: lastModified(modified),
+        lastmod: lastModified(stats.lastmod),
         changefreq: 'weekly',
         priority: '0.6',
       })
     ),
-    ...[...colors.entries()].map(([color, modified]) =>
+    ...[...colors.entries()].filter(([, stats]) => stats.count >= MIN_INDEXABLE_LANDING_IMAGES).map(([color, stats]) =>
       urlEntry({
         loc: absoluteUrl(`/images/colors/${slugify(color)}`),
-        lastmod: lastModified(modified),
+        lastmod: lastModified(stats.lastmod),
         changefreq: 'weekly',
         priority: '0.6',
       })
     ),
-    ...[...aspects.entries()].map(([aspect, modified]) =>
+    ...[...aspects.entries()].filter(([, stats]) => stats.count >= MIN_INDEXABLE_LANDING_IMAGES).map(([aspect, stats]) =>
       urlEntry({
         loc: absoluteUrl(`/images/aspect/${aspectToPathSegment(aspect)}`),
-        lastmod: lastModified(modified),
+        lastmod: lastModified(stats.lastmod),
         changefreq: 'weekly',
         priority: '0.6',
       })

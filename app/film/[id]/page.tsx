@@ -21,7 +21,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .eq('id', params.id)
     .maybeSingle();
 
-  if (!data) return { title: 'Video not found' };
+  if (!data) {
+    return {
+      title: 'Video not found',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
 
   const title = (data.title ?? '').trim() || 'AI Video';
   const description = data.prompt ?? data.description ?? `AI-generated video${data.model ? ` by ${data.model}` : ''}`;
@@ -32,6 +40,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    robots: {
+      index: false,
+      follow: false,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+      },
+    },
     openGraph: {
       title,
       description,

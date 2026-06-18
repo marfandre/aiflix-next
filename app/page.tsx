@@ -5,6 +5,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 
 import HomeContent from "./components/HomeContent";
 import { absoluteSiteUrl, noindexFollowMetadata } from "@/lib/seoMetadata";
+import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_TITLE } from "@/lib/siteSeo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -35,18 +36,19 @@ const FILTER_PARAM_KEYS: Array<keyof HomeSearchParams> = [
 ];
 
 export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
-  const isImagesTab = searchParams?.t === "images";
+  const hasTabParam = searchParams?.t === "images" || searchParams?.t === "video";
   const hasFilters = FILTER_PARAM_KEYS.some((key) => !!searchParams?.[key]);
 
-  if (isImagesTab || hasFilters) {
-    return noindexFollowMetadata("WAIVA", isImagesTab ? "/images" : "/");
+  if (hasTabParam || hasFilters) {
+    return noindexFollowMetadata(SITE_TITLE, "/");
   }
 
   return {
     title: {
-      absolute: "WAIVA",
+      absolute: SITE_TITLE,
     },
-    description: "Explore AI-generated images and videos with prompts, color palettes, models, creators, and visual discovery tools.",
+    description: SITE_DESCRIPTION,
+    keywords: SITE_KEYWORDS,
     alternates: {
       canonical: absoluteSiteUrl("/"),
     },
@@ -60,16 +62,18 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
       },
     },
     openGraph: {
-      title: "WAIVA",
-      description: "Explore AI-generated images and videos with prompts, color palettes, models, creators, and visual discovery tools.",
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
       url: absoluteSiteUrl("/"),
-      siteName: "WAIVA",
+      siteName: SITE_NAME,
       type: "website",
+      images: [{ url: absoluteSiteUrl("/logo.png"), alt: SITE_NAME }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "WAIVA",
-      description: "Explore AI-generated images and videos with prompts, color palettes, models, creators, and visual discovery tools.",
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      images: [absoluteSiteUrl("/logo.png")],
     },
   };
 }

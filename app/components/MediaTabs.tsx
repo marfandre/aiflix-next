@@ -13,12 +13,17 @@ export default function MediaTabs() {
   const t = useT();
 
   const currentTab: Tab =
-    searchParams.get('t') === 'images' ? 'images' : 'video';
+    searchParams.get('t') === 'video' ? 'video' : 'images';
 
   const changeTab = (next: Tab) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('t', next);
-    router.push(`/?${params.toString()}`);
+    if (next === 'images') {
+      params.delete('t');
+    } else {
+      params.set('t', next);
+    }
+    const query = params.toString();
+    router.push(query ? `/?${query}` : '/');
   };
 
   return (
@@ -63,4 +68,3 @@ export default function MediaTabs() {
     </div>
   );
 }
-

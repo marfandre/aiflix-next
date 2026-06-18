@@ -12,6 +12,7 @@ import {
   imageModelLandingHref,
 } from '../_lib/seoLinks';
 import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
+import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/siteSeo';
 
 type Props = {
   config: LandingConfig;
@@ -76,9 +77,11 @@ function jsonLdFor(config: LandingConfig, images: LandingImageRow[]) {
         description: config.description,
         isPartOf: {
           '@type': 'WebSite',
-          name: 'WAIVA',
+          name: SITE_NAME,
           url: absoluteUrl('/'),
+          description: SITE_DESCRIPTION,
         },
+        about: `${config.label} AI images`,
         mainEntity: {
           '@type': 'ItemList',
           numberOfItems: images.length,
@@ -110,7 +113,7 @@ export default async function ImageSeoLandingPage({ config }: Props) {
       />
 
       <header className="mx-auto mb-8 max-w-4xl text-center">
-        <Link href="/?t=images" className="text-xs font-medium uppercase tracking-[0.16em] text-gray-500 hover:text-gray-800">
+        <Link href="/images" className="text-xs font-medium uppercase tracking-[0.16em] text-gray-500 hover:text-gray-800">
           Images
         </Link>
         <h1 className="mt-3 text-3xl font-semibold text-gray-950 sm:text-4xl">{config.title}</h1>

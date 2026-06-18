@@ -36,7 +36,7 @@ const SEMANTIC_SEARCH_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SEMANTIC_SEARCH =
 
 export default function HomeContent({ userId, searchParams }: Props) {
   const sp = useSearchParams();
-  const tab = sp.get('t') === 'images' ? 'images' : 'video';
+  const tab = sp.get('t') === 'video' ? 'video' : 'images';
   const t = useT();
 
   const [searchImages, setSearchImages] = useState<ImageRow[] | null>(null);
@@ -77,11 +77,12 @@ export default function HomeContent({ userId, searchParams }: Props) {
           <Link href="/" className="block transition-opacity hover:opacity-80">
             <img
               src="/logo.png"
-              alt="Waiva"
+              alt="WAIVA AI image gallery"
               style={{ width: '484px', height: 'auto', objectFit: 'contain' }}
             />
           </Link>
         </div>
+        <h1 className="sr-only">WAIVA AI Image Gallery</h1>
 
         {/* Поисковая строка — между логотипом и табами.
             Скрыта если NEXT_PUBLIC_ENABLE_SEMANTIC_SEARCH !== '1' (prod деплой). */}

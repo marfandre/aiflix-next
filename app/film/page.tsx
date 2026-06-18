@@ -5,6 +5,9 @@ import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import MediaTabs from '../components/MediaTabs';
 import { SHOW_PUBLIC_AUTHOR_IDENTITY } from '@/lib/publicIdentity';
+import { noindexMetadata } from '@/lib/seoMetadata';
+
+export const metadata = noindexMetadata('AI videos');
 
 type Row = {
   id: string;

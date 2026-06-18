@@ -76,14 +76,14 @@ function profileName(profile: ProfileRow): string {
 
 function profileDescription(profile: ProfileRow): string {
   if (!SHOW_PUBLIC_AUTHOR_IDENTITY) {
-    return 'Explore AI-generated images and videos on WAIVA with prompts, models, palettes, and visual inspiration.';
+    return 'Explore AI-generated images on WAIVA with prompts, models, palettes, and visual inspiration.';
   }
   const bio = cleanText(profile.bio);
   if (bio) return truncateText(bio, 155);
 
   const nick = cleanText(profile.username);
   const name = profileName(profile);
-  return `${name}${nick ? ` (@${nick})` : ''} on WAIVA: AI-generated images and videos with prompts, models, palettes, and visual inspiration.`;
+  return `${name}${nick ? ` (@${nick})` : ''} on WAIVA: AI-generated images with prompts, models, palettes, and visual inspiration.`;
 }
 
 function profileCanonicalPath(profile: ProfileRow): string {
