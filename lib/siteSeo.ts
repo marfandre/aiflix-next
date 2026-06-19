@@ -4,6 +4,7 @@ export const SITE_NAME = 'WAIVA';
 export const SITE_TITLE = 'WAIVA - AI Image Gallery';
 export const SITE_DESCRIPTION =
   'Explore AI-generated images on WAIVA by prompts, AI models, tags, aspect ratios, color palettes, and visual styles.';
+export const SITE_GITHUB_URL = 'https://github.com/marfandre/aiflix-next';
 
 export const SITE_KEYWORDS = [
   'WAIVA',
@@ -36,6 +37,7 @@ export function siteJsonLd() {
         name: SITE_NAME,
         url: home,
         logo: siteUrl('/logo.png'),
+        sameAs: [SITE_GITHUB_URL],
       },
       {
         '@type': 'WebSite',
